@@ -2,15 +2,18 @@
 
 module LLVM.Base
     (
+      -- * Modules
       Module
     , moduleCreateWithName
     , disposeModule
 
+    -- * Types
     , Type
     , addTypeName
     , deleteTypeName
     , getElementType
 
+    -- ** Integer types
     , int1Type
     , int8Type
     , int16Type
@@ -18,11 +21,15 @@ module LLVM.Base
     , int64Type
     , integerType
 
+    -- ** Real types
     , floatType
     , doubleType
     , x86FP80Type
     , fp128Type
     , ppcFP128Type
+
+    -- ** Function types
+    , functionType
 
     -- ** Array, pointer, and vector types
     , pointerType
@@ -38,6 +45,8 @@ module LLVM.Base
     , deleteFunction
     , getNamedFunction
       
+    -- * Constants
+
     -- ** Scalar constants
     , constInt
     , constReal
@@ -48,8 +57,12 @@ module LLVM.Base
     -- ** Constant expressions
     , constBitCast
 
-    -- ** Basic blocks
+    -- * Basic blocks
     , BasicBlock
+    , appendBasicBlock
+    , insertBasicBlock
+    , deleteBasicBlock
+    , getEntryBasicBlock
 
     -- * Instruction building
     , Builder
@@ -57,6 +70,15 @@ module LLVM.Base
     , disposeBuilder
     , positionBefore
     , positionAtEnd
+
+    -- ** Memory
+    , buildGEP
+
+    -- ** Terminators
+    , buildRet
+
+    -- ** Miscellaneous instructions
+    , buildCall
     ) where
 
 import Foreign.C.String (CString)
@@ -99,6 +121,9 @@ foreign import ccall unsafe "LLVMFP128Type" fp128Type :: IO (Ptr Type)
 
 foreign import ccall unsafe "LLVMPPCFP128Type" ppcFP128Type :: IO (Ptr Type)
 
+foreign import ccall unsafe "LLVMFunctionType" functionType
+        :: Ptr Type -> Ptr (Ptr Type) -> CUInt -> Int -> IO (Ptr Type)
+
 foreign import ccall unsafe "LLVMPointerType" pointerType
     :: Ptr Type -> CUInt -> IO (Ptr Type)
 
@@ -127,7 +152,7 @@ foreign import ccall unsafe "LLVMTypeOf" typeOf
     :: Ptr Value -> IO (Ptr Type)
 
 foreign import ccall unsafe "LLVMGetNamedFunction" getNamedFunction
-    :: CString -> IO (Ptr Value)
+    :: Ptr Module -> CString -> IO (Ptr Value)
 
 foreign import ccall unsafe "LLVMAddFunction" addFunction
     :: Ptr Module -> CString -> Ptr Type -> IO (Ptr Value)
@@ -150,6 +175,17 @@ foreign import ccall unsafe "LLVMConstBitCast" constBitCast
 
 data BasicBlock
 
+foreign import ccall unsafe "LLVMAppendBasicBlock" appendBasicBlock
+    :: Ptr Value -> CString -> IO (Ptr BasicBlock)
+
+foreign import ccall unsafe "LLVMInsertBasicBlock" insertBasicBlock
+    :: Ptr BasicBlock -> CString -> IO (Ptr BasicBlock)
+
+foreign import ccall unsafe "LLVMDeleteBasicBlock" deleteBasicBlock
+    :: Ptr BasicBlock -> IO ()
+
+foreign import ccall unsafe "LLVMGetEntryBasicBlock" getEntryBasicBlock
+    :: Ptr Value -> IO (Ptr BasicBlock)
 
 data Builder
 
@@ -164,3 +200,14 @@ foreign import ccall unsafe "LLVMPositionBuilderBefore" positionBefore
 
 foreign import ccall unsafe "LLVMPositionBuilderAtEnd" positionAtEnd
     :: Ptr Builder -> Ptr BasicBlock -> IO ()
+
+foreign import ccall unsafe "LLVMBuildGEP" buildGEP
+        :: Ptr Builder -> Ptr Value -> Ptr (Ptr Value) -> CUInt -> CString
+        -> IO (Ptr Value)
+
+foreign import ccall unsafe "LLVMBuildRet" buildRet
+        :: Ptr Builder -> Ptr Value -> IO (Ptr Value)           
+
+foreign import ccall unsafe "LLVMBuildCall" buildCall
+        :: Ptr Builder -> Ptr Value -> Ptr (Ptr Value) -> CUInt -> CString
+        -> IO (Ptr Value)
