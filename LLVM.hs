@@ -1,3 +1,5 @@
+{-# LANGUAGE TypeSynonymInstances #-}
+
 module LLVM
     (
       Module
@@ -21,18 +23,49 @@ module LLVM
     , fp128Type
     , ppcFP128Type
 
+    -- ** Operations on array, pointer, and vector types
+    , pointerType
+
     , Value
     , addGlobal
     , setInitializer
     , typeOf
+
+    -- ** Operations on functions
+    , addFunction
+    , deleteFunction
     , getNamedFunction
+
+    -- ** Operations on scalar constants
+    , Const(..)
+    , constInt
+    , constWord
+    , constReal
+
+    -- ** Operations on composite constants
+    , constString
+    , constStringNul
+
+    -- ** Constant expressions
+    , constBitCast
+
+    -- ** Basic blocks
+    , BasicBlock
+
+    -- * Instruction building
+    , Builder
+    , createBuilder
+    , positionBefore
+    , positionAtEnd
     ) where
 
 import Control.Applicative ((<$>))
-import Foreign.C.String (withCString)
+import Data.Int (Int64)
+import Data.Word (Word64)
+import Foreign.C.String (withCString, withCStringLen)
 import Foreign.ForeignPtr (ForeignPtr, FinalizerPtr, newForeignPtr,
                            withForeignPtr)
-import Foreign.Ptr (Ptr)
+import Foreign.Ptr (Ptr, nullPtr)
 import System.IO.Unsafe (unsafePerformIO)
 
 import qualified LLVM.Base as Base
@@ -108,6 +141,10 @@ fp128Type = unsafePerformIO $ Type <$> Base.fp128Type
 ppcFP128Type :: Type
 ppcFP128Type = unsafePerformIO $ Type <$> Base.ppcFP128Type
 
+pointerType :: Type -> Int -> Type
+pointerType typ addressSpace = unsafePerformIO $
+    Type <$> Base.pointerType (fromType typ) (fromIntegral addressSpace)
+
 newtype Value = Value {fromValue :: Ptr Base.Value}
 
 addGlobal :: Module -> Type -> String -> IO Value
@@ -123,5 +160,79 @@ setInitializer global const =
 typeOf :: Value -> Type
 typeOf val = unsafePerformIO $ Type <$> Base.typeOf (fromValue val)
 
-getNamedFunction :: String -> IO Value
-getNamedFunction name = withCString name $ fmap Value . Base.getNamedFunction
+addFunction :: Module -> Type -> String -> IO Value
+addFunction mod typ name =
+    withModule mod $ \modPtr ->
+      withCString name $ \namePtr ->
+        Value <$> Base.addFunction modPtr namePtr (fromType typ)
+
+deleteFunction :: Value -> IO ()
+deleteFunction = Base.deleteFunction . fromValue
+
+maybePtr :: (Ptr a -> b) -> Ptr a -> Maybe b
+maybePtr f ptr | ptr /= nullPtr = Just (f ptr)
+               | otherwise = Nothing
+
+getNamedFunction :: String -> IO (Maybe Value)
+getNamedFunction name = withCString name $ \namePtr ->
+    maybePtr Value <$> Base.getNamedFunction namePtr
+
+constWord :: Type -> Word64 -> Value
+constWord typ val = unsafePerformIO $
+    Value <$> Base.constInt (fromType typ) (fromIntegral val) 0
+
+constInt :: Type -> Int64 -> Value
+constInt typ val = unsafePerformIO $
+    Value <$> Base.constInt (fromType typ) (fromIntegral val) 1
+
+constReal :: Type -> Double -> Value
+constReal typ val = unsafePerformIO $
+    Value <$> Base.constReal (fromType typ) (realToFrac val)
+
+constString :: String -> Value
+constString s = unsafePerformIO $
+    withCStringLen s $ \(sPtr, sLen) ->
+      Value <$> Base.constString sPtr (fromIntegral sLen) 1
+
+constStringNul :: String -> Value
+constStringNul s = unsafePerformIO $
+    withCStringLen s $ \(sPtr, sLen) ->
+      Value <$> Base.constString sPtr (fromIntegral sLen) 0
+
+constBitCast :: Type -> Value -> Value
+constBitCast typ val = unsafePerformIO $
+    Value <$> Base.constBitCast (fromValue val) (fromType typ)
+
+class Const a where
+    const :: a -> Value
+
+instance Const String where
+    const = constStringNul
+
+
+newtype BasicBlock = BasicBlock {fromBasicBlock :: Ptr Base.BasicBlock}
+
+
+newtype Builder = Builder {fromBuilder :: ForeignPtr Base.Builder}
+
+withBuilder :: Builder -> (Ptr Base.Builder -> IO a) -> IO a
+withBuilder bld = withForeignPtr (fromBuilder bld)
+
+createBuilder :: IO Builder
+createBuilder = do
+  final <- h2c_builder Base.disposeBuilder
+  ptr <- Base.createBuilder
+  Builder <$> newForeignPtr final ptr
+
+foreign import ccall "wrapper" h2c_builder
+    :: (Ptr Base.Builder -> IO ()) -> IO (FinalizerPtr a)
+
+positionBefore :: Builder -> Value -> IO ()
+positionBefore bld insn =
+    withBuilder bld $ \bldPtr ->
+      Base.positionBefore bldPtr (fromValue insn)
+
+positionAtEnd :: Builder -> BasicBlock -> IO ()
+positionAtEnd bld bblk =
+    withBuilder bld $ \bldPtr ->
+      Base.positionAtEnd bldPtr (fromBasicBlock bblk)

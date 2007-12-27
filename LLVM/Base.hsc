@@ -24,18 +24,46 @@ module LLVM.Base
     , fp128Type
     , ppcFP128Type
 
+    -- ** Array, pointer, and vector types
+    , pointerType
+
     , Value
     , addGlobal
     , deleteGlobal
     , setInitializer
     , typeOf
+
+    -- ** Functions
+    , addFunction
+    , deleteFunction
     , getNamedFunction
+      
+    -- ** Scalar constants
+    , constInt
+    , constReal
+
+    -- ** Composite constants
+    , constString
+
+    -- ** Constant expressions
+    , constBitCast
+
+    -- ** Basic blocks
+    , BasicBlock
+
+    -- * Instruction building
+    , Builder
+    , createBuilder
+    , disposeBuilder
+    , positionBefore
+    , positionAtEnd
     ) where
 
 import Foreign.C.String (CString)
-import Foreign.C.Types (CInt, CUInt)
+import Foreign.C.Types (CDouble, CInt, CUInt, CULLong)
 import Foreign.Ptr (Ptr)
 
+#include <llvm-c/Core.h>
 
 data Module
 
@@ -71,6 +99,9 @@ foreign import ccall unsafe "LLVMFP128Type" fp128Type :: IO (Ptr Type)
 
 foreign import ccall unsafe "LLVMPPCFP128Type" ppcFP128Type :: IO (Ptr Type)
 
+foreign import ccall unsafe "LLVMPointerType" pointerType
+    :: Ptr Type -> CUInt -> IO (Ptr Type)
+
 foreign import ccall unsafe "LLVMAddTypeName" addTypeName
     :: Ptr Module -> CString -> Ptr Type -> IO CInt
 
@@ -97,3 +128,39 @@ foreign import ccall unsafe "LLVMTypeOf" typeOf
 
 foreign import ccall unsafe "LLVMGetNamedFunction" getNamedFunction
     :: CString -> IO (Ptr Value)
+
+foreign import ccall unsafe "LLVMAddFunction" addFunction
+    :: Ptr Module -> CString -> Ptr Type -> IO (Ptr Value)
+
+foreign import ccall unsafe "LLVMDeleteFunction" deleteFunction
+    :: Ptr Value -> IO ()
+
+foreign import ccall unsafe "LLVMConstInt" constInt
+    :: Ptr Type -> CULLong -> CInt -> IO (Ptr Value)
+
+foreign import ccall unsafe "LLVMConstReal" constReal
+    :: Ptr Type -> CDouble -> IO (Ptr Value)
+
+foreign import ccall unsafe "LLVMConstString" constString
+    :: CString -> CUInt -> CInt -> IO (Ptr Value)
+
+foreign import ccall unsafe "LLVMConstBitCast" constBitCast
+    :: Ptr Value -> Ptr Type -> IO (Ptr Value)
+
+
+data BasicBlock
+
+
+data Builder
+
+foreign import ccall unsafe "LLVMCreateBuilder" createBuilder
+    :: IO (Ptr Builder)
+
+foreign import ccall unsafe "LLVMDisposeBuilder" disposeBuilder
+    :: Ptr Builder -> IO ()
+
+foreign import ccall unsafe "LLVMPositionBuilderBefore" positionBefore
+    :: Ptr Builder -> Ptr Value -> IO ()
+
+foreign import ccall unsafe "LLVMPositionBuilderAtEnd" positionAtEnd
+    :: Ptr Builder -> Ptr BasicBlock -> IO ()

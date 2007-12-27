@@ -24,5 +24,10 @@ library
     build-depends: base < 2.0 || >= 2.2, bytestring >= 0.9 
 
   extensions:      ForeignFunctionInterface, CPP
-  ghc-options: -W
+  ghc-options: -W -pgml g++
+  extra-libraries: LLVMCore LLVMSupport LLVMSystem
   exposed-modules: LLVM LLVM.Base
+
+  -- for svn builds
+  include-dirs: /home/bos/include
+  extra-lib-dirs: /home/bos/lib64
