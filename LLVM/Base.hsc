@@ -7,6 +7,11 @@ module LLVM.Base
     , moduleCreateWithName
     , disposeModule
 
+    -- * Module providers
+    , ModuleProvider
+    , createModuleProviderForExistingModule
+    , disposeModuleProvider
+
     -- * Types
     , Type
     , addTypeName
@@ -95,6 +100,15 @@ foreign import ccall unsafe "LLVMModuleCreateWithName" moduleCreateWithName
 foreign import ccall unsafe "LLVMDisposeModule" disposeModule
     :: Ptr Module -> IO ()
 
+
+data ModuleProvider
+
+foreign import ccall unsafe "LLVMCreateModuleProviderForExistingModule"
+    createModuleProviderForExistingModule
+    :: Ptr Module -> IO (Ptr ModuleProvider)
+
+foreign import ccall unsafe "LLVMDisposeModuleProvider" disposeModuleProvider
+    :: Ptr ModuleProvider -> IO ()
 
 data Type
 

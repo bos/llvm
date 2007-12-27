@@ -2,9 +2,13 @@
 
 module LLVM
     (
-      -- * Modules
+    -- * Modules
       Module
     , createModule
+
+    -- * Module providers
+    , ModuleProvider
+    , createModuleProviderForExistingModule
 
     -- * Types
     , Type
@@ -109,6 +113,21 @@ createModule name =
 
 foreign import ccall "wrapper" h2c_module
     :: (Ptr Base.Module -> IO ()) -> IO (FinalizerPtr a)
+
+
+newtype ModuleProvider = ModuleProvider {
+      fromModuleProvider :: ForeignPtr Base.ModuleProvider
+    }
+
+createModuleProviderForExistingModule :: Module -> IO ModuleProvider
+createModuleProviderForExistingModule mod =
+    withModule mod $ \modPtr -> do
+        ptr <- Base.createModuleProviderForExistingModule modPtr
+        final <- h2c_moduleProvider Base.disposeModuleProvider
+        ModuleProvider <$> newForeignPtr final ptr
+
+foreign import ccall "wrapper" h2c_moduleProvider
+    :: (Ptr Base.ModuleProvider -> IO ()) -> IO (FinalizerPtr a)
 
 
 newtype Type = Type {fromType :: Ptr Base.Type}
