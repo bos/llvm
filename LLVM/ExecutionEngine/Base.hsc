@@ -6,6 +6,8 @@ module LLVM.ExecutionEngine.Base
       ExecutionEngine
     , createExecutionEngine
     , disposeExecutionEngine
+    , runStaticConstructors
+    , runStaticDestructors
     ) where
 
 import Foreign.C.String (CString)
@@ -23,4 +25,10 @@ foreign import ccall unsafe "LLVMCreateExecutionEngine" createExecutionEngine
     -> IO CInt
 
 foreign import ccall unsafe "LLVMDisposeExecutionEngine" disposeExecutionEngine
+    :: Ptr ExecutionEngine -> IO ()
+
+foreign import ccall unsafe "LLVMRunStaticConstructors" runStaticConstructors
+    :: Ptr ExecutionEngine -> IO ()
+
+foreign import ccall unsafe "LLVMRunStaticDestructors" runStaticDestructors
     :: Ptr ExecutionEngine -> IO ()

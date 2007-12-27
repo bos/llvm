@@ -31,6 +31,10 @@ library
       LLVM.Base
       LLVM.ExecutionEngine
       LLVM.ExecutionEngine.Base
+      LLVM.Instances
+
+  other-modules:
+      LLVM.Internal
 
   -- for svn builds
   include-dirs: /home/bos/include

@@ -97,12 +97,9 @@ import Foreign.Ptr (Ptr, nullPtr)
 import System.IO.Unsafe (unsafePerformIO)
 
 import qualified LLVM.Base as Base
+import LLVM.Internal (Module(..), withModule, ModuleProvider(..), Type(..))
+import LLVM.Instances ()
 
-
-newtype Module = Module {fromModule :: ForeignPtr Base.Module}
-
-withModule :: Module -> (Ptr Base.Module -> IO a) -> IO a
-withModule mod = withForeignPtr (fromModule mod)
 
 createModule :: String -> IO Module
 createModule name =
@@ -115,10 +112,6 @@ foreign import ccall "wrapper" h2c_module
     :: (Ptr Base.Module -> IO ()) -> IO (FinalizerPtr a)
 
 
-newtype ModuleProvider = ModuleProvider {
-      fromModuleProvider :: ForeignPtr Base.ModuleProvider
-    }
-
 createModuleProviderForExistingModule :: Module -> IO ModuleProvider
 createModuleProviderForExistingModule mod =
     withModule mod $ \modPtr -> do
@@ -129,11 +122,6 @@ createModuleProviderForExistingModule mod =
 foreign import ccall "wrapper" h2c_moduleProvider
     :: (Ptr Base.ModuleProvider -> IO ()) -> IO (FinalizerPtr a)
 
-
-newtype Type = Type {fromType :: Ptr Base.Type}
-
-instance Eq Type where
-    a == b = fromType a == fromType b
 
 addTypeName :: Module -> Type -> String -> IO Bool
 addTypeName mod typ name =
