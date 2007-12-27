@@ -8,6 +8,19 @@ module LLVM
     , deleteTypeName
     , getElementType
 
+    , int1Type
+    , int8Type
+    , int16Type
+    , int32Type
+    , int64Type
+    , integerType
+
+    , floatType
+    , doubleType
+    , x86FP80Type
+    , fp128Type
+    , ppcFP128Type
+
     , Value
     , addGlobal
     , setInitializer
@@ -20,6 +33,7 @@ import Foreign.C.String (withCString)
 import Foreign.ForeignPtr (ForeignPtr, FinalizerPtr, newForeignPtr,
                            withForeignPtr)
 import Foreign.Ptr (Ptr)
+import System.IO.Unsafe (unsafePerformIO)
 
 import qualified LLVM.Base as Base
 
@@ -56,9 +70,43 @@ deleteTypeName mod name =
     withModule mod $ \modPtr ->
       withCString name $ Base.deleteTypeName modPtr
 
-getElementType :: Type -> IO Type
-getElementType typ = Type <$> Base.getElementType (fromType typ)
+getElementType :: Type -> Type
+getElementType typ = unsafePerformIO $
+    Type <$> Base.getElementType (fromType typ)
 
+int1Type :: Type
+int1Type = unsafePerformIO $ Type <$> Base.int1Type
+
+int8Type :: Type
+int8Type = unsafePerformIO $ Type <$> Base.int8Type
+
+int16Type :: Type
+int16Type = unsafePerformIO $ Type <$> Base.int16Type
+
+int32Type :: Type
+int32Type = unsafePerformIO $ Type <$> Base.int32Type
+
+int64Type :: Type
+int64Type = unsafePerformIO $ Type <$> Base.int64Type
+
+integerType :: Int -> Type
+integerType width = unsafePerformIO $
+    Type <$> Base.integerType (fromIntegral width)
+
+floatType :: Type
+floatType = unsafePerformIO $ Type <$> Base.floatType
+
+doubleType :: Type
+doubleType = unsafePerformIO $ Type <$> Base.doubleType
+
+x86FP80Type :: Type
+x86FP80Type = unsafePerformIO $ Type <$> Base.x86FP80Type
+
+fp128Type :: Type
+fp128Type = unsafePerformIO $ Type <$> Base.fp128Type
+
+ppcFP128Type :: Type
+ppcFP128Type = unsafePerformIO $ Type <$> Base.ppcFP128Type
 
 newtype Value = Value {fromValue :: Ptr Base.Value}
 
@@ -72,8 +120,8 @@ setInitializer :: Value -> Value -> IO ()
 setInitializer global const =
     Base.setInitializer (fromValue global) (fromValue const)
 
-typeOf :: Value -> IO Type
-typeOf val = Type <$> Base.typeOf (fromValue val)
+typeOf :: Value -> Type
+typeOf val = unsafePerformIO $ Type <$> Base.typeOf (fromValue val)
 
 getNamedFunction :: String -> IO Value
 getNamedFunction name = withCString name $ fmap Value . Base.getNamedFunction
