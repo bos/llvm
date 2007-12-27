@@ -6,9 +6,13 @@ module LLVM
     , Type
     , addTypeName
     , deleteTypeName
+    , getElementType
 
     , Value
     , addGlobal
+    , setInitializer
+    , typeOf
+    , getNamedFunction
     ) where
 
 import Control.Applicative ((<$>))
@@ -20,7 +24,10 @@ import Foreign.Ptr (Ptr)
 import qualified LLVM.Base as Base
 
 
-newtype Module = Module (ForeignPtr Base.Module)
+newtype Module = Module {fromModule :: ForeignPtr Base.Module}
+
+withModule :: Module -> (Ptr Base.Module -> IO a) -> IO a
+withModule mod = withForeignPtr (fromModule mod)
 
 createModule :: String -> IO Module
 createModule name =
@@ -33,32 +40,40 @@ foreign import ccall "wrapper" h2c_module
     :: (Ptr Base.Module -> IO ()) -> IO (FinalizerPtr a)
 
 
-newtype Type = Type (ForeignPtr Base.Type)
+newtype Type = Type {fromType :: Ptr Base.Type}
 
-addGlobal :: Module -> Type -> String -> IO Value
-addGlobal (Module mod) (Type typ) name =
-    withForeignPtr mod $ \modPtr ->
-      withForeignPtr typ $ \typPtr ->
-        withCString name $ \namePtr -> do
-          ptr <- Base.addGlobal modPtr typPtr namePtr
-          final <- h2c_value Base.deleteGlobal
-          Value <$> newForeignPtr final ptr
+instance Eq Type where
+    a == b = fromType a == fromType b
 
 addTypeName :: Module -> Type -> String -> IO Bool
-addTypeName (Module mod) (Type typ) name =
-    withForeignPtr mod $ \modPtr ->
-      withForeignPtr typ $ \typPtr ->
-        withCString name $ \namePtr ->
-          (/=0) <$> Base.addTypeName modPtr namePtr typPtr
-                 
-foreign import ccall "wrapper" h2c_value
-    :: (Ptr Base.Value -> IO ()) -> IO (FinalizerPtr a)
-
-deleteTypeName :: Module -> String -> IO ()
-deleteTypeName (Module mod) name =
-    withForeignPtr mod $ \modPtr ->
+addTypeName mod typ name =
+    withModule mod $ \modPtr ->
       withCString name $ \namePtr ->
-        Base.deleteTypeName modPtr namePtr
+        (/=0) <$> Base.addTypeName modPtr namePtr (fromType typ)
+                 
+deleteTypeName :: Module -> String -> IO ()
+deleteTypeName mod name =
+    withModule mod $ \modPtr ->
+      withCString name $ Base.deleteTypeName modPtr
+
+getElementType :: Type -> IO Type
+getElementType typ = Type <$> Base.getElementType (fromType typ)
 
 
-newtype Value = Value (ForeignPtr Base.Value)
+newtype Value = Value {fromValue :: Ptr Base.Value}
+
+addGlobal :: Module -> Type -> String -> IO Value
+addGlobal mod typ name =
+    withModule mod $ \modPtr ->
+      withCString name $ \namePtr ->
+        Value <$> Base.addGlobal modPtr (fromType typ) namePtr
+
+setInitializer :: Value -> Value -> IO ()
+setInitializer global const =
+    Base.setInitializer (fromValue global) (fromValue const)
+
+typeOf :: Value -> IO Type
+typeOf val = Type <$> Base.typeOf (fromValue val)
+
+getNamedFunction :: String -> IO Value
+getNamedFunction name = withCString name $ fmap Value . Base.getNamedFunction

@@ -9,12 +9,14 @@ module LLVM.Base
     , Type
     , addTypeName
     , deleteTypeName
-    , typeOf
+    , getElementType
 
     , Value
     , addGlobal
     , deleteGlobal
+    , setInitializer
     , typeOf
+    , getNamedFunction
     ) where
 
 import Foreign.C.String (CString)
@@ -39,6 +41,10 @@ foreign import ccall unsafe "LLVMAddTypeName" addTypeName
 foreign import ccall unsafe "LLVMDeleteTypeName" deleteTypeName
     :: Ptr Module -> CString -> IO ()
 
+foreign import ccall unsafe "LLVMGetElementType" getElementType
+    :: Ptr Type -> IO (Ptr Type)
+
+
 data Value
 
 foreign import ccall unsafe "LLVMAddGlobal" addGlobal
@@ -47,5 +53,11 @@ foreign import ccall unsafe "LLVMAddGlobal" addGlobal
 foreign import ccall unsafe "LLVMDeleteGlobal" deleteGlobal
     :: Ptr Value -> IO ()
 
+foreign import ccall unsafe "LLVMSetInitializer" setInitializer
+    :: Ptr Value -> Ptr Value -> IO ()
+
 foreign import ccall unsafe "LLVMTypeOf" typeOf
     :: Ptr Value -> IO (Ptr Type)
+
+foreign import ccall unsafe "LLVMGetNamedFunction" getNamedFunction
+    :: CString -> IO (Ptr Value)
