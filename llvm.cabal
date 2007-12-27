@@ -1,0 +1,28 @@
+name: llvm
+version: 0.1
+license: BSD4
+license-file: LICENSE
+synopsis: Bindings to the LLVM compiler toolkit
+description: Bindings to the LLVM compiler toolkit
+author: Bryan O'Sullivan
+maintainer: Bryan O'Sullivan <bos@serpentine.com>
+category: Compilers/Interpreters
+cabal-version: >= 1.2.1
+
+flag bytestring-in-base
+  description: bytestring was part of the base library in ghc-6.6
+               days. The bytestring low level interface is in
+               Data.ByteString.Internal and Data.Bytestring.Unsafe not
+               Data.ByteString.Base
+
+library
+  if flag(bytestring-in-base)
+    -- bytestring was in base-2.0 and 2.1.1
+    build-depends: base >= 2.0 && < 2.2
+    cpp-options:   -DBYTESTRING_IN_BASE
+  else
+    build-depends: base < 2.0 || >= 2.2, bytestring >= 0.9 
+
+  extensions:      ForeignFunctionInterface, CPP
+  ghc-options: -W
+  exposed-modules: LLVM LLVM.Base
