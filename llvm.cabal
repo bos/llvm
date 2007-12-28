@@ -43,4 +43,12 @@ library
       LLVM.Core.Instances
       LLVM.Core.Types
       LLVM.ExecutionEngine
-      LLVM.ExecutionEngine.FFI
+      LLVM.ExecutionEngine.Base
+      LLVM.Instances
+
+  other-modules:
+      LLVM.Internal
+
+  -- for svn builds
+  include-dirs: /home/bos/include
+  extra-lib-dirs: /home/bos/lib64
