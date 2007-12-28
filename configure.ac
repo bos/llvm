@@ -12,31 +12,34 @@ AC_ARG_WITH(llvm_prefix,
   llvm_prefix="$withval",
   llvm_prefix=/usr/local)dnl
 
-AC_ARG_WITH(llvm_includedir,
-  [AS_HELP_STRING([--with-llvm-includedir],
-    [use LLVM headers at the given location])],
-  llvm_includedir="$withval",
-  llvm_includedir="$llvm_prefix/include")dnl
+AC_ARG_WITH(llvm_bindir,
+  [AS_HELP_STRING([--with-llvm-bindir],
+    [use LLVM binaries at the given location])],
+  llvm_bindir="$withval",
+  llvm_bindir="$llvm_prefix/bin")dnl
 
-AC_ARG_WITH(llvm_libdir,
-  [AS_HELP_STRING([--with-llvm-libdir],
-    [use LLVM libraries at the given location])],
-  llvm_libdir="$withval",
-  llvm_libdir="$llvm_prefix/lib")dnl
+AC_PATH_PROG(llvm_config, llvm-config,
+  [AC_MSG_ERROR(could not find llvm-config in $llvm_bindir)],
+  [$llvm_bindir])
 
-CPPFLAGS="-I$llvm_includedir $CPPFLAGS"
+llvm_cppflags="`$llvm_config --cppflags`"
+llvm_includedir="`$llvm_config --includedir`"
+llvm_ldflags="`$llvm_config --ldflags`"
+
+CPPFLAGS="$llvm_cppflags $CPPFLAGS"
+LDFLAGS="$llvm_ldflags $LDFLAGS"
 
 AC_CHECK_HEADERS([llvm-c/Core.h], [],
-  [AC_MSG_ERROR(could not find LLVM C bindings in $llvm_includedir/llvm-c)])
+  [AC_MSG_ERROR(could not find LLVM C bindings)])
 
 LIBS="-lLLVMSupport -lLLVMSystem $LIBS"
-LDFLAGS="-L$llvm_libdir $LDFLAGS"
 
 # We have to link using the C++ compiler.
 CC=$CXX
 
-AC_CHECK_LIB(LLVMCore, LLVMModuleCreateWithName)
+AC_CHECK_LIB(LLVMCore, LLVMModuleCreateWithName, [],
+  [AC_MSG_ERROR(could not find LLVM C bindings)])
 
-AC_SUBST([llvm_libdir])
+AC_SUBST([llvm_cppflags llvm_includedir llvm_ldflags])
 
 AC_OUTPUT
