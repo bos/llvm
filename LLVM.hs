@@ -140,8 +140,7 @@ deleteTypeName mod name =
       withCString name $ Base.deleteTypeName modPtr
 
 getElementType :: Type -> Type
-getElementType typ = unsafePerformIO $
-    Type <$> Base.getElementType (fromType typ)
+getElementType = Type . Base.getElementType . fromType
 
 int1Type :: Type
 int1Type = unsafePerformIO $ Type <$> Base.int1Type

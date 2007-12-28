@@ -174,7 +174,7 @@ foreign import ccall unsafe "LLVMDeleteTypeName" deleteTypeName
     :: ModuleRef -> CString -> IO ()
 
 foreign import ccall unsafe "LLVMGetElementType" getElementType
-    :: TypeRef -> IO TypeRef
+    :: TypeRef -> TypeRef
 
 
 data Value
