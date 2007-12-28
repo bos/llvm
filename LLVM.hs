@@ -114,7 +114,7 @@ createModule name =
       Module <$> newForeignPtr final ptr
 
 foreign import ccall "wrapper" h2c_module
-    :: (Ptr Base.Module -> IO ()) -> IO (FinalizerPtr a)
+    :: (Base.ModuleRef -> IO ()) -> IO (FinalizerPtr a)
 
 
 createModuleProviderForExistingModule :: Module -> IO ModuleProvider
@@ -125,7 +125,7 @@ createModuleProviderForExistingModule mod =
         ModuleProvider <$> newForeignPtr final ptr
 
 foreign import ccall "wrapper" h2c_moduleProvider
-    :: (Ptr Base.ModuleProvider -> IO ()) -> IO (FinalizerPtr a)
+    :: (Base.ModuleProviderRef -> IO ()) -> IO (FinalizerPtr a)
 
 
 addTypeName :: Module -> Type -> String -> IO Bool
@@ -308,7 +308,7 @@ instance Const Word64 where
     const = constWord int64Type
 
 
-newtype BasicBlock = BasicBlock {fromBasicBlock :: Ptr Base.BasicBlock}
+newtype BasicBlock = BasicBlock {fromBasicBlock :: Base.BasicBlockRef}
 
 appendBasicBlock :: Value -> String -> IO BasicBlock
 appendBasicBlock func name =
@@ -326,7 +326,7 @@ deleteBasicBlock = Base.deleteBasicBlock . fromBasicBlock
 
 newtype Builder = Builder {fromBuilder :: ForeignPtr Base.Builder}
 
-withBuilder :: Builder -> (Ptr Base.Builder -> IO a) -> IO a
+withBuilder :: Builder -> (Base.BuilderRef -> IO a) -> IO a
 withBuilder bld = withForeignPtr (fromBuilder bld)
 
 createBuilder :: IO Builder
@@ -336,7 +336,7 @@ createBuilder = do
   Builder <$> newForeignPtr final ptr
 
 foreign import ccall "wrapper" h2c_builder
-    :: (Ptr Base.Builder -> IO ()) -> IO (FinalizerPtr a)
+    :: (Base.BuilderRef -> IO ()) -> IO (FinalizerPtr a)
 
 positionBefore :: Builder -> Value -> IO ()
 positionBefore bld insn =

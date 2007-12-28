@@ -4,16 +4,19 @@ module LLVM.Base
     (
       -- * Modules
       Module
+    , ModuleRef
     , moduleCreateWithName
     , disposeModule
 
     -- * Module providers
     , ModuleProvider
+    , ModuleProviderRef
     , createModuleProviderForExistingModule
     , disposeModuleProvider
 
     -- * Types
     , Type
+    , TypeRef
     , addTypeName
     , deleteTypeName
     , getElementType
@@ -44,6 +47,7 @@ module LLVM.Base
     , pointerType
 
     , Value
+    , ValueRef
     , addGlobal
     , deleteGlobal
     , setInitializer
@@ -68,6 +72,7 @@ module LLVM.Base
 
     -- * Basic blocks
     , BasicBlock
+    , BasicBlockRef
     , appendBasicBlock
     , insertBasicBlock
     , deleteBasicBlock
@@ -75,6 +80,7 @@ module LLVM.Base
 
     -- * Instruction building
     , Builder
+    , BuilderRef
     , createBuilder
     , disposeBuilder
     , positionBefore
@@ -97,148 +103,154 @@ import Foreign.Ptr (Ptr)
 #include <llvm-c/Core.h>
 
 data Module
+type ModuleRef = Ptr Module
 
 foreign import ccall unsafe "LLVMModuleCreateWithName" moduleCreateWithName
-    :: CString -> IO (Ptr Module)
+    :: CString -> IO ModuleRef
 
 foreign import ccall unsafe "LLVMDisposeModule" disposeModule
-    :: Ptr Module -> IO ()
+    :: ModuleRef -> IO ()
 
 
 data ModuleProvider
+type ModuleProviderRef = Ptr ModuleProvider
 
 foreign import ccall unsafe "LLVMCreateModuleProviderForExistingModule"
     createModuleProviderForExistingModule
-    :: Ptr Module -> IO (Ptr ModuleProvider)
+    :: ModuleRef -> IO ModuleProviderRef
 
 foreign import ccall unsafe "LLVMDisposeModuleProvider" disposeModuleProvider
-    :: Ptr ModuleProvider -> IO ()
+    :: ModuleProviderRef -> IO ()
 
 
 data Type
+type TypeRef = Ptr Type
 
-foreign import ccall unsafe "LLVMInt1Type" int1Type :: IO (Ptr Type)
+foreign import ccall unsafe "LLVMInt1Type" int1Type :: IO TypeRef
 
-foreign import ccall unsafe "LLVMInt8Type" int8Type :: IO (Ptr Type)
+foreign import ccall unsafe "LLVMInt8Type" int8Type :: IO TypeRef
 
-foreign import ccall unsafe "LLVMInt16Type" int16Type :: IO (Ptr Type)
+foreign import ccall unsafe "LLVMInt16Type" int16Type :: IO TypeRef
 
-foreign import ccall unsafe "LLVMInt32Type" int32Type :: IO (Ptr Type)
+foreign import ccall unsafe "LLVMInt32Type" int32Type :: IO TypeRef
 
-foreign import ccall unsafe "LLVMInt64Type" int64Type :: IO (Ptr Type)
+foreign import ccall unsafe "LLVMInt64Type" int64Type :: IO TypeRef
 
 foreign import ccall unsafe "LLVMIntType" integerType
-    :: CUInt -> IO (Ptr Type)
+    :: CUInt -> IO TypeRef
 
-foreign import ccall unsafe "LLVMFloatType" floatType :: IO (Ptr Type)
+foreign import ccall unsafe "LLVMFloatType" floatType :: IO TypeRef
 
-foreign import ccall unsafe "LLVMDoubleType" doubleType :: IO (Ptr Type)
+foreign import ccall unsafe "LLVMDoubleType" doubleType :: IO TypeRef
 
-foreign import ccall unsafe "LLVMX86FP80Type" x86FP80Type :: IO (Ptr Type)
+foreign import ccall unsafe "LLVMX86FP80Type" x86FP80Type :: IO TypeRef
 
-foreign import ccall unsafe "LLVMFP128Type" fp128Type :: IO (Ptr Type)
+foreign import ccall unsafe "LLVMFP128Type" fp128Type :: IO TypeRef
 
-foreign import ccall unsafe "LLVMPPCFP128Type" ppcFP128Type :: IO (Ptr Type)
+foreign import ccall unsafe "LLVMPPCFP128Type" ppcFP128Type :: IO TypeRef
 
 foreign import ccall unsafe "LLVMFunctionType" functionType
-        :: Ptr Type -> Ptr (Ptr Type) -> CUInt -> Int -> IO (Ptr Type)
+        :: TypeRef -> Ptr TypeRef -> CUInt -> Int -> IO TypeRef
 
 foreign import ccall unsafe "LLVMIsFunctionVarArg" isFunctionVarArg
-        :: Ptr Type -> IO CInt
+        :: TypeRef -> IO CInt
 
 foreign import ccall unsafe "LLVMGetReturnType" getReturnType
-        :: Ptr Type -> IO (Ptr Type)
+        :: TypeRef -> IO TypeRef
 
 foreign import ccall unsafe "LLVMCountParamTypes" countParamTypes
-        :: Ptr Type -> IO CUInt
+        :: TypeRef -> IO CUInt
 
 foreign import ccall unsafe "LLVMGetParamTypes" getParamTypes
-        :: Ptr Type -> Ptr (Ptr Type) -> IO ()
+        :: TypeRef -> Ptr TypeRef -> IO ()
 
 foreign import ccall unsafe "LLVMPointerType" pointerType
-    :: Ptr Type -> CUInt -> IO (Ptr Type)
+    :: TypeRef -> CUInt -> IO TypeRef
 
 foreign import ccall unsafe "LLVMAddTypeName" addTypeName
-    :: Ptr Module -> CString -> Ptr Type -> IO CInt
+    :: ModuleRef -> CString -> TypeRef -> IO CInt
 
 foreign import ccall unsafe "LLVMDeleteTypeName" deleteTypeName
-    :: Ptr Module -> CString -> IO ()
+    :: ModuleRef -> CString -> IO ()
 
 foreign import ccall unsafe "LLVMGetElementType" getElementType
-    :: Ptr Type -> IO (Ptr Type)
+    :: TypeRef -> IO TypeRef
 
 
 data Value
+type ValueRef = Ptr Value
 
 foreign import ccall unsafe "LLVMAddGlobal" addGlobal
-    :: Ptr Module -> Ptr Type -> CString -> IO (Ptr Value)
+    :: ModuleRef -> TypeRef -> CString -> IO ValueRef
 
 foreign import ccall unsafe "LLVMDeleteGlobal" deleteGlobal
-    :: Ptr Value -> IO ()
+    :: ValueRef -> IO ()
 
 foreign import ccall unsafe "LLVMSetInitializer" setInitializer
-    :: Ptr Value -> Ptr Value -> IO ()
+    :: ValueRef -> ValueRef -> IO ()
 
 foreign import ccall unsafe "LLVMTypeOf" typeOf
-    :: Ptr Value -> IO (Ptr Type)
+    :: ValueRef -> IO TypeRef
 
 foreign import ccall unsafe "LLVMGetNamedFunction" getNamedFunction
-    :: Ptr Module -> CString -> IO (Ptr Value)
+    :: ModuleRef -> CString -> IO ValueRef
 
 foreign import ccall unsafe "LLVMAddFunction" addFunction
-    :: Ptr Module -> CString -> Ptr Type -> IO (Ptr Value)
+    :: ModuleRef -> CString -> TypeRef -> IO ValueRef
 
 foreign import ccall unsafe "LLVMDeleteFunction" deleteFunction
-    :: Ptr Value -> IO ()
+    :: ValueRef -> IO ()
 
 foreign import ccall unsafe "LLVMConstInt" constInt
-    :: Ptr Type -> CULLong -> CInt -> IO (Ptr Value)
+    :: TypeRef -> CULLong -> CInt -> IO ValueRef
 
 foreign import ccall unsafe "LLVMConstReal" constReal
-    :: Ptr Type -> CDouble -> IO (Ptr Value)
+    :: TypeRef -> CDouble -> IO ValueRef
 
 foreign import ccall unsafe "LLVMConstString" constString
-    :: CString -> CUInt -> CInt -> IO (Ptr Value)
+    :: CString -> CUInt -> CInt -> IO ValueRef
 
 foreign import ccall unsafe "LLVMConstBitCast" constBitCast
-    :: Ptr Value -> Ptr Type -> IO (Ptr Value)
+    :: ValueRef -> TypeRef -> IO ValueRef
 
 
 data BasicBlock
+type BasicBlockRef = Ptr BasicBlock
 
 foreign import ccall unsafe "LLVMAppendBasicBlock" appendBasicBlock
-    :: Ptr Value -> CString -> IO (Ptr BasicBlock)
+    :: ValueRef -> CString -> IO BasicBlockRef
 
 foreign import ccall unsafe "LLVMInsertBasicBlock" insertBasicBlock
-    :: Ptr BasicBlock -> CString -> IO (Ptr BasicBlock)
+    :: BasicBlockRef -> CString -> IO BasicBlockRef
 
 foreign import ccall unsafe "LLVMDeleteBasicBlock" deleteBasicBlock
-    :: Ptr BasicBlock -> IO ()
+    :: BasicBlockRef -> IO ()
 
 foreign import ccall unsafe "LLVMGetEntryBasicBlock" getEntryBasicBlock
-    :: Ptr Value -> IO (Ptr BasicBlock)
+    :: ValueRef -> IO BasicBlockRef
 
 data Builder
+type BuilderRef = Ptr Builder
 
 foreign import ccall unsafe "LLVMCreateBuilder" createBuilder
-    :: IO (Ptr Builder)
+    :: IO BuilderRef
 
 foreign import ccall unsafe "LLVMDisposeBuilder" disposeBuilder
-    :: Ptr Builder -> IO ()
+    :: BuilderRef -> IO ()
 
 foreign import ccall unsafe "LLVMPositionBuilderBefore" positionBefore
-    :: Ptr Builder -> Ptr Value -> IO ()
+    :: BuilderRef -> ValueRef -> IO ()
 
 foreign import ccall unsafe "LLVMPositionBuilderAtEnd" positionAtEnd
-    :: Ptr Builder -> Ptr BasicBlock -> IO ()
+    :: BuilderRef -> BasicBlockRef -> IO ()
 
 foreign import ccall unsafe "LLVMBuildGEP" buildGEP
-        :: Ptr Builder -> Ptr Value -> Ptr (Ptr Value) -> CUInt -> CString
-        -> IO (Ptr Value)
+        :: BuilderRef -> ValueRef -> Ptr ValueRef -> CUInt -> CString
+        -> IO ValueRef
 
 foreign import ccall unsafe "LLVMBuildRet" buildRet
-        :: Ptr Builder -> Ptr Value -> IO (Ptr Value)           
+        :: BuilderRef -> ValueRef -> IO ValueRef           
 
 foreign import ccall unsafe "LLVMBuildCall" buildCall
-        :: Ptr Builder -> Ptr Value -> Ptr (Ptr Value) -> CUInt -> CString
-        -> IO (Ptr Value)
+        :: BuilderRef -> ValueRef -> Ptr ValueRef -> CUInt -> CString
+        -> IO ValueRef
