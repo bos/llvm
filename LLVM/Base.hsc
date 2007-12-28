@@ -35,6 +35,7 @@ module LLVM.Base
 
     -- ** Function types
     , functionType
+    , isFunctionVarArg
 
     -- ** Array, pointer, and vector types
     , pointerType
@@ -137,6 +138,9 @@ foreign import ccall unsafe "LLVMPPCFP128Type" ppcFP128Type :: IO (Ptr Type)
 
 foreign import ccall unsafe "LLVMFunctionType" functionType
         :: Ptr Type -> Ptr (Ptr Type) -> CUInt -> Int -> IO (Ptr Type)
+
+foreign import ccall unsafe "LLVMIsFunctionVarArg" isFunctionVarArg
+        :: Ptr Type -> IO CInt
 
 foreign import ccall unsafe "LLVMPointerType" pointerType
     :: Ptr Type -> CUInt -> IO (Ptr Type)
