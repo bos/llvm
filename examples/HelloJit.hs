@@ -2,6 +2,7 @@ module HelloJit (main) where
 
 import Data.Int (Int32)
 import qualified LLVM
+import qualified LLVM.ExecutionEngine as EE
 
 defineGlobal :: LLVM.Module -> String -> LLVM.Value -> IO LLVM.Value
 defineGlobal mod name val = do
@@ -25,8 +26,8 @@ defineFunction mod name typ = do
   bblk <- LLVM.appendBasicBlock func "entry"
   return (func, bblk)
 
-main :: IO ()
-main = do
+buildModule :: IO (LLVM.Module, LLVM.Value)
+buildModule = do
   mod <- LLVM.createModule "hello"
   greetz <- defineGlobal mod "greeting" (LLVM.const "hello jit!")
   puts <- declareFunction mod "puts" (LLVM.functionType LLVM.int32Type
@@ -39,4 +40,20 @@ main = do
   tmp <- LLVM.buildGEP bld greetz [zero, zero] "tmp"
   LLVM.buildCall bld puts [tmp] ""
   LLVM.buildRet bld zero
+  return (mod, main)
+
+execute :: LLVM.Module -> LLVM.Value -> IO ()
+execute mod func = do
+  prov <- LLVM.createModuleProviderForExistingModule mod
+  ee <- EE.createExecutionEngine prov
+  {-
+  EE.runStaticConstructors ee
+  EE.runFunction ee func []
+  EE.runStaticDestructors ee
+  -}
+  return ()
+
+main :: IO ()
+main = do
+  buildModule >>= uncurry execute
   print "woo"

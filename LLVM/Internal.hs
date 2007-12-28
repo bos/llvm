@@ -5,6 +5,7 @@ module LLVM.Internal
     , ModuleProvider(..)
     , withModuleProvider
     , Type(..)
+    , Value(..)
     ) where
 
 import Foreign.ForeignPtr (ForeignPtr, withForeignPtr)
@@ -28,3 +29,4 @@ withModuleProvider prov = withForeignPtr (fromModuleProvider prov)
 
 newtype Type = Type {fromType :: Ptr Base.Type}
                           
+newtype Value = Value {fromValue :: Ptr Base.Value}

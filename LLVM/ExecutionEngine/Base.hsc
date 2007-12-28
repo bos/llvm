@@ -2,19 +2,23 @@
 
 module LLVM.ExecutionEngine.Base
     (
-     -- * Execution engines
+    -- * Execution engines
       ExecutionEngine
     , createExecutionEngine
     , disposeExecutionEngine
     , runStaticConstructors
     , runStaticDestructors
+    , runFunction
+
+    -- * Generic values
+    , GenericValue
     ) where
 
 import Foreign.C.String (CString)
-import Foreign.C.Types (CInt)
+import Foreign.C.Types (CInt, CUInt)
 import Foreign.Ptr (Ptr)
 
-import LLVM.Base (ModuleProvider)
+import LLVM.Base (ModuleProvider, Value)
 
 #include <llvm-c/ExecutionEngine.h>
 
@@ -32,3 +36,10 @@ foreign import ccall unsafe "LLVMRunStaticConstructors" runStaticConstructors
 
 foreign import ccall unsafe "LLVMRunStaticDestructors" runStaticDestructors
     :: Ptr ExecutionEngine -> IO ()
+
+
+data GenericValue
+
+foreign import ccall unsafe "LLVMRunFunction" runFunction
+    :: Ptr ExecutionEngine -> Ptr Value -> CUInt
+    -> Ptr (Ptr GenericValue) -> IO (Ptr GenericValue)

@@ -97,7 +97,8 @@ import Foreign.Ptr (Ptr, nullPtr)
 import System.IO.Unsafe (unsafePerformIO)
 
 import qualified LLVM.Base as Base
-import LLVM.Internal (Module(..), withModule, ModuleProvider(..), Type(..))
+import LLVM.Internal (Module(..), withModule, ModuleProvider(..), Type(..),
+                      Value(..))
 import LLVM.Instances ()
 
 
@@ -190,7 +191,6 @@ pointerType :: Type -> Type
 pointerType typ = unsafePerformIO $
     Type <$> Base.pointerType (fromType typ) 0
 
-newtype Value = Value {fromValue :: Ptr Base.Value}
 
 addGlobal :: Module -> Type -> String -> IO Value
 addGlobal mod typ name =
