@@ -22,14 +22,14 @@ import Foreign.Ptr (Ptr)
 import Foreign.Storable (peek)
 import System.IO.Error (userError)
 
-import qualified LLVM.ExecutionEngine.Base as EE
-import LLVM.Internal (ModuleProvider, withModuleProvider, Value(..))
+import qualified LLVM.ExecutionEngine.FFI as FFI
+import LLVM.Core.Types (ModuleProvider, withModuleProvider, Value(..))
 
 newtype ExecutionEngine = ExecutionEngine {
-      fromExecutionEngine :: ForeignPtr EE.ExecutionEngine
+      fromExecutionEngine :: ForeignPtr FFI.ExecutionEngine
     }
 
-withExecutionEngine :: ExecutionEngine -> (Ptr EE.ExecutionEngine -> IO a)
+withExecutionEngine :: ExecutionEngine -> (Ptr FFI.ExecutionEngine -> IO a)
                     -> IO a
 withExecutionEngine ee = withForeignPtr (fromExecutionEngine ee)
 
@@ -38,33 +38,33 @@ createExecutionEngine prov =
     withModuleProvider prov $ \provPtr ->
       alloca $ \eePtr ->
         alloca $ \errPtr -> do
-          ret <- EE.createExecutionEngine eePtr provPtr errPtr
+          ret <- FFI.createExecutionEngine eePtr provPtr errPtr
           if ret == 1
             then do err <- peek errPtr
                     errStr <- peekCString err
                     free err
                     ioError . userError $ errStr
             else do ptr <- peek eePtr
-                    final <- h2c_ee EE.disposeExecutionEngine
+                    final <- h2c_ee FFI.disposeExecutionEngine
                     ExecutionEngine <$> newForeignPtr final ptr
 
 foreign import ccall "wrapper" h2c_ee
-    :: (Ptr EE.ExecutionEngine -> IO ()) -> IO (FinalizerPtr a)
+    :: (Ptr FFI.ExecutionEngine -> IO ()) -> IO (FinalizerPtr a)
 
 runStaticConstructors :: ExecutionEngine -> IO ()
-runStaticConstructors ee = withExecutionEngine ee EE.runStaticConstructors
+runStaticConstructors ee = withExecutionEngine ee FFI.runStaticConstructors
 
 runStaticDestructors :: ExecutionEngine -> IO ()
-runStaticDestructors ee = withExecutionEngine ee EE.runStaticDestructors
+runStaticDestructors ee = withExecutionEngine ee FFI.runStaticDestructors
 
 
 newtype GenericValue = GenericValue {
-      fromGenericValue :: Ptr EE.GenericValue
+      fromGenericValue :: Ptr FFI.GenericValue
     }
 
 runFunction :: ExecutionEngine -> Value -> [GenericValue] -> IO GenericValue
 runFunction ee func args =
     withExecutionEngine ee $ \eePtr ->
       withArrayLen (map fromGenericValue args) $ \argLen argPtr ->
-        GenericValue <$> EE.runFunction eePtr (fromValue func)
+        GenericValue <$> FFI.runFunction eePtr (fromValue func)
                                         (fromIntegral argLen) argPtr

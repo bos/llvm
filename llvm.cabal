@@ -38,15 +38,9 @@ library
   ghc-options: -Wall -Werror
 
   exposed-modules:
-      LLVM
-      LLVM.Base
+      LLVM.Core
+      LLVM.Core.FFI
+      LLVM.Core.Instances
+      LLVM.Core.Types
       LLVM.ExecutionEngine
-      LLVM.ExecutionEngine.Base
-      LLVM.Instances
-
-  other-modules:
-      LLVM.Internal
-
-  -- for svn builds
-  include-dirs: /home/bos/include
-  extra-lib-dirs: /home/bos/lib64
+      LLVM.ExecutionEngine.FFI

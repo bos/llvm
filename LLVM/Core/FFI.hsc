@@ -1,6 +1,6 @@
 {-# LANGUAGE EmptyDataDecls #-}
 
-module LLVM.Base
+module LLVM.Core.FFI
     (
       -- * Modules
       Module

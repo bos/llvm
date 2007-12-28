@@ -1,4 +1,4 @@
-module LLVM.Internal
+module LLVM.Core.Types
     (
       Module(..)
     , withModule
@@ -11,22 +11,26 @@ module LLVM.Internal
 import Foreign.ForeignPtr (ForeignPtr, withForeignPtr)
 import Prelude hiding (mod)
 
-import qualified LLVM.Base as Base
+import qualified LLVM.Core.FFI as FFI
 
 
-newtype Module = Module {fromModule :: ForeignPtr Base.Module}
+newtype Module = Module {fromModule :: ForeignPtr FFI.Module}
 
-withModule :: Module -> (Base.ModuleRef -> IO a) -> IO a
+withModule :: Module -> (FFI.ModuleRef -> IO a) -> IO a
 withModule mod = withForeignPtr (fromModule mod)
 
 newtype ModuleProvider = ModuleProvider {
-      fromModuleProvider :: ForeignPtr Base.ModuleProvider
+      fromModuleProvider :: ForeignPtr FFI.ModuleProvider
     }
 
-withModuleProvider :: ModuleProvider -> (Base.ModuleProviderRef -> IO a)
+withModuleProvider :: ModuleProvider -> (FFI.ModuleProviderRef -> IO a)
                    -> IO a
 withModuleProvider prov = withForeignPtr (fromModuleProvider prov)
 
-newtype Type = Type {fromType :: Base.TypeRef}
+newtype Type = Type {
+      fromType :: FFI.TypeRef
+    }
                           
-newtype Value = Value {fromValue :: Base.ValueRef}
+newtype Value = Value {
+      fromValue :: FFI.ValueRef
+    }

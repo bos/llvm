@@ -1,6 +1,6 @@
 {-# LANGUAGE EmptyDataDecls #-}
 
-module LLVM.ExecutionEngine.Base
+module LLVM.ExecutionEngine.FFI
     (
     -- * Execution engines
       ExecutionEngine
@@ -18,28 +18,30 @@ import Foreign.C.String (CString)
 import Foreign.C.Types (CInt, CUInt)
 import Foreign.Ptr (Ptr)
 
-import LLVM.Base (ModuleProvider, Value)
+import LLVM.Core.FFI (ModuleProviderRef, ValueRef)
 
 #include <llvm-c/ExecutionEngine.h>
 
 data ExecutionEngine
+type ExecutionEngineRef = Ptr ExecutionEngine
 
 foreign import ccall unsafe "LLVMCreateExecutionEngine" createExecutionEngine
-    :: Ptr (Ptr ExecutionEngine) -> Ptr ModuleProvider -> Ptr CString
+    :: Ptr ExecutionEngineRef -> ModuleProviderRef -> Ptr CString
     -> IO CInt
 
 foreign import ccall unsafe "LLVMDisposeExecutionEngine" disposeExecutionEngine
-    :: Ptr ExecutionEngine -> IO ()
+    :: ExecutionEngineRef -> IO ()
 
 foreign import ccall unsafe "LLVMRunStaticConstructors" runStaticConstructors
-    :: Ptr ExecutionEngine -> IO ()
+    :: ExecutionEngineRef -> IO ()
 
 foreign import ccall unsafe "LLVMRunStaticDestructors" runStaticDestructors
-    :: Ptr ExecutionEngine -> IO ()
+    :: ExecutionEngineRef -> IO ()
 
 
 data GenericValue
+type GenericValueRef = Ptr GenericValue
 
 foreign import ccall unsafe "LLVMRunFunction" runFunction
-    :: Ptr ExecutionEngine -> Ptr Value -> CUInt
-    -> Ptr (Ptr GenericValue) -> IO (Ptr GenericValue)
+    :: ExecutionEngineRef -> ValueRef -> CUInt
+    -> Ptr GenericValueRef -> IO GenericValueRef

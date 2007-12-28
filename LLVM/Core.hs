@@ -1,6 +1,6 @@
 {-# LANGUAGE TypeSynonymInstances #-}
 
-module LLVM
+module LLVM.Core
     (
     -- * Modules
       Module
@@ -101,85 +101,85 @@ import Foreign.Ptr (Ptr, nullPtr)
 import Prelude hiding (mod)
 import System.IO.Unsafe (unsafePerformIO)
 
-import qualified LLVM.Base as Base
-import LLVM.Internal (Module(..), withModule, ModuleProvider(..), Type(..),
-                      Value(..))
-import LLVM.Instances ()
+import qualified LLVM.Core.FFI as FFI
+import LLVM.Core.Types (Module(..), withModule, ModuleProvider(..), Type(..),
+                        Value(..))
+import LLVM.Core.Instances ()
 
 
 createModule :: String -> IO Module
 createModule name =
     withCString name $ \namePtr -> do
-      ptr <- Base.moduleCreateWithName namePtr
-      final <- h2c_module Base.disposeModule
+      ptr <- FFI.moduleCreateWithName namePtr
+      final <- h2c_module FFI.disposeModule
       Module <$> newForeignPtr final ptr
 
 foreign import ccall "wrapper" h2c_module
-    :: (Base.ModuleRef -> IO ()) -> IO (FinalizerPtr a)
+    :: (FFI.ModuleRef -> IO ()) -> IO (FinalizerPtr a)
 
 
 createModuleProviderForExistingModule :: Module -> IO ModuleProvider
 createModuleProviderForExistingModule mod =
     withModule mod $ \modPtr -> do
-        ptr <- Base.createModuleProviderForExistingModule modPtr
-        final <- h2c_moduleProvider Base.disposeModuleProvider
+        ptr <- FFI.createModuleProviderForExistingModule modPtr
+        final <- h2c_moduleProvider FFI.disposeModuleProvider
         ModuleProvider <$> newForeignPtr final ptr
 
 foreign import ccall "wrapper" h2c_moduleProvider
-    :: (Base.ModuleProviderRef -> IO ()) -> IO (FinalizerPtr a)
+    :: (FFI.ModuleProviderRef -> IO ()) -> IO (FinalizerPtr a)
 
 
 addTypeName :: Module -> Type -> String -> IO Bool
 addTypeName mod typ name =
     withModule mod $ \modPtr ->
       withCString name $ \namePtr ->
-        (/=0) <$> Base.addTypeName modPtr namePtr (fromType typ)
+        (/=0) <$> FFI.addTypeName modPtr namePtr (fromType typ)
                  
 deleteTypeName :: Module -> String -> IO ()
 deleteTypeName mod name =
     withModule mod $ \modPtr ->
-      withCString name $ Base.deleteTypeName modPtr
+      withCString name $ FFI.deleteTypeName modPtr
 
 getElementType :: Type -> Type
-getElementType = Type . Base.getElementType . fromType
+getElementType = Type . FFI.getElementType . fromType
 
 int1Type :: Type
-int1Type = Type Base.int1Type
+int1Type = Type FFI.int1Type
 
 int8Type :: Type
-int8Type = Type Base.int8Type
+int8Type = Type FFI.int8Type
 
 int16Type :: Type
-int16Type = Type Base.int16Type
+int16Type = Type FFI.int16Type
 
 int32Type :: Type
-int32Type = Type Base.int32Type
+int32Type = Type FFI.int32Type
 
 int64Type :: Type
-int64Type = Type Base.int64Type
+int64Type = Type FFI.int64Type
 
 integerType :: Int -> Type
-integerType = Type . Base.integerType . fromIntegral
+integerType = Type . FFI.integerType . fromIntegral
 
 floatType :: Type
-floatType = Type Base.floatType
+floatType = Type FFI.floatType
 
 doubleType :: Type
-doubleType = Type Base.doubleType
+doubleType = Type FFI.doubleType
 
 x86FP80Type :: Type
-x86FP80Type = Type Base.x86FP80Type
+x86FP80Type = Type FFI.x86FP80Type
 
 fp128Type :: Type
-fp128Type = Type Base.fp128Type
+fp128Type = Type FFI.fp128Type
 
 ppcFP128Type :: Type
-ppcFP128Type = Type Base.ppcFP128Type
+ppcFP128Type = Type FFI.ppcFP128Type
 
 functionTypeInternal :: Type -> [Type] -> Bool -> Type
 functionTypeInternal retType paramTypes varargs = unsafePerformIO $
     withArrayLen (map fromType paramTypes) $ \len ptr ->
-        return . Type $ Base.functionType (fromType retType) ptr
+        return . Type $ FFI.functionType (fromType retType) ptr
                         (fromIntegral len) (fromBool varargs)
 
 functionType :: Type -> [Type] -> Type
@@ -191,45 +191,45 @@ functionTypeVarArgs retType paramTypes =
     functionTypeInternal retType paramTypes True
 
 isFunctionVarArg :: Type -> Bool
-isFunctionVarArg = toBool . Base.isFunctionVarArg . fromType
+isFunctionVarArg = toBool . FFI.isFunctionVarArg . fromType
 
 getReturnType :: Type -> Type
-getReturnType = Type . Base.getReturnType . fromType
+getReturnType = Type . FFI.getReturnType . fromType
 
 getParamTypes :: Type -> [Type]
 getParamTypes typ = unsafePerformIO $ do
     let typ' = fromType typ
-        count = Base.countParamTypes typ'
+        count = FFI.countParamTypes typ'
         len = fromIntegral count
     allocaArray len $ \ptr -> do
-      Base.getParamTypes typ' ptr
+      FFI.getParamTypes typ' ptr
       map Type <$> peekArray len ptr
 
 pointerType :: Type -> Type
-pointerType typ = Type $ Base.pointerType (fromType typ) 0
+pointerType typ = Type $ FFI.pointerType (fromType typ) 0
 
 
 addGlobal :: Module -> Type -> String -> IO Value
 addGlobal mod typ name =
     withModule mod $ \modPtr ->
       withCString name $ \namePtr ->
-        Value <$> Base.addGlobal modPtr (fromType typ) namePtr
+        Value <$> FFI.addGlobal modPtr (fromType typ) namePtr
 
 setInitializer :: Value -> Value -> IO ()
 setInitializer global cnst =
-    Base.setInitializer (fromValue global) (fromValue cnst)
+    FFI.setInitializer (fromValue global) (fromValue cnst)
 
 typeOf :: Value -> Type
-typeOf val = unsafePerformIO $ Type <$> Base.typeOf (fromValue val)
+typeOf val = unsafePerformIO $ Type <$> FFI.typeOf (fromValue val)
 
 addFunction :: Module -> String -> Type -> IO Value
 addFunction mod name typ =
     withModule mod $ \modPtr ->
       withCString name $ \namePtr ->
-        Value <$> Base.addFunction modPtr namePtr (fromType typ)
+        Value <$> FFI.addFunction modPtr namePtr (fromType typ)
 
 deleteFunction :: Value -> IO ()
-deleteFunction = Base.deleteFunction . fromValue
+deleteFunction = FFI.deleteFunction . fromValue
 
 maybePtr :: (Ptr a -> b) -> Ptr a -> Maybe b
 maybePtr f ptr | ptr /= nullPtr = Just (f ptr)
@@ -239,29 +239,29 @@ getNamedFunction :: Module -> String -> IO (Maybe Value)
 getNamedFunction mod name =
     withModule mod $ \modPtr ->
       withCString name $ \namePtr ->
-        maybePtr Value <$> Base.getNamedFunction modPtr namePtr
+        maybePtr Value <$> FFI.getNamedFunction modPtr namePtr
 
 constWord :: Type -> Word64 -> Value
-constWord typ val = Value $ Base.constInt (fromType typ) (fromIntegral val) 0
+constWord typ val = Value $ FFI.constInt (fromType typ) (fromIntegral val) 0
 
 constInt :: Type -> Int64 -> Value
-constInt typ val = Value $ Base.constInt (fromType typ) (fromIntegral val) 1
+constInt typ val = Value $ FFI.constInt (fromType typ) (fromIntegral val) 1
 
 constReal :: Type -> Double -> Value
-constReal typ val = Value $ Base.constReal (fromType typ) (realToFrac val)
+constReal typ val = Value $ FFI.constReal (fromType typ) (realToFrac val)
 
 constString :: String -> Value
 constString s = unsafePerformIO $
     withCStringLen s $ \(sPtr, sLen) ->
-      return . Value $ Base.constString sPtr (fromIntegral sLen) 1
+      return . Value $ FFI.constString sPtr (fromIntegral sLen) 1
 
 constStringNul :: String -> Value
 constStringNul s = unsafePerformIO $
     withCStringLen s $ \(sPtr, sLen) ->
-      return . Value $ Base.constString sPtr (fromIntegral sLen) 0
+      return . Value $ FFI.constString sPtr (fromIntegral sLen) 0
 
 constBitCast :: Type -> Value -> Value
-constBitCast typ val = Value $ Base.constBitCast (fromValue val) (fromType typ)
+constBitCast typ val = Value $ FFI.constBitCast (fromValue val) (fromType typ)
 
 class Const a where
     const :: a -> Value
@@ -300,63 +300,63 @@ instance Const Word64 where
     const = constWord int64Type
 
 
-newtype BasicBlock = BasicBlock {fromBasicBlock :: Base.BasicBlockRef}
+newtype BasicBlock = BasicBlock {fromBasicBlock :: FFI.BasicBlockRef}
 
 appendBasicBlock :: Value -> String -> IO BasicBlock
 appendBasicBlock func name =
     withCString name $ \namePtr ->
-      BasicBlock <$> Base.appendBasicBlock (fromValue func) namePtr
+      BasicBlock <$> FFI.appendBasicBlock (fromValue func) namePtr
 
 insertBasicBlock :: BasicBlock -> String -> IO BasicBlock
 insertBasicBlock before name =
     withCString name $ \namePtr ->
-      BasicBlock <$> Base.insertBasicBlock (fromBasicBlock before) namePtr
+      BasicBlock <$> FFI.insertBasicBlock (fromBasicBlock before) namePtr
 
 deleteBasicBlock :: BasicBlock -> IO ()
-deleteBasicBlock = Base.deleteBasicBlock . fromBasicBlock
+deleteBasicBlock = FFI.deleteBasicBlock . fromBasicBlock
 
 
-newtype Builder = Builder {fromBuilder :: ForeignPtr Base.Builder}
+newtype Builder = Builder {fromBuilder :: ForeignPtr FFI.Builder}
 
-withBuilder :: Builder -> (Base.BuilderRef -> IO a) -> IO a
+withBuilder :: Builder -> (FFI.BuilderRef -> IO a) -> IO a
 withBuilder bld = withForeignPtr (fromBuilder bld)
 
 createBuilder :: IO Builder
 createBuilder = do
-  final <- h2c_builder Base.disposeBuilder
-  ptr <- Base.createBuilder
+  final <- h2c_builder FFI.disposeBuilder
+  ptr <- FFI.createBuilder
   Builder <$> newForeignPtr final ptr
 
 foreign import ccall "wrapper" h2c_builder
-    :: (Base.BuilderRef -> IO ()) -> IO (FinalizerPtr a)
+    :: (FFI.BuilderRef -> IO ()) -> IO (FinalizerPtr a)
 
 positionBefore :: Builder -> Value -> IO ()
 positionBefore bld insn =
     withBuilder bld $ \bldPtr ->
-      Base.positionBefore bldPtr (fromValue insn)
+      FFI.positionBefore bldPtr (fromValue insn)
 
 positionAtEnd :: Builder -> BasicBlock -> IO ()
 positionAtEnd bld bblk =
     withBuilder bld $ \bldPtr ->
-      Base.positionAtEnd bldPtr (fromBasicBlock bblk)
+      FFI.positionAtEnd bldPtr (fromBasicBlock bblk)
 
 buildGEP :: Builder -> Value -> [Value] -> String -> IO Value
 buildGEP bld ptr indices name =
     withBuilder bld $ \bldPtr ->
       withCString name $ \namePtr ->
         withArrayLen (map fromValue indices) $ \idxLen idxPtr ->
-          Value <$> Base.buildGEP bldPtr (fromValue ptr) idxPtr
+          Value <$> FFI.buildGEP bldPtr (fromValue ptr) idxPtr
                                   (fromIntegral idxLen) namePtr
 
 buildRet :: Builder -> Value -> IO Value
 buildRet bld val =
     withBuilder bld $ \bldPtr ->
-      Value <$> Base.buildRet bldPtr (fromValue val)
+      Value <$> FFI.buildRet bldPtr (fromValue val)
 
 buildCall :: Builder -> Value -> [Value] -> String -> IO Value
 buildCall bld func args name =
     withBuilder bld $ \bldPtr ->
       withArrayLen (map fromValue args) $ \argLen argPtr ->
         withCString name $ \namePtr ->
-          Value <$> Base.buildCall bldPtr (fromValue func) argPtr
+          Value <$> FFI.buildCall bldPtr (fromValue func) argPtr
                                    (fromIntegral argLen) namePtr

@@ -1,51 +1,51 @@
 module HelloJit (main) where
 
 import Data.Int (Int32)
-import qualified LLVM
+import qualified LLVM.Core as Core
 import qualified LLVM.ExecutionEngine as EE
 import Prelude hiding (mod)
 
-defineGlobal :: LLVM.Module -> String -> LLVM.Value -> IO LLVM.Value
+defineGlobal :: Core.Module -> String -> Core.Value -> IO Core.Value
 defineGlobal mod name val = do
-  global <- LLVM.addGlobal mod (LLVM.typeOf val) name
-  LLVM.setInitializer global val
+  global <- Core.addGlobal mod (Core.typeOf val) name
+  Core.setInitializer global val
   return global
 
-declareFunction :: LLVM.Module -> String -> LLVM.Type -> IO LLVM.Value
+declareFunction :: Core.Module -> String -> Core.Type -> IO Core.Value
 declareFunction mod name typ = do
-  maybeFunc <- LLVM.getNamedFunction mod name
+  maybeFunc <- Core.getNamedFunction mod name
   case maybeFunc of
-    Nothing -> LLVM.addFunction mod name typ
-    Just func -> return $ if LLVM.getElementType (LLVM.typeOf func) /= typ
-                          then LLVM.constBitCast (LLVM.pointerType typ) func
+    Nothing -> Core.addFunction mod name typ
+    Just func -> return $ if Core.getElementType (Core.typeOf func) /= typ
+                          then Core.constBitCast (Core.pointerType typ) func
                           else func
 
-defineFunction :: LLVM.Module -> String -> LLVM.Type
-               -> IO (LLVM.Value, LLVM.BasicBlock)
+defineFunction :: Core.Module -> String -> Core.Type
+               -> IO (Core.Value, Core.BasicBlock)
 defineFunction mod name typ = do
-  func <- LLVM.addFunction mod name typ
-  bblk <- LLVM.appendBasicBlock func "entry"
+  func <- Core.addFunction mod name typ
+  bblk <- Core.appendBasicBlock func "entry"
   return (func, bblk)
 
-buildModule :: IO (LLVM.Module, LLVM.Value)
+buildModule :: IO (Core.Module, Core.Value)
 buildModule = do
-  mod <- LLVM.createModule "hello"
-  greetz <- defineGlobal mod "greeting" (LLVM.const "hello jit!")
-  puts <- declareFunction mod "puts" (LLVM.functionType LLVM.int32Type
-                                          [LLVM.pointerType LLVM.int8Type])
+  mod <- Core.createModule "hello"
+  greetz <- defineGlobal mod "greeting" (Core.const "hello jit!")
+  puts <- declareFunction mod "puts" (Core.functionType Core.int32Type
+                                          [Core.pointerType Core.int8Type])
   (func, entry) <- defineFunction mod "main"
-                   (LLVM.functionType LLVM.int32Type [])
-  bld <- LLVM.createBuilder
-  LLVM.positionAtEnd bld entry
-  let zero = LLVM.const (0::Int32)
-  tmp <- LLVM.buildGEP bld greetz [zero, zero] "tmp"
-  LLVM.buildCall bld puts [tmp] ""
-  LLVM.buildRet bld zero
+                   (Core.functionType Core.int32Type [])
+  bld <- Core.createBuilder
+  Core.positionAtEnd bld entry
+  let zero = Core.const (0::Int32)
+  tmp <- Core.buildGEP bld greetz [zero, zero] "tmp"
+  Core.buildCall bld puts [tmp] ""
+  Core.buildRet bld zero
   return (mod, func)
 
-execute :: LLVM.Module -> LLVM.Value -> IO ()
+execute :: Core.Module -> Core.Value -> IO ()
 execute mod func = do
-  prov <- LLVM.createModuleProviderForExistingModule mod
+  prov <- Core.createModuleProviderForExistingModule mod
   ee <- EE.createExecutionEngine prov
   EE.runStaticConstructors ee
   EE.runFunction ee func []
