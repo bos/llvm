@@ -9,6 +9,17 @@ maintainer: Bryan O'Sullivan <bos@serpentine.com>
 category: Compilers/Interpreters
 cabal-version: >= 1.2.1
 
+extra-source-files:
+    configure
+    configure.ac
+    llvm.buildinfo.in
+
+extra-tmp-files:
+    autom4te.cache
+    config.log
+    config.status
+    llvm.buildinfo
+
 flag bytestring-in-base
   description: bytestring was part of the base library in ghc-6.6
                days. The bytestring low level interface is in
@@ -23,10 +34,8 @@ library
   else
     build-depends: base < 2.0 || >= 2.2, bytestring >= 0.9 
 
-  extensions:      ForeignFunctionInterface, CPP
-  ghc-options: -W -pgml g++
-  extra-libraries: LLVMCore
-  ld-options: /home/bos/lib64/LLVMExecutionEngine.o /home/bos/lib64/LLVMJIT.o -lLLVMTarget -lLLVMSupport -lLLVMSystem
+  extensions: ForeignFunctionInterface
+  ghc-options: -Wall -Werror
 
   exposed-modules:
       LLVM

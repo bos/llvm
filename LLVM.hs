@@ -94,6 +94,7 @@ import Foreign.Marshal.Array (withArrayLen)
 import Foreign.ForeignPtr (ForeignPtr, FinalizerPtr, newForeignPtr,
                            withForeignPtr)
 import Foreign.Ptr (Ptr, nullPtr)
+import Prelude hiding (mod)
 import System.IO.Unsafe (unsafePerformIO)
 
 import qualified LLVM.Base as Base
@@ -199,8 +200,8 @@ addGlobal mod typ name =
         Value <$> Base.addGlobal modPtr (fromType typ) namePtr
 
 setInitializer :: Value -> Value -> IO ()
-setInitializer global const =
-    Base.setInitializer (fromValue global) (fromValue const)
+setInitializer global cnst =
+    Base.setInitializer (fromValue global) (fromValue cnst)
 
 typeOf :: Value -> Type
 typeOf val = unsafePerformIO $ Type <$> Base.typeOf (fromValue val)

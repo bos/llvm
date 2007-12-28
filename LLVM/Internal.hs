@@ -10,6 +10,7 @@ module LLVM.Internal
 
 import Foreign.ForeignPtr (ForeignPtr, withForeignPtr)
 import Foreign.Ptr (Ptr)
+import Prelude hiding (mod)
 
 import qualified LLVM.Base as Base
 
