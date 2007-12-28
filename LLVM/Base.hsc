@@ -36,6 +36,7 @@ module LLVM.Base
     -- ** Function types
     , functionType
     , isFunctionVarArg
+    , getReturnType
 
     -- ** Array, pointer, and vector types
     , pointerType
@@ -141,6 +142,9 @@ foreign import ccall unsafe "LLVMFunctionType" functionType
 
 foreign import ccall unsafe "LLVMIsFunctionVarArg" isFunctionVarArg
         :: Ptr Type -> IO CInt
+
+foreign import ccall unsafe "LLVMGetReturnType" getReturnType
+        :: Ptr Type -> IO (Ptr Type)
 
 foreign import ccall unsafe "LLVMPointerType" pointerType
     :: Ptr Type -> CUInt -> IO (Ptr Type)

@@ -35,6 +35,7 @@ module LLVM
     , functionType
     , functionTypeVarArgs
     , isFunctionVarArg
+    , getReturnType
 
     -- ** Array, pointer, and vector types
     , pointerType
@@ -192,6 +193,10 @@ functionTypeVarArgs retType paramTypes = unsafePerformIO $
 isFunctionVarArg :: Type -> Bool
 isFunctionVarArg typ = unsafePerformIO $
     (/=0) <$> Base.isFunctionVarArg (fromType typ)
+
+getReturnType :: Type -> Type
+getReturnType typ = unsafePerformIO $
+    Type <$> Base.getReturnType (fromType typ)
 
 pointerType :: Type -> Type
 pointerType typ = unsafePerformIO $
