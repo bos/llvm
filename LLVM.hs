@@ -94,6 +94,7 @@ import Data.Int (Int8, Int16, Int32, Int64)
 import Data.Word (Word8, Word16, Word32, Word64)
 import Foreign.C.String (withCString, withCStringLen)
 import Foreign.Marshal.Array (allocaArray, peekArray, withArrayLen)
+import Foreign.Marshal.Utils (fromBool, toBool)
 import Foreign.ForeignPtr (ForeignPtr, FinalizerPtr, newForeignPtr,
                            withForeignPtr)
 import Foreign.Ptr (Ptr, nullPtr)
@@ -143,73 +144,69 @@ getElementType :: Type -> Type
 getElementType = Type . Base.getElementType . fromType
 
 int1Type :: Type
-int1Type = unsafePerformIO $ Type <$> Base.int1Type
+int1Type = Type Base.int1Type
 
 int8Type :: Type
-int8Type = unsafePerformIO $ Type <$> Base.int8Type
+int8Type = Type Base.int8Type
 
 int16Type :: Type
-int16Type = unsafePerformIO $ Type <$> Base.int16Type
+int16Type = Type Base.int16Type
 
 int32Type :: Type
-int32Type = unsafePerformIO $ Type <$> Base.int32Type
+int32Type = Type Base.int32Type
 
 int64Type :: Type
-int64Type = unsafePerformIO $ Type <$> Base.int64Type
+int64Type = Type Base.int64Type
 
 integerType :: Int -> Type
-integerType width = unsafePerformIO $
-    Type <$> Base.integerType (fromIntegral width)
+integerType = Type . Base.integerType . fromIntegral
 
 floatType :: Type
-floatType = unsafePerformIO $ Type <$> Base.floatType
+floatType = Type Base.floatType
 
 doubleType :: Type
-doubleType = unsafePerformIO $ Type <$> Base.doubleType
+doubleType = Type Base.doubleType
 
 x86FP80Type :: Type
-x86FP80Type = unsafePerformIO $ Type <$> Base.x86FP80Type
+x86FP80Type = Type Base.x86FP80Type
 
 fp128Type :: Type
-fp128Type = unsafePerformIO $ Type <$> Base.fp128Type
+fp128Type = Type Base.fp128Type
 
 ppcFP128Type :: Type
-ppcFP128Type = unsafePerformIO $ Type <$> Base.ppcFP128Type
+ppcFP128Type = Type Base.ppcFP128Type
 
-functionTypeInternal :: Type -> [Type] -> Bool -> IO Type
-functionTypeInternal retType paramTypes varargs =
+functionTypeInternal :: Type -> [Type] -> Bool -> Type
+functionTypeInternal retType paramTypes varargs = unsafePerformIO $
     withArrayLen (map fromType paramTypes) $ \len ptr ->
-        Type <$> Base.functionType (fromType retType) ptr (fromIntegral len)
-                                   (fromEnum varargs)
+        return . Type $ Base.functionType (fromType retType) ptr
+                        (fromIntegral len) (fromBool varargs)
 
 functionType :: Type -> [Type] -> Type
-functionType retType paramTypes = unsafePerformIO $
+functionType retType paramTypes =
     functionTypeInternal retType paramTypes False
 
 functionTypeVarArgs :: Type -> [Type] -> Type
-functionTypeVarArgs retType paramTypes = unsafePerformIO $
+functionTypeVarArgs retType paramTypes =
     functionTypeInternal retType paramTypes True
 
 isFunctionVarArg :: Type -> Bool
-isFunctionVarArg typ = unsafePerformIO $
-    (/=0) <$> Base.isFunctionVarArg (fromType typ)
+isFunctionVarArg = toBool . Base.isFunctionVarArg . fromType
 
 getReturnType :: Type -> Type
-getReturnType typ = unsafePerformIO $
-    Type <$> Base.getReturnType (fromType typ)
+getReturnType = Type . Base.getReturnType . fromType
 
 getParamTypes :: Type -> [Type]
 getParamTypes typ = unsafePerformIO $ do
     let typ' = fromType typ
-    count <- Base.countParamTypes typ'
-    let len = fromIntegral count
+        count = Base.countParamTypes typ'
+        len = fromIntegral count
     allocaArray len $ \ptr -> do
       Base.getParamTypes typ' ptr
       map Type <$> peekArray len ptr
 
 pointerType :: Type -> Type
-pointerType typ = unsafePerformIO $
-    Type <$> Base.pointerType (fromType typ) 0
+pointerType typ = Type $ Base.pointerType (fromType typ) 0
 
 
 addGlobal :: Module -> Type -> String -> IO Value
@@ -245,30 +242,26 @@ getNamedFunction mod name =
         maybePtr Value <$> Base.getNamedFunction modPtr namePtr
 
 constWord :: Type -> Word64 -> Value
-constWord typ val = unsafePerformIO $
-    Value <$> Base.constInt (fromType typ) (fromIntegral val) 0
+constWord typ val = Value $ Base.constInt (fromType typ) (fromIntegral val) 0
 
 constInt :: Type -> Int64 -> Value
-constInt typ val = unsafePerformIO $
-    Value <$> Base.constInt (fromType typ) (fromIntegral val) 1
+constInt typ val = Value $ Base.constInt (fromType typ) (fromIntegral val) 1
 
 constReal :: Type -> Double -> Value
-constReal typ val = unsafePerformIO $
-    Value <$> Base.constReal (fromType typ) (realToFrac val)
+constReal typ val = Value $ Base.constReal (fromType typ) (realToFrac val)
 
 constString :: String -> Value
 constString s = unsafePerformIO $
     withCStringLen s $ \(sPtr, sLen) ->
-      Value <$> Base.constString sPtr (fromIntegral sLen) 1
+      return . Value $ Base.constString sPtr (fromIntegral sLen) 1
 
 constStringNul :: String -> Value
 constStringNul s = unsafePerformIO $
     withCStringLen s $ \(sPtr, sLen) ->
-      Value <$> Base.constString sPtr (fromIntegral sLen) 0
+      return . Value $ Base.constString sPtr (fromIntegral sLen) 0
 
 constBitCast :: Type -> Value -> Value
-constBitCast typ val = unsafePerformIO $
-    Value <$> Base.constBitCast (fromValue val) (fromType typ)
+constBitCast typ val = Value $ Base.constBitCast (fromValue val) (fromType typ)
 
 class Const a where
     const :: a -> Value

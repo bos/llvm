@@ -9,7 +9,6 @@ module LLVM.Internal
     ) where
 
 import Foreign.ForeignPtr (ForeignPtr, withForeignPtr)
-import Foreign.Ptr (Ptr)
 import Prelude hiding (mod)
 
 import qualified LLVM.Base as Base
@@ -17,17 +16,17 @@ import qualified LLVM.Base as Base
 
 newtype Module = Module {fromModule :: ForeignPtr Base.Module}
 
-withModule :: Module -> (Ptr Base.Module -> IO a) -> IO a
+withModule :: Module -> (Base.ModuleRef -> IO a) -> IO a
 withModule mod = withForeignPtr (fromModule mod)
 
 newtype ModuleProvider = ModuleProvider {
       fromModuleProvider :: ForeignPtr Base.ModuleProvider
     }
 
-withModuleProvider :: ModuleProvider -> (Ptr Base.ModuleProvider -> IO a)
+withModuleProvider :: ModuleProvider -> (Base.ModuleProviderRef -> IO a)
                    -> IO a
 withModuleProvider prov = withForeignPtr (fromModuleProvider prov)
 
-newtype Type = Type {fromType :: Ptr Base.Type}
+newtype Type = Type {fromType :: Base.TypeRef}
                           
-newtype Value = Value {fromValue :: Ptr Base.Value}
+newtype Value = Value {fromValue :: Base.ValueRef}

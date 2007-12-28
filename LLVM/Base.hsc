@@ -126,46 +126,60 @@ foreign import ccall unsafe "LLVMDisposeModuleProvider" disposeModuleProvider
 data Type
 type TypeRef = Ptr Type
 
-foreign import ccall unsafe "LLVMInt1Type" int1Type :: IO TypeRef
+foreign import ccall unsafe "LLVMInt1Type" int1Type :: TypeRef
 
-foreign import ccall unsafe "LLVMInt8Type" int8Type :: IO TypeRef
+foreign import ccall unsafe "LLVMInt8Type" int8Type :: TypeRef
 
-foreign import ccall unsafe "LLVMInt16Type" int16Type :: IO TypeRef
+foreign import ccall unsafe "LLVMInt16Type" int16Type :: TypeRef
 
-foreign import ccall unsafe "LLVMInt32Type" int32Type :: IO TypeRef
+foreign import ccall unsafe "LLVMInt32Type" int32Type :: TypeRef
 
-foreign import ccall unsafe "LLVMInt64Type" int64Type :: IO TypeRef
+foreign import ccall unsafe "LLVMInt64Type" int64Type :: TypeRef
 
+-- | An integer type of the given width.
 foreign import ccall unsafe "LLVMIntType" integerType
-    :: CUInt -> IO TypeRef
+    :: CUInt                    -- ^ width in bits
+    -> TypeRef
 
-foreign import ccall unsafe "LLVMFloatType" floatType :: IO TypeRef
+foreign import ccall unsafe "LLVMFloatType" floatType :: TypeRef
 
-foreign import ccall unsafe "LLVMDoubleType" doubleType :: IO TypeRef
+foreign import ccall unsafe "LLVMDoubleType" doubleType :: TypeRef
 
-foreign import ccall unsafe "LLVMX86FP80Type" x86FP80Type :: IO TypeRef
+foreign import ccall unsafe "LLVMX86FP80Type" x86FP80Type :: TypeRef
 
-foreign import ccall unsafe "LLVMFP128Type" fp128Type :: IO TypeRef
+foreign import ccall unsafe "LLVMFP128Type" fp128Type :: TypeRef
 
-foreign import ccall unsafe "LLVMPPCFP128Type" ppcFP128Type :: IO TypeRef
+foreign import ccall unsafe "LLVMPPCFP128Type" ppcFP128Type :: TypeRef
 
+-- | Create a function type.
 foreign import ccall unsafe "LLVMFunctionType" functionType
-        :: TypeRef -> Ptr TypeRef -> CUInt -> Int -> IO TypeRef
+        :: TypeRef              -- ^ return type
+        -> Ptr TypeRef          -- ^ array of argument types
+        -> CUInt                -- ^ number of elements in array
+        -> CInt                 -- ^ non-zero if function is varargs
+        -> TypeRef
 
+-- | Indicate whether a function takes varargs.
 foreign import ccall unsafe "LLVMIsFunctionVarArg" isFunctionVarArg
-        :: TypeRef -> IO CInt
+        :: TypeRef -> CInt
 
+-- | Give a function's return type.
 foreign import ccall unsafe "LLVMGetReturnType" getReturnType
-        :: TypeRef -> IO TypeRef
+        :: TypeRef -> TypeRef
 
+-- | Give the number of fixed parameters that a function takes.
 foreign import ccall unsafe "LLVMCountParamTypes" countParamTypes
-        :: TypeRef -> IO CUInt
+        :: TypeRef -> CUInt
 
+-- | Fill out an array with the types of a function's fixed
+-- parameters.
 foreign import ccall unsafe "LLVMGetParamTypes" getParamTypes
         :: TypeRef -> Ptr TypeRef -> IO ()
 
 foreign import ccall unsafe "LLVMPointerType" pointerType
-    :: TypeRef -> CUInt -> IO TypeRef
+    :: TypeRef                  -- ^ pointed-to type
+    -> CUInt                    -- ^ address space
+    -> TypeRef
 
 foreign import ccall unsafe "LLVMAddTypeName" addTypeName
     :: ModuleRef -> CString -> TypeRef -> IO CInt
@@ -173,6 +187,7 @@ foreign import ccall unsafe "LLVMAddTypeName" addTypeName
 foreign import ccall unsafe "LLVMDeleteTypeName" deleteTypeName
     :: ModuleRef -> CString -> IO ()
 
+-- | Give the type of a sequential type's elements.
 foreign import ccall unsafe "LLVMGetElementType" getElementType
     :: TypeRef -> TypeRef
 
@@ -202,16 +217,16 @@ foreign import ccall unsafe "LLVMDeleteFunction" deleteFunction
     :: ValueRef -> IO ()
 
 foreign import ccall unsafe "LLVMConstInt" constInt
-    :: TypeRef -> CULLong -> CInt -> IO ValueRef
+    :: TypeRef -> CULLong -> CInt -> ValueRef
 
 foreign import ccall unsafe "LLVMConstReal" constReal
-    :: TypeRef -> CDouble -> IO ValueRef
+    :: TypeRef -> CDouble -> ValueRef
 
 foreign import ccall unsafe "LLVMConstString" constString
-    :: CString -> CUInt -> CInt -> IO ValueRef
+    :: CString -> CUInt -> CInt -> ValueRef
 
 foreign import ccall unsafe "LLVMConstBitCast" constBitCast
-    :: ValueRef -> TypeRef -> IO ValueRef
+    :: ValueRef -> TypeRef -> ValueRef
 
 
 data BasicBlock
