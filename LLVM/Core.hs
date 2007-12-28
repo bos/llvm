@@ -95,15 +95,14 @@ import Data.Word (Word8, Word16, Word32, Word64)
 import Foreign.C.String (withCString, withCStringLen)
 import Foreign.Marshal.Array (allocaArray, peekArray, withArrayLen)
 import Foreign.Marshal.Utils (fromBool, toBool)
-import Foreign.ForeignPtr (ForeignPtr, FinalizerPtr, newForeignPtr,
-                           withForeignPtr)
+import Foreign.ForeignPtr (FinalizerPtr, newForeignPtr, withForeignPtr)
 import Foreign.Ptr (Ptr, nullPtr)
 import Prelude hiding (mod)
 import System.IO.Unsafe (unsafePerformIO)
 
 import qualified LLVM.Core.FFI as FFI
-import LLVM.Core.Types (Module(..), withModule, ModuleProvider(..), Type(..),
-                        Value(..))
+import LLVM.Core.Types (BasicBlock(..), Builder(..), Module(..),
+                        ModuleProvider(..), Type(..), Value(..), withModule)
 import LLVM.Core.Instances ()
 
 
@@ -300,8 +299,6 @@ instance Const Word64 where
     const = constWord int64Type
 
 
-newtype BasicBlock = BasicBlock {fromBasicBlock :: FFI.BasicBlockRef}
-
 appendBasicBlock :: Value -> String -> IO BasicBlock
 appendBasicBlock func name =
     withCString name $ \namePtr ->
@@ -315,8 +312,6 @@ insertBasicBlock before name =
 deleteBasicBlock :: BasicBlock -> IO ()
 deleteBasicBlock = FFI.deleteBasicBlock . fromBasicBlock
 
-
-newtype Builder = Builder {fromBuilder :: ForeignPtr FFI.Builder}
 
 withBuilder :: Builder -> (FFI.BuilderRef -> IO a) -> IO a
 withBuilder bld = withForeignPtr (fromBuilder bld)

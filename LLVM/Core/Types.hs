@@ -6,6 +6,8 @@ module LLVM.Core.Types
     , withModuleProvider
     , Type(..)
     , Value(..)
+    , BasicBlock(..)
+    , Builder(..)
     ) where
 
 import Foreign.ForeignPtr (ForeignPtr, withForeignPtr)
@@ -33,4 +35,12 @@ newtype Type = Type {
                           
 newtype Value = Value {
       fromValue :: FFI.ValueRef
+    }
+
+newtype BasicBlock = BasicBlock {
+      fromBasicBlock :: FFI.BasicBlockRef
+    }
+
+newtype Builder = Builder {
+      fromBuilder :: ForeignPtr FFI.Builder
     }
