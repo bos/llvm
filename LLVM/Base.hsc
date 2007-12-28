@@ -37,6 +37,8 @@ module LLVM.Base
     , functionType
     , isFunctionVarArg
     , getReturnType
+    , countParamTypes
+    , getParamTypes
 
     -- ** Array, pointer, and vector types
     , pointerType
@@ -112,6 +114,7 @@ foreign import ccall unsafe "LLVMCreateModuleProviderForExistingModule"
 foreign import ccall unsafe "LLVMDisposeModuleProvider" disposeModuleProvider
     :: Ptr ModuleProvider -> IO ()
 
+
 data Type
 
 foreign import ccall unsafe "LLVMInt1Type" int1Type :: IO (Ptr Type)
@@ -145,6 +148,12 @@ foreign import ccall unsafe "LLVMIsFunctionVarArg" isFunctionVarArg
 
 foreign import ccall unsafe "LLVMGetReturnType" getReturnType
         :: Ptr Type -> IO (Ptr Type)
+
+foreign import ccall unsafe "LLVMCountParamTypes" countParamTypes
+        :: Ptr Type -> IO CUInt
+
+foreign import ccall unsafe "LLVMGetParamTypes" getParamTypes
+        :: Ptr Type -> Ptr (Ptr Type) -> IO ()
 
 foreign import ccall unsafe "LLVMPointerType" pointerType
     :: Ptr Type -> CUInt -> IO (Ptr Type)

@@ -36,6 +36,7 @@ module LLVM
     , functionTypeVarArgs
     , isFunctionVarArg
     , getReturnType
+    , getParamTypes
 
     -- ** Array, pointer, and vector types
     , pointerType
@@ -92,7 +93,7 @@ import Control.Applicative ((<$>))
 import Data.Int (Int8, Int16, Int32, Int64)
 import Data.Word (Word8, Word16, Word32, Word64)
 import Foreign.C.String (withCString, withCStringLen)
-import Foreign.Marshal.Array (withArrayLen)
+import Foreign.Marshal.Array (allocaArray, peekArray, withArrayLen)
 import Foreign.ForeignPtr (ForeignPtr, FinalizerPtr, newForeignPtr,
                            withForeignPtr)
 import Foreign.Ptr (Ptr, nullPtr)
@@ -197,6 +198,15 @@ isFunctionVarArg typ = unsafePerformIO $
 getReturnType :: Type -> Type
 getReturnType typ = unsafePerformIO $
     Type <$> Base.getReturnType (fromType typ)
+
+getParamTypes :: Type -> [Type]
+getParamTypes typ = unsafePerformIO $ do
+    let typ' = fromType typ
+    count <- Base.countParamTypes typ'
+    let len = fromIntegral count
+    allocaArray len $ \ptr -> do
+      Base.getParamTypes typ' ptr
+      map Type <$> peekArray len ptr
 
 pointerType :: Type -> Type
 pointerType typ = unsafePerformIO $
