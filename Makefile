@@ -32,5 +32,8 @@ install: setup
 	./setup install
 
 clean:
+	-rm -f Setup.hi Setup.hi
 	-./setup clean
-	-rm -f setup Setup.hi Setup.o
+
+distclean: clean
+	-rm -f setup configure
