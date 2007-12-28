@@ -26,6 +26,8 @@ llvm_cppflags="`$llvm_config --cppflags`"
 llvm_includedir="`$llvm_config --includedir`"
 llvm_ldflags="`$llvm_config --ldflags`"
 
+llvm_engine_libs="`$llvm_config --libs engine`"
+
 CPPFLAGS="$llvm_cppflags $CPPFLAGS"
 LDFLAGS="$llvm_ldflags $LDFLAGS"
 
@@ -40,6 +42,6 @@ CC=$CXX
 AC_CHECK_LIB(LLVMCore, LLVMModuleCreateWithName, [],
   [AC_MSG_ERROR(could not find LLVM C bindings)])
 
-AC_SUBST([llvm_cppflags llvm_includedir llvm_ldflags])
+AC_SUBST([llvm_cppflags llvm_engine_libs llvm_includedir llvm_ldflags])
 
 AC_OUTPUT
