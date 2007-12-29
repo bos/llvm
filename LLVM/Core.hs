@@ -148,7 +148,7 @@ addTypeName :: (Type t) => Module -> t -> String -> IO Bool
 addTypeName mod typ name =
     withModule mod $ \modPtr ->
       withCString name $ \namePtr ->
-        (/=0) <$> FFI.addTypeName modPtr namePtr (fromType typ)
+        toBool <$> FFI.addTypeName modPtr namePtr (fromType typ)
                  
 deleteTypeName :: Module -> String -> IO ()
 deleteTypeName mod name =
