@@ -1,4 +1,4 @@
-{-# LANGUAGE TypeSynonymInstances #-}
+{-# LANGUAGE TypeSynonymInstances, GeneralizedNewtypeDeriving, EmptyDataDecls, FlexibleInstances, TypeOperators, UndecidableInstances #-}
 
 module LLVM.Core
     (
@@ -11,12 +11,16 @@ module LLVM.Core
     , createModuleProviderForExistingModule
 
     -- * Types
-    , Type
+    , AnyType
+    , Any(..)
+    , Type(..)
+    , mkAny
     , addTypeName
     , deleteTypeName
     , getElementType
 
     -- ** Integer types
+    , IntType
     , int1Type
     , int8Type
     , int16Type
@@ -32,14 +36,27 @@ module LLVM.Core
     , ppcFP128Type
 
     -- ** Function types
+    , FunctionType
+    , Args(..)
+    , ParamList(..)
+    , Return
+    , (:->)
     , functionType
-    , functionTypeVarArgs
     , isFunctionVarArg
     , getReturnType
     , getParamTypes
 
     -- ** Array, pointer, and vector types
+    , ArrayType
+    , PointerType
+    , VectorType
+    , arrayType
     , pointerType
+    , vectorType
+
+    -- ** Other types
+    , VoidType
+    , voidType
 
     -- * Values
     , Value
@@ -94,7 +111,7 @@ import Data.Int (Int8, Int16, Int32, Int64)
 import Data.Word (Word8, Word16, Word32, Word64)
 import Foreign.C.String (withCString, withCStringLen)
 import Foreign.Marshal.Array (allocaArray, peekArray, withArrayLen)
-import Foreign.Marshal.Utils (fromBool, toBool)
+import Foreign.Marshal.Utils (toBool)
 import Foreign.ForeignPtr (FinalizerPtr, newForeignPtr, withForeignPtr)
 import Foreign.Ptr (Ptr, nullPtr)
 import Prelude hiding (mod)
@@ -102,7 +119,8 @@ import System.IO.Unsafe (unsafePerformIO)
 
 import qualified LLVM.Core.FFI as FFI
 import LLVM.Core.Types (BasicBlock(..), Builder(..), Module(..),
-                        ModuleProvider(..), Type(..), Value(..), withModule)
+                        ModuleProvider(..), AnyType, Type(..), Value(..),
+                        withModule, mkAny, Any(..))
 import LLVM.Core.Instances ()
 
 
@@ -128,7 +146,7 @@ foreign import ccall "wrapper" h2c_moduleProvider
     :: (FFI.ModuleProviderRef -> IO ()) -> IO (FinalizerPtr a)
 
 
-addTypeName :: Module -> Type -> String -> IO Bool
+addTypeName :: (Type t) => Module -> t -> String -> IO Bool
 addTypeName mod typ name =
     withModule mod $ \modPtr ->
       withCString name $ \namePtr ->
@@ -139,76 +157,195 @@ deleteTypeName mod name =
     withModule mod $ \modPtr ->
       withCString name $ FFI.deleteTypeName modPtr
 
-getElementType :: Type -> Type
-getElementType = Type . FFI.getElementType . fromType
+class Type a => SequentialType a where
+    getElementType :: a -> AnyType
+    getElementType = mkAny . FFI.getElementType . fromType
 
-int1Type :: Type
-int1Type = Type FFI.int1Type
+newtype IntType a = IntType AnyType
+    deriving (Type, Any)
 
-int8Type :: Type
-int8Type = Type FFI.int8Type
+class TypeInstance a where
+    typeInstance :: a -> AnyType
 
-int16Type :: Type
-int16Type = Type FFI.int16Type
+int1Type :: IntType Bool
+int1Type = IntType $ mkAny FFI.int1Type
 
-int32Type :: Type
-int32Type = Type FFI.int32Type
+instance TypeInstance (IntType Bool) where
+    typeInstance _ = toAny int1Type
 
-int64Type :: Type
-int64Type = Type FFI.int64Type
+int8Type :: IntType Int8
+int8Type = IntType $ mkAny FFI.int8Type
 
-integerType :: Int -> Type
-integerType = Type . FFI.integerType . fromIntegral
+instance TypeInstance (IntType Int8) where
+    typeInstance _ = toAny int8Type
 
-floatType :: Type
-floatType = Type FFI.floatType
+int16Type :: IntType Int16
+int16Type = IntType $ mkAny FFI.int16Type
 
-doubleType :: Type
-doubleType = Type FFI.doubleType
+instance TypeInstance (IntType Int16) where
+    typeInstance _ = toAny int16Type
 
-x86FP80Type :: Type
-x86FP80Type = Type FFI.x86FP80Type
+int32Type :: IntType Int32
+int32Type = IntType $ mkAny FFI.int32Type
 
-fp128Type :: Type
-fp128Type = Type FFI.fp128Type
+instance TypeInstance (IntType Int32) where
+    typeInstance _ = toAny int32Type
 
-ppcFP128Type :: Type
-ppcFP128Type = Type FFI.ppcFP128Type
+int64Type :: IntType Int64
+int64Type = IntType $ mkAny FFI.int64Type
 
-functionTypeInternal :: Type -> [Type] -> Bool -> Type
-functionTypeInternal retType paramTypes varargs = unsafePerformIO $
+instance TypeInstance (IntType Int64) where
+    typeInstance _ = toAny int64Type
+
+data SomeWidth
+
+integerType :: Int -> IntType SomeWidth
+integerType = IntType . mkAny . FFI.integerType . fromIntegral
+
+newtype RealType a = RealType AnyType
+    deriving (Type, Any)
+
+floatType :: RealType Float
+floatType = RealType $ mkAny FFI.floatType
+
+instance TypeInstance (RealType Float) where
+    typeInstance _ = toAny floatType
+
+doubleType :: RealType Double
+doubleType = RealType $ mkAny FFI.doubleType
+
+instance TypeInstance (RealType Double) where
+    typeInstance _ = toAny doubleType
+
+data X86FP80
+
+x86FP80Type :: RealType X86FP80
+x86FP80Type = RealType $ mkAny FFI.x86FP80Type
+
+instance TypeInstance (RealType X86FP80) where
+    typeInstance _ = toAny x86FP80Type
+
+data FP128
+
+fp128Type :: RealType FP128
+fp128Type = RealType $ mkAny FFI.fp128Type
+
+instance TypeInstance (RealType FP128) where
+    typeInstance _ = toAny fp128Type
+
+data PPCFP128
+
+ppcFP128Type :: RealType PPCFP128
+ppcFP128Type = RealType $ mkAny FFI.ppcFP128Type
+
+instance TypeInstance (RealType PPCFP128) where
+    typeInstance _ = toAny ppcFP128Type
+
+newtype VoidType = VoidType AnyType
+    deriving (Type, Any)
+
+instance TypeInstance VoidType where
+    typeInstance _ = toAny voidType
+
+voidType :: VoidType
+voidType = VoidType $ mkAny FFI.voidType
+
+data a :-> b
+infixr 6 :->
+
+car :: (a :-> b) -> a
+car _ = undefined
+
+cdr :: (a :-> b) -> b
+cdr _ = undefined
+
+class ParamList l where
+    listValue :: l -> [AnyType]
+
+data Return a
+
+ret :: Return a -> a
+ret _ = undefined
+
+instance TypeInstance a => ParamList (Return a) where
+    listValue a = [typeInstance (ret a)]
+
+instance (TypeInstance a, ParamList b) => ParamList (a :-> b) where
+    listValue a = typeInstance (car a) : listValue (cdr a)
+
+newtype FunctionType p = FunctionType AnyType
+    deriving (Type, Any)
+
+data Args = Fixed | VarArgs
+          deriving (Eq, Show, Ord, Enum)
+
+functionType :: (ParamList p) => Args -> p -> FunctionType p
+functionType args a = unsafePerformIO $ do
+    let (retType:rParamTypes) = reverse (listValue a)
+        paramTypes = reverse rParamTypes
     withArrayLen (map fromType paramTypes) $ \len ptr ->
-        return . Type $ FFI.functionType (fromType retType) ptr
-                        (fromIntegral len) (fromBool varargs)
-
-functionType :: Type -> [Type] -> Type
-functionType retType paramTypes =
-    functionTypeInternal retType paramTypes False
-
-functionTypeVarArgs :: Type -> [Type] -> Type
-functionTypeVarArgs retType paramTypes =
-    functionTypeInternal retType paramTypes True
-
-isFunctionVarArg :: Type -> Bool
+        return . FunctionType . mkAny $ FFI.functionType (fromType retType) ptr
+                                        (fromIntegral len) (fromIntegral . fromEnum $ args)
+    
+isFunctionVarArg :: (ParamList p) => FunctionType p -> Bool
 isFunctionVarArg = toBool . FFI.isFunctionVarArg . fromType
 
-getReturnType :: Type -> Type
-getReturnType = Type . FFI.getReturnType . fromType
+getReturnType :: (ParamList p) => FunctionType p -> AnyType
+getReturnType = mkAny . FFI.getReturnType . fromType
 
-getParamTypes :: Type -> [Type]
+getParamTypes :: (ParamList p) => FunctionType p -> [AnyType]
 getParamTypes typ = unsafePerformIO $ do
     let typ' = fromType typ
         count = FFI.countParamTypes typ'
         len = fromIntegral count
     allocaArray len $ \ptr -> do
       FFI.getParamTypes typ' ptr
-      map Type <$> peekArray len ptr
+      map mkAny <$> peekArray len ptr
 
-pointerType :: Type -> Type
-pointerType typ = Type $ FFI.pointerType (fromType typ) 0
+newtype ArrayType a = ArrayType AnyType
+    deriving (Any, Type)
+
+arrayElement :: ArrayType a -> a
+arrayElement _ = undefined
+
+instance SequentialType (ArrayType a)
+
+arrayType :: (Type t) => t -> ArrayType t
+arrayType typ = ArrayType . mkAny $ FFI.arrayType (fromType typ) 0
+
+instance (Type t, TypeInstance t) => TypeInstance (ArrayType t) where
+    typeInstance = toAny . arrayType . typeInstance . arrayElement
+
+newtype PointerType a = PointerType AnyType
+    deriving (Any, Type)
+
+pointerElement :: PointerType a -> a
+pointerElement _ = undefined
+
+instance SequentialType (PointerType a)
+
+pointerType :: (Type t) => t -> PointerType t
+pointerType typ = PointerType . mkAny $ FFI.pointerType (fromType typ) 0
+
+instance (Type t, TypeInstance t) => TypeInstance (PointerType t) where
+    typeInstance = toAny . pointerType . typeInstance . pointerElement
+
+newtype VectorType a = VectorType AnyType
+    deriving (Type, Any)
+
+vectorElement :: VectorType a -> a
+vectorElement _ = undefined
+
+instance SequentialType (VectorType a)
+
+vectorType :: (Type t) => t -> VectorType t
+vectorType typ = VectorType . mkAny $ FFI.vectorType (fromType typ) 0
+
+instance (Type t, TypeInstance t) => TypeInstance (VectorType t) where
+    typeInstance = toAny . vectorType . typeInstance . vectorElement
 
 
-addGlobal :: Module -> Type -> String -> IO Value
+addGlobal :: (Type t) => Module -> t -> String -> IO Value
 addGlobal mod typ name =
     withModule mod $ \modPtr ->
       withCString name $ \namePtr ->
@@ -218,10 +355,11 @@ setInitializer :: Value -> Value -> IO ()
 setInitializer global cnst =
     FFI.setInitializer (fromValue global) (fromValue cnst)
 
-typeOf :: Value -> Type
-typeOf val = unsafePerformIO $ Type <$> FFI.typeOf (fromValue val)
+typeOf :: Value -> AnyType
+typeOf val = unsafePerformIO $ mkAny <$> FFI.typeOf (fromValue val)
 
-addFunction :: Module -> String -> Type -> IO Value
+addFunction :: (ParamList p) => Module -> String -> FunctionType p
+            -> IO Value
 addFunction mod name typ =
     withModule mod $ \modPtr ->
       withCString name $ \namePtr ->
@@ -240,13 +378,13 @@ getNamedFunction mod name =
       withCString name $ \namePtr ->
         maybePtr Value <$> FFI.getNamedFunction modPtr namePtr
 
-constWord :: Type -> Word64 -> Value
+constWord :: (Integral a) => IntType a -> a -> Value
 constWord typ val = Value $ FFI.constInt (fromType typ) (fromIntegral val) 0
 
-constInt :: Type -> Int64 -> Value
+constInt :: (Integral a) => IntType a -> a -> Value
 constInt typ val = Value $ FFI.constInt (fromType typ) (fromIntegral val) 1
 
-constReal :: Type -> Double -> Value
+constReal :: (RealFloat a) => RealType a -> Double -> Value
 constReal typ val = Value $ FFI.constReal (fromType typ) (realToFrac val)
 
 constString :: String -> Value
@@ -259,7 +397,7 @@ constStringNul s = unsafePerformIO $
     withCStringLen s $ \(sPtr, sLen) ->
       return . Value $ FFI.constString sPtr (fromIntegral sLen) 0
 
-constBitCast :: Type -> Value -> Value
+constBitCast :: (Type t) => t -> Value -> Value
 constBitCast typ val = Value $ FFI.constBitCast (fromValue val) (fromType typ)
 
 class Const a where
@@ -296,7 +434,7 @@ instance Const Word32 where
     const = constWord int32Type . fromIntegral
 
 instance Const Word64 where
-    const = constWord int64Type
+    const = constWord int64Type . fromIntegral
 
 
 appendBasicBlock :: Value -> String -> IO BasicBlock

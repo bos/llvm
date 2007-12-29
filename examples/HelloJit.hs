@@ -1,6 +1,7 @@
+{-# LANGUAGE TypeOperators #-}
 module HelloJit (main) where
 
-import Data.Int (Int32)
+import Data.Int (Int8, Int32)
 import qualified LLVM.Core as Core
 import qualified LLVM.ExecutionEngine as EE
 import Prelude hiding (mod)
@@ -11,16 +12,17 @@ defineGlobal mod name val = do
   Core.setInitializer global val
   return global
 
-declareFunction :: Core.Module -> String -> Core.Type -> IO Core.Value
+declareFunction :: Core.ParamList p => Core.Module -> String -> Core.FunctionType p -> IO Core.Value
 declareFunction mod name typ = do
   maybeFunc <- Core.getNamedFunction mod name
   case maybeFunc of
     Nothing -> Core.addFunction mod name typ
-    Just func -> return $ if Core.getElementType (Core.typeOf func) /= typ
-                          then Core.constBitCast (Core.pointerType typ) func
-                          else func
+    Just func -> return $ let t = Core.fromAny . Core.typeOf $ func :: Core.PointerType a
+                          in if Core.getElementType t /= Core.toAny typ
+                             then Core.constBitCast (Core.pointerType typ) func
+                             else func
 
-defineFunction :: Core.Module -> String -> Core.Type
+defineFunction :: Core.ParamList p => Core.Module -> String -> Core.FunctionType p
                -> IO (Core.Value, Core.BasicBlock)
 defineFunction mod name typ = do
   func <- Core.addFunction mod name typ
@@ -31,10 +33,10 @@ buildModule :: IO (Core.Module, Core.Value)
 buildModule = do
   mod <- Core.createModule "hello"
   greetz <- defineGlobal mod "greeting" (Core.const "hello jit!")
-  puts <- declareFunction mod "puts" (Core.functionType Core.int32Type
-                                          [Core.pointerType Core.int8Type])
+  let t = undefined :: Core.PointerType (Core.IntType Int8) Core.:-> Core.Return (Core.IntType Int32)
+  puts <- declareFunction mod "puts" (Core.functionType Core.Fixed t)
   (func, entry) <- defineFunction mod "main"
-                   (Core.functionType Core.int32Type [])
+                   (Core.functionType Core.Fixed (undefined :: Core.Return (Core.IntType Int32)))
   bld <- Core.createBuilder
   Core.positionAtEnd bld entry
   let zero = Core.const (0::Int32)

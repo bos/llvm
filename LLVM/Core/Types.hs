@@ -1,13 +1,17 @@
+{-# LANGUAGE GeneralizedNewtypeDeriving, TypeSynonymInstances, ExistentialQuantification #-}
 module LLVM.Core.Types
     (
       Module(..)
     , withModule
     , ModuleProvider(..)
     , withModuleProvider
-    , Type(..)
+    , AnyType
     , Value(..)
     , BasicBlock(..)
     , Builder(..)
+    , Type(..)
+    , Any(..)
+    , mkAny
     ) where
 
 import Foreign.ForeignPtr (ForeignPtr, withForeignPtr)
@@ -29,10 +33,28 @@ withModuleProvider :: ModuleProvider -> (FFI.ModuleProviderRef -> IO a)
                    -> IO a
 withModuleProvider prov = withForeignPtr (fromModuleProvider prov)
 
-newtype Type = Type {
-      fromType :: FFI.TypeRef
-    }
-                          
+class Type a where
+    fromType :: a -> FFI.TypeRef
+
+instance Type FFI.TypeRef where
+    fromType = id
+
+data AnyType = forall a. Type a => AnyType a
+
+class Any a where
+    toAny :: a -> AnyType
+    fromAny :: AnyType -> a
+
+instance Any AnyType where
+    toAny = id
+    fromAny = id
+
+mkAny :: Type a => a -> AnyType
+mkAny = AnyType
+
+instance Type AnyType where
+    fromType (AnyType a) = fromType a
+
 newtype Value = Value {
       fromValue :: FFI.ValueRef
     }

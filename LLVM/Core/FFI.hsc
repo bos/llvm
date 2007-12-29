@@ -43,9 +43,15 @@ module LLVM.Core.FFI
     , countParamTypes
     , getParamTypes
 
-    -- ** Array, pointer, and vector types
-    , pointerType
+    -- ** Other types
+    , voidType
 
+    -- ** Array, pointer, and vector types
+    , arrayType
+    , pointerType
+    , vectorType
+
+    -- * Values
     , Value
     , ValueRef
     , addGlobal
@@ -151,6 +157,8 @@ foreign import ccall unsafe "LLVMFP128Type" fp128Type :: TypeRef
 
 foreign import ccall unsafe "LLVMPPCFP128Type" ppcFP128Type :: TypeRef
 
+foreign import ccall unsafe "LLVMVoidType" voidType :: TypeRef
+
 -- | Create a function type.
 foreign import ccall unsafe "LLVMFunctionType" functionType
         :: TypeRef              -- ^ return type
@@ -176,9 +184,19 @@ foreign import ccall unsafe "LLVMCountParamTypes" countParamTypes
 foreign import ccall unsafe "LLVMGetParamTypes" getParamTypes
         :: TypeRef -> Ptr TypeRef -> IO ()
 
+foreign import ccall unsafe "LLVMArrayType" arrayType
+    :: TypeRef                  -- ^ element type
+    -> CUInt                    -- ^ element count
+    -> TypeRef
+
 foreign import ccall unsafe "LLVMPointerType" pointerType
     :: TypeRef                  -- ^ pointed-to type
     -> CUInt                    -- ^ address space
+    -> TypeRef
+
+foreign import ccall unsafe "LLVMVectorType" vectorType
+    :: TypeRef                  -- ^ element type
+    -> CUInt                    -- ^ element count
     -> TypeRef
 
 foreign import ccall unsafe "LLVMAddTypeName" addTypeName

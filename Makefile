@@ -9,6 +9,8 @@ ifeq ($(prefix),$(HOME))
 user_flag := --user
 endif
 
+all: build
+
 .PHONY: build
 build: dist/setup-config
 	./setup build
