@@ -2,7 +2,7 @@
 module HelloJit (main) where
 
 import Data.Int (Int32)
-import LLVM.Core ((:->))
+import LLVM.Core.Types ((:->))
 import qualified LLVM.Core as Core
 import qualified LLVM.Core.Types as T
 import qualified LLVM.ExecutionEngine as EE
@@ -14,7 +14,7 @@ defineGlobal mod name val = do
   Core.setInitializer global val
   return global
 
-declareFunction :: Core.ParamList p => T.Module -> String -> T.Function p -> IO T.Value
+declareFunction :: T.Params p => T.Module -> String -> T.Function p -> IO T.Value
 declareFunction mod name typ = do
   maybeFunc <- Core.getNamedFunction mod name
   case maybeFunc of
@@ -24,7 +24,7 @@ declareFunction mod name typ = do
                              then Core.constBitCast (Core.pointerType typ) func
                              else func
 
-defineFunction :: Core.ParamList p => T.Module -> String -> T.Function p
+defineFunction :: T.Params p => T.Module -> String -> T.Function p
                -> IO (T.Value, T.BasicBlock)
 defineFunction mod name typ = do
   func <- Core.addFunction mod name typ
@@ -35,10 +35,11 @@ buildModule :: IO (T.Module, T.Value)
 buildModule = do
   mod <- Core.createModule "hello"
   greetz <- defineGlobal mod "greeting" (Core.const "hello jit!")
-  let t = undefined :: T.Pointer T.Int8 :-> Core.Return T.Int32
+  let t = undefined :: T.Pointer T.Int8 :-> T.Int32
+  putStrLn $ "type of puts: " ++ show t
   puts <- declareFunction mod "puts" (Core.functionType t)
   (func, entry) <- defineFunction mod "main"
-                   (Core.functionType (undefined :: Core.Return T.Int32))
+                   (Core.functionType (undefined :: T.Int32))
   bld <- Core.createBuilder
   Core.positionAtEnd bld entry
   let zero = Core.const (0::Int32)

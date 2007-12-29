@@ -36,11 +36,19 @@ module LLVM.Core.Types
     -- ** Array, pointer, and vector types
     , Sequence
     , Array(..)
+    , arrayElement
     , Pointer(..)
+    , pointerElement
     , Vector(..)
+    , vectorElement
 
     -- ** Function-related types
     , Function(..)
+    , functionParams
+    , Params(..)
+    , (:->)
+    , car
+    , cdr
 
     -- ** Other types
     , Void(..)
@@ -102,46 +110,82 @@ newtype Builder = Builder {
       fromBuilder :: ForeignPtr FFI.Builder
     }
 
+class Params l where
+    listValue :: l -> [AnyType]
+
 class Type a => Integer a
 
 instance Integer AnyType
 
 newtype Int1 = Int1 AnyType
-    deriving (Any, Integer, Show, Type)
+    deriving (Any, Integer, Type)
+
+instance Show Int1 where
+    show _ = "Int1"
 
 newtype Int8 = Int8 AnyType
-    deriving (Any, Integer, Show, Type)
+    deriving (Any, Integer, Type)
+
+instance Show Int8 where
+    show _ = "Int8"
 
 newtype Int16 = Int16 AnyType
-    deriving (Any, Integer, Show, Type)
+    deriving (Any, Integer, Type)
+
+instance Show Int16 where
+    show _ = "Int16"
 
 newtype Int32 = Int32 AnyType
-    deriving (Any, Integer, Show, Type)
+    deriving (Any, Integer, Type)
+
+instance Show Int32 where
+    show _ = "Int32"
 
 newtype Int64 = Int64 AnyType
-    deriving (Any, Integer, Show, Type)
+    deriving (Any, Integer, Type)
+
+instance Show Int64 where
+    show _ = "Int64"
 
 newtype IntWidth a = IntWidth AnyType
-    deriving (Any, Integer, Show, Type)
+    deriving (Any, Integer, Type)
+
+instance Show (IntWidth a) where
+    show _ = "IntWidth"
 
 class Type a => Real a
 
 instance Real AnyType
 
 newtype Float = Float AnyType
-    deriving (Any, Real, Show, Type)
+    deriving (Any, Real, Type)
+
+instance Show Float where
+    show _ = "Float"
 
 newtype Double = Double AnyType
-    deriving (Any, Real, Show, Type)
+    deriving (Any, Real, Type)
+
+instance Show Double where
+    show _ = "Double"
 
 newtype X86Float80 = X86Float80 AnyType
-    deriving (Any, Real, Show, Type)
+    deriving (Any, Real, Type)
+
+instance Show X86Float80 where
+    show _ = "X86Float80"
 
 newtype Float128 = Float128 AnyType
-    deriving (Any, Real, Show, Type)
+    deriving (Any, Real, Type)
+
+instance Show Float128 where
+    show _ = "Float128"
 
 newtype PPCFloat128 = PPCFloat128 AnyType
-    deriving (Any, Real, Show, Type)
+    deriving (Any, Real, Type)
+
+instance Show PPCFloat128 where
+    show _ = "PPCFloat128"
 
 class Type a => Sequence a
 
@@ -150,15 +194,50 @@ instance Sequence AnyType
 newtype Array a = Array AnyType
     deriving (Any, Sequence, Type)
 
+arrayElement :: Array a -> a
+arrayElement _ = undefined
+
+instance (Show a) => Show (Array a) where
+    show a = "Array " ++ show (arrayElement a)
+
 newtype Pointer a = Pointer AnyType
     deriving (Any, Sequence, Type)
+
+pointerElement :: Pointer a -> a
+pointerElement _ = undefined
+
+instance (Show a) => Show (Pointer a) where
+    show a = "Pointer " ++ show (pointerElement a)
 
 newtype Vector a = Vector AnyType
     deriving (Any, Sequence, Type)
 
+vectorElement :: Vector a -> a
+vectorElement _ = undefined
+
+instance (Show a) => Show (Vector a) where
+    show a = "Vector " ++ show (vectorElement a)
+
 newtype Void = Void AnyType
-    deriving (Any, Show, Type)
+    deriving (Any, Type)
+
+instance Show Void where
+    show _ = "Void"
 
 newtype Function p = Function AnyType
-    deriving (Type, Any)
+    deriving (Any, Type)
              
+functionParams :: Function p -> p
+functionParams _ = undefined
+
+data a :-> b
+infixr 6 :->
+
+car :: (a :-> b) -> a
+car _ = undefined
+
+cdr :: (a :-> b) -> b
+cdr _ = undefined
+
+instance (Show a, Show b) => Show (a :-> b) where
+    show a = show (car a) ++ " :-> " ++ show (cdr a)

@@ -30,9 +30,6 @@ module LLVM.Core
     , ppcFloat128Type
 
     -- ** Function types
-    , ParamList(..)
-    , Return
-    , (:->)
     , functionType
     , functionTypeVarArg
     , isFunctionVarArg
@@ -104,6 +101,7 @@ import Prelude hiding (mod)
 import System.IO.Unsafe (unsafePerformIO)
 
 import qualified LLVM.Core.FFI as FFI
+import LLVM.Core.Types ((:->))
 import qualified LLVM.Core.Types as T
 import LLVM.Core.Instances ()
 
@@ -150,11 +148,17 @@ class TypeInstance a where
 int1Type :: T.Int1
 int1Type = T.Int1 $ T.mkAny FFI.int1Type
 
+instance T.Params T.Int1 where
+    listValue a = [typeInstance a]
+
 instance TypeInstance T.Int1 where
     typeInstance _ = T.toAny int1Type
 
 int8Type :: T.Int8
 int8Type = T.Int8 $ T.mkAny FFI.int8Type
+
+instance T.Params T.Int8 where
+    listValue a = [typeInstance a]
 
 instance TypeInstance T.Int8 where
     typeInstance _ = T.toAny int8Type
@@ -162,11 +166,17 @@ instance TypeInstance T.Int8 where
 int16Type :: T.Int16
 int16Type = T.Int16 $ T.mkAny FFI.int16Type
 
+instance T.Params T.Int16 where
+    listValue a = [typeInstance a]
+
 instance TypeInstance T.Int16 where
     typeInstance _ = T.toAny int16Type
 
 int32Type :: T.Int32
 int32Type = T.Int32 $ T.mkAny FFI.int32Type
+
+instance T.Params T.Int32 where
+    listValue a = [typeInstance a]
 
 instance TypeInstance T.Int32 where
     typeInstance _ = T.toAny int32Type
@@ -174,14 +184,28 @@ instance TypeInstance T.Int32 where
 int64Type :: T.Int64
 int64Type = T.Int64 $ T.mkAny FFI.int64Type
 
+instance T.Params T.Int64 where
+    listValue a = [typeInstance a]
+
 instance TypeInstance T.Int64 where
     typeInstance _ = T.toAny int64Type
 
 integerType :: Int -> T.IntWidth a
 integerType = T.IntWidth . T.mkAny . FFI.integerType . fromIntegral
 
+-- Not possible:
+--
+-- instance T.Params (T.IntWidth a) where
+--     listValue a = [typeInstance a]
+--
+-- instance TypeInstance (T.IntWidth a) where
+--     typeInstance _ = T.toAny integerType
+
 floatType :: T.Float
 floatType = T.Float $ T.mkAny FFI.floatType
+
+instance T.Params T.Float where
+    listValue a = [typeInstance a]
 
 instance TypeInstance T.Float where
     typeInstance _ = T.toAny floatType
@@ -189,11 +213,17 @@ instance TypeInstance T.Float where
 doubleType :: T.Double
 doubleType = T.Double $ T.mkAny FFI.doubleType
 
+instance T.Params T.Double where
+    listValue a = [typeInstance a]
+
 instance TypeInstance T.Double where
     typeInstance _ = T.toAny doubleType
 
 x86Float80Type :: T.X86Float80
 x86Float80Type = T.X86Float80 $ T.mkAny FFI.x86FP80Type
+
+instance T.Params T.X86Float80 where
+    listValue a = [typeInstance a]
 
 instance TypeInstance T.X86Float80 where
     typeInstance _ = T.toAny x86Float80Type
@@ -201,11 +231,17 @@ instance TypeInstance T.X86Float80 where
 float128Type :: T.Float128
 float128Type = T.Float128 $ T.mkAny FFI.fp128Type
 
+instance T.Params T.Float128 where
+    listValue a = [typeInstance a]
+
 instance TypeInstance T.Float128 where
     typeInstance _ = T.toAny float128Type
 
 ppcFloat128Type :: T.PPCFloat128
 ppcFloat128Type = T.PPCFloat128 $ T.mkAny FFI.ppcFP128Type
+
+instance T.Params T.PPCFloat128 where
+    listValue a = [typeInstance a]
 
 instance TypeInstance T.PPCFloat128 where
     typeInstance _ = T.toAny ppcFloat128Type
@@ -213,53 +249,39 @@ instance TypeInstance T.PPCFloat128 where
 voidType :: T.Void
 voidType = T.Void $ T.mkAny FFI.voidType
 
+instance T.Params T.Void where
+    listValue a = [typeInstance a]
+
 instance TypeInstance T.Void where
     typeInstance _ = T.toAny voidType
 
-data a :-> b
-infixr 6 :->
+instance (TypeInstance a, T.Params b) => T.Params (a :-> b) where
+    listValue a = typeInstance (T.car a) : T.listValue (T.cdr a)
 
-car :: (a :-> b) -> a
-car _ = undefined
-
-cdr :: (a :-> b) -> b
-cdr _ = undefined
-
-class ParamList l where
-    listValue :: l -> [T.AnyType]
-
-data Return a
-
-ret :: Return a -> a
-ret _ = undefined
-
-instance TypeInstance a => ParamList (Return a) where
-    listValue a = [typeInstance (ret a)]
-
-instance (TypeInstance a, ParamList b) => ParamList (a :-> b) where
-    listValue a = typeInstance (car a) : listValue (cdr a)
-
-functionTypeInternal :: (ParamList p) => Bool -> p -> T.Function p
+functionTypeInternal :: (T.Params p) => Bool -> p -> T.Function p
 functionTypeInternal varargs a = unsafePerformIO $ do
-    let (retType:rParamTypes) = reverse (listValue a)
+    let (retType:rParamTypes) = reverse (T.listValue a)
         paramTypes = reverse rParamTypes
     withArrayLen (map T.fromType paramTypes) $ \len ptr ->
         return . T.Function . T.mkAny $ FFI.functionType (T.fromType retType) ptr
                                         (fromIntegral len) (fromBool varargs)
     
-functionType :: ParamList p => p -> T.Function p
+functionType :: T.Params p => p -> T.Function p
 functionType = functionTypeInternal False
 
-functionTypeVarArg :: ParamList p => p -> T.Function p
+instance TypeInstance p => T.Params (T.Function p) where
+    listValue a = [typeInstance (T.functionParams a)]
+    
+functionTypeVarArg :: T.Params p => p -> T.Function p
 functionTypeVarArg = functionTypeInternal True
 
-isFunctionVarArg :: (ParamList p) => T.Function p -> Bool
+isFunctionVarArg :: (T.Params p) => T.Function p -> Bool
 isFunctionVarArg = toBool . FFI.isFunctionVarArg . T.fromType
 
-getReturnType :: (ParamList p) => T.Function p -> T.AnyType
+getReturnType :: (T.Params p) => T.Function p -> T.AnyType
 getReturnType = T.mkAny . FFI.getReturnType . T.fromType
 
-getParamTypes :: (ParamList p) => T.Function p -> [T.AnyType]
+getParamTypes :: (T.Params p) => T.Function p -> [T.AnyType]
 getParamTypes typ = unsafePerformIO $ do
     let typ' = T.fromType typ
         count = FFI.countParamTypes typ'
@@ -268,32 +290,23 @@ getParamTypes typ = unsafePerformIO $ do
       FFI.getParamTypes typ' ptr
       map T.mkAny <$> peekArray len ptr
 
-arrayElement :: T.Array a -> a
-arrayElement _ = undefined
-
 arrayType :: (T.Type t) => t -> T.Array t
 arrayType typ = T.Array . T.mkAny $ FFI.arrayType (T.fromType typ) 0
 
 instance (T.Type t, TypeInstance t) => TypeInstance (T.Array t) where
-    typeInstance = T.toAny . arrayType . typeInstance . arrayElement
-
-pointerElement :: T.Pointer a -> a
-pointerElement _ = undefined
+    typeInstance = T.toAny . arrayType . typeInstance . T.arrayElement
 
 pointerType :: (T.Type t) => t -> T.Pointer t
 pointerType typ = T.Pointer . T.mkAny $ FFI.pointerType (T.fromType typ) 0
 
 instance (T.Type t, TypeInstance t) => TypeInstance (T.Pointer t) where
-    typeInstance = T.toAny . pointerType . typeInstance . pointerElement
-
-vectorElement :: T.Vector a -> a
-vectorElement _ = undefined
+    typeInstance = T.toAny . pointerType . typeInstance . T.pointerElement
 
 vectorType :: (T.Type t) => t -> T.Vector t
 vectorType typ = T.Vector . T.mkAny $ FFI.vectorType (T.fromType typ) 0
 
 instance (T.Type t, TypeInstance t) => TypeInstance (T.Vector t) where
-    typeInstance = T.toAny . vectorType . typeInstance . vectorElement
+    typeInstance = T.toAny . vectorType . typeInstance . T.vectorElement
 
 
 addGlobal :: (T.Type t) => T.Module -> t -> String -> IO T.Value
@@ -309,7 +322,7 @@ setInitializer global cnst =
 typeOf :: T.Value -> T.AnyType
 typeOf val = unsafePerformIO $ T.mkAny <$> FFI.typeOf (T.fromValue val)
 
-addFunction :: (ParamList p) => T.Module -> String -> T.Function p
+addFunction :: (T.Params p) => T.Module -> String -> T.Function p
             -> IO T.Value
 addFunction mod name typ =
     T.withModule mod $ \modPtr ->
