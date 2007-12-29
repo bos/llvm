@@ -2,6 +2,7 @@
 module HelloJit (main) where
 
 import Data.Int (Int8, Int32)
+import LLVM.Core ((:->))
 import qualified LLVM.Core as Core
 import qualified LLVM.ExecutionEngine as EE
 import Prelude hiding (mod)
@@ -33,7 +34,7 @@ buildModule :: IO (Core.Module, Core.Value)
 buildModule = do
   mod <- Core.createModule "hello"
   greetz <- defineGlobal mod "greeting" (Core.const "hello jit!")
-  let t = undefined :: Core.PointerType (Core.IntType Int8) Core.:-> Core.Return (Core.IntType Int32)
+  let t = undefined :: Core.PointerType (Core.IntType Int8) :-> Core.Return (Core.IntType Int32)
   puts <- declareFunction mod "puts" (Core.functionType Core.Fixed t)
   (func, entry) <- defineFunction mod "main"
                    (Core.functionType Core.Fixed (undefined :: Core.Return (Core.IntType Int32)))

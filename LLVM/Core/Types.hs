@@ -1,4 +1,5 @@
-{-# LANGUAGE GeneralizedNewtypeDeriving, TypeSynonymInstances, ExistentialQuantification #-}
+{-# LANGUAGE ExistentialQuantification #-}
+
 module LLVM.Core.Types
     (
       Module(..)

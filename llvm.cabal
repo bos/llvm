@@ -34,7 +34,13 @@ library
   else
     build-depends: base < 2.0 || >= 2.2, bytestring >= 0.9 
 
-  extensions: ForeignFunctionInterface
+  extensions:
+      EmptyDataDecls
+      FlexibleInstances
+      ForeignFunctionInterface
+      GeneralizedNewtypeDeriving
+      TypeOperators
+      TypeSynonymInstances
   ghc-options: -Wall -Werror
 
   exposed-modules:

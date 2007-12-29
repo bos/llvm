@@ -1,5 +1,3 @@
-{-# LANGUAGE TypeSynonymInstances, GeneralizedNewtypeDeriving, EmptyDataDecls, FlexibleInstances, TypeOperators, UndecidableInstances #-}
-
 module LLVM.Core
     (
     -- * Modules
@@ -37,11 +35,11 @@ module LLVM.Core
 
     -- ** Function types
     , FunctionType
-    , Args(..)
     , ParamList(..)
     , Return
     , (:->)
     , functionType
+    , functionTypeVarArg
     , isFunctionVarArg
     , getReturnType
     , getParamTypes
@@ -111,7 +109,7 @@ import Data.Int (Int8, Int16, Int32, Int64)
 import Data.Word (Word8, Word16, Word32, Word64)
 import Foreign.C.String (withCString, withCStringLen)
 import Foreign.Marshal.Array (allocaArray, peekArray, withArrayLen)
-import Foreign.Marshal.Utils (toBool)
+import Foreign.Marshal.Utils (fromBool, toBool)
 import Foreign.ForeignPtr (FinalizerPtr, newForeignPtr, withForeignPtr)
 import Foreign.Ptr (Ptr, nullPtr)
 import Prelude hiding (mod)
@@ -276,17 +274,20 @@ instance (TypeInstance a, ParamList b) => ParamList (a :-> b) where
 newtype FunctionType p = FunctionType AnyType
     deriving (Type, Any)
 
-data Args = Fixed | VarArgs
-          deriving (Eq, Show, Ord, Enum)
-
-functionType :: (ParamList p) => Args -> p -> FunctionType p
-functionType args a = unsafePerformIO $ do
+functionTypeInternal :: (ParamList p) => Bool -> p -> FunctionType p
+functionTypeInternal varargs a = unsafePerformIO $ do
     let (retType:rParamTypes) = reverse (listValue a)
         paramTypes = reverse rParamTypes
     withArrayLen (map fromType paramTypes) $ \len ptr ->
         return . FunctionType . mkAny $ FFI.functionType (fromType retType) ptr
-                                        (fromIntegral len) (fromIntegral . fromEnum $ args)
+                                        (fromIntegral len) (fromBool varargs)
     
+functionType :: ParamList p => p -> FunctionType p
+functionType = functionTypeInternal False
+
+functionTypeVarArg :: ParamList p => p -> FunctionType p
+functionTypeVarArg = functionTypeInternal True
+
 isFunctionVarArg :: (ParamList p) => FunctionType p -> Bool
 isFunctionVarArg = toBool . FFI.isFunctionVarArg . fromType
 
