@@ -29,6 +29,9 @@ configure: configure.ac
 examples:
 	$(MAKE) -C examples
 
+sdist: dist/setup-config
+	./setup sdist
+
 .PHONY: install
 install: setup
 	./setup install
