@@ -1,0 +1,77 @@
+Build and installation instructions
+-----------------------------------
+
+Please don't think of these as canonical build instructions yet, as
+this work is rather early along.  Let me tell you what's working for
+*me*, and hopefully this information will be enough to get you going.
+
+
+Prerequisites
+-------------
+
+I'm using GHC 6.8.2 for development.  6.8.1 will probably work.  I'll
+be happy to accept patches to get things working with 6.6.x, provided
+they don't pervert the code much :-)
+
+(My development environment is Fedora 8 x86_64, in case you're
+curious.)
+
+Firstly, you'll need the SVN version of LLVM:
+
+  svn co http://llvm.org/svn/llvm-project/llvm/trunk llvm-trunk
+
+Build this and install it somewhere.  Here's what I do:
+
+  cd llvn-trunk
+  ./configure --prefix=$HOME
+  make
+  make install
+
+If you're building the Haskell bindings from the darcs repo (strongly
+recommended from now), you'll also need a copy of GNU autoconf.
+
+
+Using GNU Make
+--------------
+
+There's a GNU Make Makefile in the top-level directory that builds the
+LLVM bindings the way I want them built.  In principle, you ought to
+be able to simply run something like this:
+
+  make llvm_prefix=/my/llvm/path prefix=/my/preferred/path
+
+These both default to $HOME.
+
+
+Building by hand
+----------------
+
+If you want to avoid GNU Make, here's a recipe you can follow.  Run
+these in the root of your darcs repo or unpacked source tarball.
+
+If you're building from darcs, run this once (this is why you need
+autoconf installed):
+
+  autoreconf
+
+Configure the package.  I'm assuming that LLVM is installed in $HOME,
+and that you want the bindings installed in $HOME, too.
+
+  runhaskell Setup configure --prefix=$HOME \
+    --configure-option --with-llvm-prefix=$HOME --user
+
+Build.
+
+  runhaskell Setup build
+
+Install.
+
+  runhaskell Setup install
+
+
+Building examples
+-----------------
+
+In the examples directory are a few example programs.  There's a GNU
+Make Makefile in there, so running "make" in that directory will build
+the examples, as will "make examples" in the top-level directory.
