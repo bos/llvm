@@ -1,4 +1,4 @@
-AC_INIT([Haskell LLVM bindings], [0.1], [bos@serpentine.com], [llvm])
+AC_INIT([Haskell LLVM bindings], [0.0.1], [bos@serpentine.com], [llvm])
 
 AC_CONFIG_SRCDIR([LLVM/ExecutionEngine.hs])
 
