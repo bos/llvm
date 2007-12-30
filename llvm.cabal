@@ -12,6 +12,7 @@ cabal-version: >= 1.2.1
 extra-source-files:
     INSTALL.txt
     PROBLEMS.txt
+    README.txt
     configure
     configure.ac
     llvm.buildinfo.in
