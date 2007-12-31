@@ -20,6 +20,10 @@ module LLVM.Core.Values
     , ConstValue
     , GlobalValue
     , GlobalVariable
+    , Arithmetic
+    , Integer
+    , Real
+    , Vector
 
     , Global(..)
     , GlobalVar(..)
@@ -31,6 +35,7 @@ module LLVM.Core.Values
     , ConstInt(..)
     , ConstReal(..)
     , ConstArray(..)
+    , ConstExpr(..)
 
     -- ** Useful functions
     , Const(..)
@@ -63,6 +68,7 @@ import Data.Typeable (Typeable)
 import Data.Word (Word8, Word16, Word32, Word64)
 import Foreign.C.String (withCStringLen)
 import Foreign.ForeignPtr (ForeignPtr)
+import Prelude hiding (Integer, Real)
 import System.IO.Unsafe (unsafePerformIO)
 
 import qualified LLVM.Core.FFI as FFI
@@ -94,6 +100,10 @@ mkAnyValue :: Value a => a -> AnyValue
 mkAnyValue = AnyValue
 
 class Value a => ConstValue a
+class Value a => Arithmetic a
+class Arithmetic a => Integer a
+class Arithmetic a => Real a
+class Arithmetic a => Vector a
 class ConstValue a => GlobalValue a
 class GlobalValue a => GlobalVariable a
 class Value a => Instruction a
@@ -105,6 +115,9 @@ instance ConstValue AnyValue
 instance GlobalValue AnyValue
 instance GlobalVariable AnyValue
 instance Instruction AnyValue
+instance Arithmetic AnyValue
+instance Integer AnyValue
+instance Real AnyValue
 
 newtype BasicBlock = BasicBlock AnyValue
     deriving (DynamicValue, Typeable, Value)
@@ -138,7 +151,7 @@ instance T.Params p => TypedValue (Function p) (T.Function p) where
     typeOf _ = T.function undefined
 
 newtype ConstInt t = ConstInt AnyValue
-    deriving (ConstValue, DynamicValue, Typeable, Value)
+    deriving (Arithmetic, ConstValue, DynamicValue, Integer, Typeable, Value)
 
 instance TypedValue (ConstInt T.Int1) T.Int1 where
     typeOf _ = T.int1
@@ -162,7 +175,7 @@ instance T.Type a => TypedValue (ConstArray a) (T.Array a) where
     typeOf _ = T.array undefined
 
 newtype ConstReal t = ConstReal AnyValue
-    deriving (ConstValue, DynamicValue, Typeable, Value)
+    deriving (Arithmetic, ConstValue, DynamicValue, Real, Typeable, Value)
 
 instance TypedValue (ConstReal T.Float) T.Float where
     typeOf _ = T.float
@@ -178,6 +191,9 @@ instance TypedValue (ConstReal T.Float128) T.Float128 where
 
 instance TypedValue (ConstReal T.PPCFloat128) T.PPCFloat128 where
     typeOf _ = T.ppcFloat128
+
+newtype ConstExpr t = ConstExpr AnyValue
+    deriving (ConstValue, DynamicValue, Typeable, Value)
 
 constWord :: (T.Integer t, Integral a) => t -> a -> ConstInt t
 constWord typ val =

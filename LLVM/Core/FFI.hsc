@@ -75,6 +75,9 @@ module LLVM.Core.FFI
 
     -- ** Constant expressions
     , constBitCast
+    , constNeg
+    , constNot
+    , constFCmp
 
     -- * Basic blocks
     , BasicBlock
@@ -245,6 +248,15 @@ foreign import ccall unsafe "LLVMConstString" constString
 
 foreign import ccall unsafe "LLVMConstBitCast" constBitCast
     :: ValueRef -> TypeRef -> ValueRef
+
+foreign import ccall unsafe "LLVMConstNeg" constNeg
+        :: ValueRef -> ValueRef
+
+foreign import ccall unsafe "LLVMConstNot" constNot
+        :: ValueRef -> ValueRef
+
+foreign import ccall unsafe "LLVMConstFCmp" constFCmp
+        :: CInt -> ValueRef -> ValueRef -> ValueRef
 
 
 type BasicBlock = Value

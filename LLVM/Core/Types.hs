@@ -20,6 +20,7 @@ module LLVM.Core.Types
     , mkAnyType
 
     -- ** Integer types
+    , Arithmetic
     , Integer
     , integer
     , Int1(..)
