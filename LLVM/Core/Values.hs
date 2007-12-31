@@ -1,5 +1,6 @@
 {-# LANGUAGE
-    ExistentialQuantification
+    DeriveDataTypeable
+  , ExistentialQuantification
   , FunctionalDependencies
   , MultiParamTypeClasses
   #-}
@@ -10,7 +11,7 @@ module LLVM.Core.Values
 
     -- * Opaque wrapper for LLVM's basic value type
       AnyValue
-    , HasAnyValue(..)
+    , DynamicValue(..)
     , mkAnyValue
     , typeOfDyn
 
@@ -58,6 +59,7 @@ module LLVM.Core.Values
 
 import Control.Applicative ((<$>))
 import Data.Int (Int8, Int16, Int32, Int64)
+import Data.Typeable (Typeable)
 import Data.Word (Word8, Word16, Word32, Word64)
 import Foreign.C.String (withCStringLen)
 import Foreign.ForeignPtr (ForeignPtr)
@@ -70,14 +72,13 @@ import qualified LLVM.Core.Types as T
 class Value a where
     valueRef :: a -> FFI.ValueRef
 
-class HasAnyValue a where
-    toAnyValue :: a -> AnyValue
+class DynamicValue a where
     fromAnyValue :: AnyValue -> a
 
 data AnyValue = forall a. Value a => AnyValue a
+                deriving (Typeable)
 
-instance HasAnyValue AnyValue where
-    toAnyValue = id
+instance DynamicValue AnyValue where
     fromAnyValue = id
 
 instance Value FFI.ValueRef where
@@ -100,44 +101,47 @@ instance GlobalVariable AnyValue
 instance Instruction AnyValue
 
 newtype BasicBlock = BasicBlock AnyValue
-    deriving (HasAnyValue, Value)
+    deriving (DynamicValue, Typeable, Value)
 
 newtype Builder = Builder {
       fromBuilder :: ForeignPtr FFI.Builder
     }
+    deriving (Typeable)
 
 newtype CallInst = CallInst AnyValue
-    deriving (HasAnyValue, Instruction, Value)
+    deriving (DynamicValue, Instruction, Typeable, Value)
 
 newtype GetElementPtrInst = GetElementPtrInst AnyValue
-    deriving (HasAnyValue, Instruction, Value)
+    deriving (DynamicValue, Instruction, Typeable, Value)
 
 newtype ReturnInst = ReturnInst AnyValue
-    deriving (HasAnyValue, Instruction, Value)
+    deriving (DynamicValue, Instruction, Typeable, Value)
 
 newtype Global t = Global AnyValue
-    deriving (ConstValue, GlobalValue, HasAnyValue, Value)
+    deriving (ConstValue, DynamicValue, GlobalValue, Typeable, Value)
 
 newtype GlobalVar t = GlobalVar AnyValue
-    deriving (ConstValue, GlobalValue, GlobalVariable, HasAnyValue, Value)
+    deriving (ConstValue, DynamicValue, GlobalValue, GlobalVariable,
+              Typeable, Value)
 
 newtype Function t = Function AnyValue
-    deriving (ConstValue, GlobalValue, GlobalVariable, HasAnyValue, Value)
+    deriving (ConstValue, DynamicValue, GlobalValue, GlobalVariable,
+              Typeable, Value)
 
 functionType :: Function a -> T.Function a
 functionType = T.fromAnyType . T.mkAnyType . typeOfDyn
 
 newtype ConstInt t = ConstInt AnyValue
-    deriving (ConstValue, HasAnyValue, Value)
+    deriving (ConstValue, DynamicValue, Typeable, Value)
 
 newtype ConstArray t = ConstArray AnyValue
-    deriving (ConstValue, HasAnyValue, Value)
+    deriving (ConstValue, DynamicValue, Typeable, Value)
 
 constArrayType :: ConstArray a -> T.Array a
 constArrayType = T.fromAnyType . T.mkAnyType . typeOfDyn
 
 newtype ConstReal t = ConstReal AnyValue
-    deriving (ConstValue, HasAnyValue, Value)
+    deriving (ConstValue, DynamicValue, Typeable, Value)
 
 -- | Recover the type of a value in a manner that preserves static
 -- type safety.
@@ -165,7 +169,7 @@ constStringNul s = unsafePerformIO $
     withCStringLen s $ \(sPtr, sLen) ->
       return . ConstArray . mkAnyValue $ FFI.constString sPtr (fromIntegral sLen) 0
 
-constBitCast :: (ConstValue a, ConstValue b, HasAnyValue b, T.Type t) => t -> a -> b
+constBitCast :: (ConstValue a, ConstValue b, DynamicValue b, T.Type t) => t -> a -> b
 constBitCast typ val =
     fromAnyValue . mkAnyValue $ FFI.constBitCast (valueRef val) (T.typeRef typ)
 
