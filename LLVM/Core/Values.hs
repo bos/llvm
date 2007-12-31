@@ -49,9 +49,6 @@ module LLVM.Core.Values
     , constString
     , constStringNul
 
-    -- *** Constant expressions
-    , constBitCast
-
     -- * Instructions
     , Instruction
     , CallInst(..)
@@ -68,11 +65,14 @@ import Data.Typeable (Typeable)
 import Data.Word (Word8, Word16, Word32, Word64)
 import Foreign.C.String (withCStringLen)
 import Foreign.ForeignPtr (ForeignPtr)
+import Foreign.Marshal.Utils (fromBool)
 import Prelude hiding (Integer, Real)
 import System.IO.Unsafe (unsafePerformIO)
 
 import qualified LLVM.Core.FFI as FFI
 import qualified LLVM.Core.Types as T
+
+-- import Debug.Trace
 
 
 class Value a where
@@ -154,71 +154,69 @@ newtype ConstInt t = ConstInt AnyValue
     deriving (Arithmetic, ConstValue, DynamicValue, Integer, Typeable, Value)
 
 instance TypedValue (ConstInt T.Int1) T.Int1 where
-    typeOf _ = T.int1
+    typeOf = T.int1
 
 instance TypedValue (ConstInt T.Int8) T.Int8 where
-    typeOf _ = T.int8
+    typeOf = T.int8
 
 instance TypedValue (ConstInt T.Int16) T.Int16 where
-    typeOf _ = T.int16
+    typeOf = T.int16
 
 instance TypedValue (ConstInt T.Int32) T.Int32 where
-    typeOf _ = T.int32
+    typeOf = T.int32
 
 instance TypedValue (ConstInt T.Int64) T.Int64 where
-    typeOf _ = T.int64
+    typeOf = T.int64
 
 newtype ConstArray t = ConstArray AnyValue
     deriving (ConstValue, DynamicValue, Typeable, Value)
 
-instance T.Type a => TypedValue (ConstArray a) (T.Array a) where
-    typeOf _ = T.array undefined
+instance (T.DynamicType a) => TypedValue (ConstArray a) (T.Array a) where
+    typeOf _ = T.array undefined 0
 
 newtype ConstReal t = ConstReal AnyValue
     deriving (Arithmetic, ConstValue, DynamicValue, Real, Typeable, Value)
 
 instance TypedValue (ConstReal T.Float) T.Float where
-    typeOf _ = T.float
+    typeOf = T.float
 
 instance TypedValue (ConstReal T.Double) T.Double where
-    typeOf _ = T.double
+    typeOf = T.double
 
 instance TypedValue (ConstReal T.X86Float80) T.X86Float80 where
-    typeOf _ = T.x86Float80
+    typeOf = T.x86Float80
 
 instance TypedValue (ConstReal T.Float128) T.Float128 where
-    typeOf _ = T.float128
+    typeOf = T.float128
 
 instance TypedValue (ConstReal T.PPCFloat128) T.PPCFloat128 where
-    typeOf _ = T.ppcFloat128
+    typeOf = T.ppcFloat128
 
 newtype ConstExpr t = ConstExpr AnyValue
     deriving (ConstValue, DynamicValue, Typeable, Value)
 
-constWord :: (T.Integer t, Integral a) => t -> a -> ConstInt t
+constWord :: (T.Integer t, Integral a) => (b -> t) -> a -> ConstInt t
 constWord typ val =
-    ConstInt . mkAnyValue $ FFI.constInt (T.typeRef typ) (fromIntegral val) 0
+    ConstInt . mkAnyValue $ FFI.constInt (T.typeRef (typ undefined)) (fromIntegral val) 0
 
-constInt :: (T.Integer t, Integral a) => t -> a -> ConstInt t
+constInt :: (T.Integer t, Integral a) => (b -> t) -> a -> ConstInt t
 constInt typ val =
-    ConstInt . mkAnyValue $ FFI.constInt (T.typeRef typ) (fromIntegral val) 1
+    ConstInt . mkAnyValue $ FFI.constInt (T.typeRef (typ undefined)) (fromIntegral val) 1
 
-constReal :: (T.Real t, RealFloat a) => t -> a -> ConstReal t
-constReal typ val = ConstReal . mkAnyValue $ FFI.constReal (T.typeRef typ) (realToFrac val)
+constReal :: (T.Real t, RealFloat a) => (b -> t) -> a -> ConstReal t
+constReal typ val = ConstReal . mkAnyValue $ FFI.constReal (T.typeRef (typ undefined)) (realToFrac val)
+
+constStringInternal :: Bool -> String -> ConstArray T.Int8
+constStringInternal nulTerm s = unsafePerformIO $
+    withCStringLen s $ \(sPtr, sLen) ->
+      return . ConstArray . mkAnyValue $
+      FFI.constString sPtr (fromIntegral sLen) (fromBool (not nulTerm))
 
 constString :: String -> ConstArray T.Int8
-constString s = unsafePerformIO $
-    withCStringLen s $ \(sPtr, sLen) ->
-      return . ConstArray . mkAnyValue $ FFI.constString sPtr (fromIntegral sLen) 1
+constString = constStringInternal False
 
 constStringNul :: String -> ConstArray T.Int8
-constStringNul s = unsafePerformIO $
-    withCStringLen s $ \(sPtr, sLen) ->
-      return . ConstArray . mkAnyValue $ FFI.constString sPtr (fromIntegral sLen) 0
-
-constBitCast :: (ConstValue a, ConstValue b, DynamicValue b, T.Type t) => t -> a -> b
-constBitCast typ val =
-    fromAnyValue . mkAnyValue $ FFI.constBitCast (valueRef val) (T.typeRef typ)
+constStringNul = constStringInternal True
 
 class ConstValue t => Const a t | a -> t where
     const :: a -> t

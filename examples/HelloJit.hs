@@ -4,6 +4,7 @@ module HelloJit (main) where
 import Data.Int (Int32)
 import LLVM.Core.Types ((:->))
 import qualified LLVM.Core as Core
+import qualified LLVM.Core.Instructions as I
 import qualified LLVM.Core.Types as T
 import qualified LLVM.Core.Values as V
 import qualified LLVM.ExecutionEngine as EE
@@ -24,7 +25,7 @@ declareFunction mod name typ = do
     Nothing -> Core.addFunction mod name typ
     Just func -> return $ let t = V.typeOf func
                           in if T.elementTypeDyn t /= T.toAnyType typ
-                             then V.constBitCast (T.pointer typ) func
+                             then I.bitCast func (T.pointer typ)
                              else func
 
 defineFunction :: T.Params p => T.Module -> String -> T.Function p

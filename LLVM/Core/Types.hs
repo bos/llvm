@@ -57,6 +57,11 @@ module LLVM.Core.Types
     , array
     , arrayElementType
     , Pointer(..)
+    , AddressSpace
+    , addressSpace
+    , fromAddressSpace
+    , genericAddressSpace
+    , pointerIn
     , pointer
     , pointerElementType
     , Vector(..)
@@ -91,6 +96,8 @@ import Prelude hiding (Double, Float, Integer, Real, mod)
 import System.IO.Unsafe (unsafePerformIO)
 
 import qualified LLVM.Core.FFI as FFI
+
+-- import Debug.Trace
 
 
 newtype Module = Module {
@@ -291,17 +298,17 @@ class Type a => DynamicType a where
     toAnyType :: a              -- ^ not inspected
               -> AnyType
 
-int1 :: Int1
-int1 = Int1 $ mkAnyType FFI.int1Type
+int1 :: a -> Int1
+int1 _ = Int1 $ mkAnyType FFI.int1Type
 
 instance Params Int1 where
     listValue a = [toAnyType a]
 
 instance DynamicType Int1 where
-    toAnyType _ = mkAnyType int1
+    toAnyType = mkAnyType . int1
 
-int8 :: Int8
-int8 = Int8 $ mkAnyType FFI.int8Type
+int8 :: a -> Int8
+int8 _ = Int8 $ mkAnyType FFI.int8Type
 
 instance Params Int8 where
     listValue a = [toAnyType a]
@@ -310,37 +317,37 @@ instance Params AnyType where
     listValue a = [toAnyType a]
 
 instance DynamicType Int8 where
-    toAnyType _ = mkAnyType int8
+    toAnyType = mkAnyType . int8
 
-int16 :: Int16
-int16 = Int16 $ mkAnyType FFI.int16Type
+int16 :: a -> Int16
+int16 _ = Int16 $ mkAnyType FFI.int16Type
 
 instance Params Int16 where
     listValue a = [toAnyType a]
 
 instance DynamicType Int16 where
-    toAnyType _ = mkAnyType int16
+    toAnyType = mkAnyType . int16
 
-int32 :: Int32
-int32 = Int32 $ mkAnyType FFI.int32Type
+int32 :: a -> Int32
+int32 _ = Int32 $ mkAnyType FFI.int32Type
 
 instance Params Int32 where
     listValue a = [toAnyType a]
 
 instance DynamicType Int32 where
-    toAnyType _ = mkAnyType int32
+    toAnyType = mkAnyType . int32
 
-int64 :: Int64
-int64 = Int64 $ mkAnyType FFI.int64Type
+int64 :: a -> Int64
+int64 _ = Int64 $ mkAnyType FFI.int64Type
 
 instance Params Int64 where
     listValue a = [toAnyType a]
 
 instance DynamicType Int64 where
-    toAnyType _ = mkAnyType int64
+    toAnyType = mkAnyType . int64
 
-integer :: Int -> IntWidth a
-integer = IntWidth . mkAnyType . FFI.integerType . fromIntegral
+integer :: Int -> b -> IntWidth a
+integer width _ = IntWidth . mkAnyType . FFI.integerType $ fromIntegral width
 
 -- Not possible:
 --
@@ -350,59 +357,59 @@ integer = IntWidth . mkAnyType . FFI.integerType . fromIntegral
 -- instance DynamicType (IntWidth a) where
 --     toAnyType _ = mkAnyType integerType
 
-float :: Float
-float = Float $ mkAnyType FFI.floatType
+float :: a -> Float
+float _ = Float $ mkAnyType FFI.floatType
 
 instance Params Float where
     listValue a = [toAnyType a]
 
 instance DynamicType Float where
-    toAnyType _ = mkAnyType float
+    toAnyType = mkAnyType . float
 
-double :: Double
-double = Double $ mkAnyType FFI.doubleType
+double :: a -> Double
+double _ = Double $ mkAnyType FFI.doubleType
 
 instance Params Double where
     listValue a = [toAnyType a]
 
 instance DynamicType Double where
-    toAnyType _ = mkAnyType double
+    toAnyType = mkAnyType . double
 
-x86Float80 :: X86Float80
-x86Float80 = X86Float80 $ mkAnyType FFI.x86FP80Type
+x86Float80 :: a -> X86Float80
+x86Float80 _ = X86Float80 $ mkAnyType FFI.x86FP80Type
 
 instance Params X86Float80 where
     listValue a = [toAnyType a]
 
 instance DynamicType X86Float80 where
-    toAnyType _ = mkAnyType x86Float80
+    toAnyType = mkAnyType . x86Float80
 
-float128 :: Float128
-float128 = Float128 $ mkAnyType FFI.fp128Type
+float128 :: a -> Float128
+float128 _ = Float128 $ mkAnyType FFI.fp128Type
 
 instance Params Float128 where
     listValue a = [toAnyType a]
 
 instance DynamicType Float128 where
-    toAnyType _ = mkAnyType float128
+    toAnyType = mkAnyType . float128
 
-ppcFloat128 :: PPCFloat128
-ppcFloat128 = PPCFloat128 $ mkAnyType FFI.ppcFP128Type
+ppcFloat128 :: a -> PPCFloat128
+ppcFloat128 _ = PPCFloat128 $ mkAnyType FFI.ppcFP128Type
 
 instance Params PPCFloat128 where
     listValue a = [toAnyType a]
 
 instance DynamicType PPCFloat128 where
-    toAnyType _ = mkAnyType ppcFloat128
+    toAnyType = mkAnyType . ppcFloat128
 
-void :: Void
-void = Void $ mkAnyType FFI.voidType
+void :: a -> Void
+void _ = Void $ mkAnyType FFI.voidType
 
 instance Params Void where
     listValue a = [toAnyType a]
 
 instance DynamicType Void where
-    toAnyType _ = mkAnyType void
+    toAnyType = mkAnyType . void
 
 instance (DynamicType a, Params b) => Params (a :-> b) where
     listValue a = toAnyType (car a) : listValue (cdr a)
@@ -439,23 +446,37 @@ getParamTypes typ = unsafePerformIO $ do
       FFI.getParamTypes typ' ptr
       map mkAnyType <$> peekArray len ptr
 
-array :: (Type t) => t -> Array t
-array typ = Array . mkAnyType $ FFI.arrayType (typeRef typ) 0
+array :: (DynamicType t) => t -> Int -> Array t
+array typ len = Array . mkAnyType $ FFI.arrayType (typeRef (toAnyType typ)) (fromIntegral len)
 
-instance (Type t, DynamicType t) => DynamicType (Array t) where
-    toAnyType = mkAnyType . array . toAnyType . arrayElementType
+instance (DynamicType t) => DynamicType (Array t) where
+    toAnyType = mkAnyType . flip array 0 . toAnyType . arrayElementType
 
-pointer :: (Type t) => t -> Pointer t
-pointer typ = Pointer . mkAnyType $ FFI.pointerType (typeRef typ) 0
+newtype AddressSpace = AddressSpace {
+      fromAddressSpace :: Int
+    }
+    deriving (Eq, Ord, Show, Read)
 
-instance (Type t, DynamicType t) => DynamicType (Pointer t) where
+addressSpace :: Int -> AddressSpace
+addressSpace = AddressSpace
+
+genericAddressSpace :: AddressSpace
+genericAddressSpace = addressSpace 0
+
+pointerIn :: (DynamicType t) => t -> AddressSpace -> Pointer t
+pointerIn typ space = Pointer . mkAnyType $ FFI.pointerType (typeRef (toAnyType typ)) (fromIntegral . fromAddressSpace $ space)
+
+pointer :: (DynamicType t) => t -> Pointer t
+pointer typ = pointerIn typ genericAddressSpace
+
+instance (DynamicType t) => DynamicType (Pointer t) where
     toAnyType = mkAnyType . pointer . toAnyType . pointerElementType
 
-vector :: (Type t) => t -> Vector t
-vector typ = Vector . mkAnyType $ FFI.vectorType (typeRef typ) 0
+vector :: (DynamicType t) => t -> Int -> Vector t
+vector typ len = Vector . mkAnyType $ FFI.vectorType (typeRef (toAnyType typ)) (fromIntegral len)
 
-instance (Type t, DynamicType t) => DynamicType (Vector t) where
-    toAnyType = mkAnyType . vector . toAnyType . vectorElementType
+instance (DynamicType t) => DynamicType (Vector t) where
+    toAnyType = mkAnyType . flip vector 0 . toAnyType . vectorElementType
 
 elementTypeDyn :: Type a => a -> AnyType
 elementTypeDyn = mkAnyType . FFI.getElementType . typeRef
