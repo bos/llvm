@@ -50,6 +50,7 @@ library
   exposed-modules:
       LLVM.Core
       LLVM.Core.FFI
+      LLVM.Core.Constants
       LLVM.Core.Instructions
       LLVM.Core.Types
       LLVM.Core.Values

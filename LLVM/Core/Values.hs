@@ -35,7 +35,6 @@ module LLVM.Core.Values
     , ConstInt(..)
     , ConstReal(..)
     , ConstArray(..)
-    , ConstExpr(..)
 
     -- ** Useful functions
     , Const(..)
@@ -191,9 +190,6 @@ instance TypedValue (ConstReal T.Float128) T.Float128 where
 
 instance TypedValue (ConstReal T.PPCFloat128) T.PPCFloat128 where
     typeOf = T.ppcFloat128
-
-newtype ConstExpr t = ConstExpr AnyValue
-    deriving (ConstValue, DynamicValue, Typeable, Value)
 
 constWord :: (T.Integer t, Integral a) => (b -> t) -> a -> ConstInt t
 constWord typ val =
