@@ -112,8 +112,9 @@ withModuleProvider prov = withForeignPtr (fromModuleProvider prov)
 class Type a where
     typeRef :: a -> FFI.TypeRef
 
-class Type a => Integer a
-class Type a => Real a
+class Type a => Arithmetic a
+class Arithmetic a => Integer a
+class Arithmetic a => Real a
 
 class HasAnyType a where
     fromAnyType :: AnyType -> a
@@ -145,69 +146,70 @@ class Params l where
 instance Integer AnyType
 
 newtype Int1 = Int1 AnyType
-    deriving (HasAnyType, Integer, Type, Typeable)
+    deriving (Arithmetic, HasAnyType, Integer, Type, Typeable)
 
 instance Show Int1 where
     show _ = "Int1"
 
 newtype Int8 = Int8 AnyType
-    deriving (HasAnyType, Integer, Type, Typeable)
+    deriving (Arithmetic, HasAnyType, Integer, Type, Typeable)
 
 instance Show Int8 where
     show _ = "Int8"
 
 newtype Int16 = Int16 AnyType
-    deriving (HasAnyType, Integer, Type, Typeable)
+    deriving (Arithmetic, HasAnyType, Integer, Type, Typeable)
 
 instance Show Int16 where
     show _ = "Int16"
 
 newtype Int32 = Int32 AnyType
-    deriving (HasAnyType, Integer, Type, Typeable)
+    deriving (Arithmetic, HasAnyType, Integer, Type, Typeable)
 
 instance Show Int32 where
     show _ = "Int32"
 
 newtype Int64 = Int64 AnyType
-    deriving (HasAnyType, Integer, Type, Typeable)
+    deriving (Arithmetic, HasAnyType, Integer, Type, Typeable)
 
 instance Show Int64 where
     show _ = "Int64"
 
 newtype IntWidth a = IntWidth AnyType
-    deriving (HasAnyType, Integer, Type, Typeable)
+    deriving (Arithmetic, HasAnyType, Integer, Type, Typeable)
 
 instance Show (IntWidth a) where
     show _ = "IntWidth"
 
 instance Real AnyType
+instance Arithmetic AnyType
 
 newtype Float = Float AnyType
-    deriving (HasAnyType, Real, Type, Typeable)
+    deriving (Arithmetic, HasAnyType, Real, Type, Typeable)
 
 instance Show Float where
     show _ = "Float"
 
 newtype Double = Double AnyType
-    deriving (HasAnyType, Real, Type, Typeable)
+    deriving (Arithmetic, HasAnyType, Real, Type, Typeable)
 
 instance Show Double where
     show _ = "Double"
 
 newtype X86Float80 = X86Float80 AnyType
-    deriving (HasAnyType, Real, Type, Typeable)
+    deriving (Arithmetic, HasAnyType, Real, Type, Typeable)
 
 instance Show X86Float80 where
     show _ = "X86Float80"
 
 newtype Float128 = Float128 AnyType
-    deriving (HasAnyType, Real, Type, Typeable)
+    deriving (Arithmetic, HasAnyType, Real, Type, Typeable)
 
 instance Show Float128 where
     show _ = "Float128"
 
 newtype PPCFloat128 = PPCFloat128 AnyType
-    deriving (HasAnyType, Real, Type, Typeable)
+    deriving (Arithmetic, HasAnyType, Real, Type, Typeable)
 
 instance Show PPCFloat128 where
     show _ = "PPCFloat128"
@@ -243,7 +245,7 @@ instance (Show a) => Show (Pointer a) where
     show a = "Pointer " ++ show (pointerElementType a)
 
 newtype Vector a = Vector AnyType
-    deriving (HasAnyType, Type, Typeable)
+    deriving (Arithmetic, HasAnyType, Type, Typeable)
 
 vectorElementType :: Vector a -> a
 vectorElementType _ = undefined
