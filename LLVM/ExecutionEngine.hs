@@ -63,9 +63,9 @@ newtype GenericValue = GenericValue {
       fromGenericValue :: Ptr FFI.GenericValue
     }
 
-runFunction :: ExecutionEngine -> V.Function -> [GenericValue] -> IO GenericValue
+runFunction :: ExecutionEngine -> V.Function a -> [GenericValue] -> IO GenericValue
 runFunction ee func args =
     withExecutionEngine ee $ \eePtr ->
       withArrayLen (map fromGenericValue args) $ \argLen argPtr ->
-        GenericValue <$> FFI.runFunction eePtr (V.fromValue func)
+        GenericValue <$> FFI.runFunction eePtr (V.valueRef func)
                                         (fromIntegral argLen) argPtr

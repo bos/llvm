@@ -1,5 +1,6 @@
 {-# LANGUAGE
-    ExistentialQuantification
+    DeriveDataTypeable
+  , ExistentialQuantification
   , FunctionalDependencies
   , MultiParamTypeClasses
   #-}
@@ -15,41 +16,64 @@ module LLVM.Core.Types
     , Type(..)
     , AnyType
     , HasAnyType(..)
+    , DynamicType(..)
     , mkAnyType
 
     -- ** Integer types
     , Integer
+    , integer
     , Int1(..)
+    , int1
     , Int8(..)
+    , int8
     , Int16(..)
+    , int16
     , Int32(..)
+    , int32
     , Int64(..)
+    , int64
     , IntWidth(..)
 
     -- ** Real types
     , Real
     , Float(..)
+    , float
     , Double(..)
+    , double
 
     -- *** Machine-specific real types
     , X86Float80(..)
+    , x86Float80
     , Float128(..)
+    , float128
     , PPCFloat128(..)
+    , ppcFloat128
 
     -- ** Array, pointer, and vector types
-    , Sequence
+    , Sequence(..)
+    , elementTypeDyn
     , Array(..)
-    , arrayElement
+    , array
+    , arrayElementType
     , Pointer(..)
-    , pointerElement
+    , pointer
+    , pointerElementType
     , Vector(..)
-    , vectorElement
+    , vector
+    , vectorElementType
 
     -- ** Function-related types
     , Function(..)
+    , function
+    , functionVarArg
+    , isFunctionVarArg
+    , getReturnType
+    , getParamTypes
+
+    -- *** Type hackery
     , functionParams
     , Params(..)
-    , (:->)
+    , (:->)(..)
     , car
     , cdr
 
@@ -57,8 +81,13 @@ module LLVM.Core.Types
     , Void(..)
     ) where
 
+import Control.Applicative ((<$>))
+import Data.Typeable (Typeable)
 import Foreign.ForeignPtr (ForeignPtr, withForeignPtr)
+import Foreign.Marshal.Array (allocaArray, peekArray, withArrayLen)
+import Foreign.Marshal.Utils (fromBool, toBool)
 import Prelude hiding (Double, Float, Integer, Real, mod)
+import System.IO.Unsafe (unsafePerformIO)
 
 import qualified LLVM.Core.FFI as FFI
 
@@ -66,6 +95,7 @@ import qualified LLVM.Core.FFI as FFI
 newtype Module = Module {
       fromModule :: ForeignPtr FFI.Module
     }
+    deriving (Typeable)
 
 withModule :: Module -> (FFI.ModuleRef -> IO a) -> IO a
 withModule mod = withForeignPtr (fromModule mod)
@@ -73,157 +103,176 @@ withModule mod = withForeignPtr (fromModule mod)
 newtype ModuleProvider = ModuleProvider {
       fromModuleProvider :: ForeignPtr FFI.ModuleProvider
     }
+    deriving (Typeable)
 
 withModuleProvider :: ModuleProvider -> (FFI.ModuleProviderRef -> IO a)
                    -> IO a
 withModuleProvider prov = withForeignPtr (fromModuleProvider prov)
 
 class Type a where
-    fromType :: a -> FFI.TypeRef
+    typeRef :: a -> FFI.TypeRef
+
+class Type a => Integer a
+class Type a => Real a
 
 class HasAnyType a where
-    toAnyType :: a -> AnyType
     fromAnyType :: AnyType -> a
 
 instance Type FFI.TypeRef where
-    fromType = id
+    typeRef = id
 
 data AnyType = forall a. Type a => AnyType a
+               deriving (Typeable)
+
+instance Eq AnyType where
+    a == b = typeRef a == typeRef b
 
 instance Show AnyType where
-    show a = "AnyType " ++ show (fromType a)
+    show a = "AnyType " ++ show (typeRef a)
 
 mkAnyType :: Type a => a -> AnyType
 mkAnyType = AnyType
 
 instance Type AnyType where
-    fromType (AnyType a) = fromType a
+    typeRef (AnyType a) = typeRef a
 
 instance HasAnyType AnyType where
-    toAnyType = id
     fromAnyType = id
 
 class Params l where
     listValue :: l -> [AnyType]
 
-class Type a => Integer a
-
 instance Integer AnyType
 
 newtype Int1 = Int1 AnyType
-    deriving (HasAnyType, Integer, Type)
+    deriving (HasAnyType, Integer, Type, Typeable)
 
 instance Show Int1 where
     show _ = "Int1"
 
 newtype Int8 = Int8 AnyType
-    deriving (HasAnyType, Integer, Type)
+    deriving (HasAnyType, Integer, Type, Typeable)
 
 instance Show Int8 where
     show _ = "Int8"
 
 newtype Int16 = Int16 AnyType
-    deriving (HasAnyType, Integer, Type)
+    deriving (HasAnyType, Integer, Type, Typeable)
 
 instance Show Int16 where
     show _ = "Int16"
 
 newtype Int32 = Int32 AnyType
-    deriving (HasAnyType, Integer, Type)
+    deriving (HasAnyType, Integer, Type, Typeable)
 
 instance Show Int32 where
     show _ = "Int32"
 
 newtype Int64 = Int64 AnyType
-    deriving (HasAnyType, Integer, Type)
+    deriving (HasAnyType, Integer, Type, Typeable)
 
 instance Show Int64 where
     show _ = "Int64"
 
 newtype IntWidth a = IntWidth AnyType
-    deriving (HasAnyType, Integer, Type)
+    deriving (HasAnyType, Integer, Type, Typeable)
 
 instance Show (IntWidth a) where
     show _ = "IntWidth"
 
-class Type a => Real a
-
 instance Real AnyType
 
 newtype Float = Float AnyType
-    deriving (HasAnyType, Real, Type)
+    deriving (HasAnyType, Real, Type, Typeable)
 
 instance Show Float where
     show _ = "Float"
 
 newtype Double = Double AnyType
-    deriving (HasAnyType, Real, Type)
+    deriving (HasAnyType, Real, Type, Typeable)
 
 instance Show Double where
     show _ = "Double"
 
 newtype X86Float80 = X86Float80 AnyType
-    deriving (HasAnyType, Real, Type)
+    deriving (HasAnyType, Real, Type, Typeable)
 
 instance Show X86Float80 where
     show _ = "X86Float80"
 
 newtype Float128 = Float128 AnyType
-    deriving (HasAnyType, Real, Type)
+    deriving (HasAnyType, Real, Type, Typeable)
 
 instance Show Float128 where
     show _ = "Float128"
 
 newtype PPCFloat128 = PPCFloat128 AnyType
-    deriving (HasAnyType, Real, Type)
+    deriving (HasAnyType, Real, Type, Typeable)
 
 instance Show PPCFloat128 where
     show _ = "PPCFloat128"
 
-class Type a => Sequence a
+class (Type a, Type t) => Sequence a t | a -> t where
+    elementType :: a -> t
 
-instance Sequence AnyType
+instance Sequence AnyType AnyType where
+    elementType = elementTypeDyn
 
 newtype Array a = Array AnyType
-    deriving (HasAnyType, Sequence, Type)
+    deriving (HasAnyType, Type, Typeable)
 
-arrayElement :: Array a -> a
-arrayElement _ = undefined
+arrayElementType :: Array a -> a
+arrayElementType _ = undefined
+
+instance Type a => Sequence (Array a) a where
+    elementType = arrayElementType
 
 instance (Show a) => Show (Array a) where
-    show a = "Array " ++ show (arrayElement a)
+    show a = "Array " ++ show (arrayElementType a)
 
 newtype Pointer a = Pointer AnyType
-    deriving (HasAnyType, Sequence, Type)
+    deriving (HasAnyType, Type, Typeable)
 
-pointerElement :: Pointer a -> a
-pointerElement _ = undefined
+pointerElementType :: Pointer a -> a
+pointerElementType _ = undefined
+
+instance Type a => Sequence (Pointer a) a where
+    elementType = pointerElementType
 
 instance (Show a) => Show (Pointer a) where
-    show a = "Pointer " ++ show (pointerElement a)
+    show a = "Pointer " ++ show (pointerElementType a)
 
 newtype Vector a = Vector AnyType
-    deriving (HasAnyType, Sequence, Type)
+    deriving (HasAnyType, Type, Typeable)
 
-vectorElement :: Vector a -> a
-vectorElement _ = undefined
+vectorElementType :: Vector a -> a
+vectorElementType _ = undefined
+
+instance Type a => Sequence (Vector a) a where
+    elementType = vectorElementType
 
 instance (Show a) => Show (Vector a) where
-    show a = "Vector " ++ show (vectorElement a)
+    show a = "Vector " ++ show (vectorElementType a)
 
 newtype Void = Void AnyType
-    deriving (HasAnyType, Type)
+    deriving (HasAnyType, Type, Typeable)
 
 instance Show Void where
     show _ = "Void"
 
 newtype Function p = Function AnyType
-    deriving (HasAnyType, Type)
+    deriving (HasAnyType, Type, Typeable)
              
 functionParams :: Function p -> p
 functionParams _ = undefined
 
-data a :-> b
+instance Params p => DynamicType (Function p) where
+    toAnyType = functionType False . listValue . functionParams
+
+instance DynamicType AnyType where
+    toAnyType = id
+
+data a :-> b = a :-> b
 infixr 6 :->
 
 car :: (a :-> b) -> a
@@ -234,3 +283,175 @@ cdr _ = undefined
 
 instance (Show a, Show b) => Show (a :-> b) where
     show a = show (car a) ++ " :-> " ++ show (cdr a)
+
+class Type a => DynamicType a where
+    toAnyType :: a -> AnyType
+
+int1 :: Int1
+int1 = Int1 $ mkAnyType FFI.int1Type
+
+instance Params Int1 where
+    listValue a = [toAnyType a]
+
+instance DynamicType Int1 where
+    toAnyType _ = mkAnyType int1
+
+int8 :: Int8
+int8 = Int8 $ mkAnyType FFI.int8Type
+
+instance Params Int8 where
+    listValue a = [toAnyType a]
+
+instance Params AnyType where
+    listValue a = [toAnyType a]
+
+instance DynamicType Int8 where
+    toAnyType _ = mkAnyType int8
+
+int16 :: Int16
+int16 = Int16 $ mkAnyType FFI.int16Type
+
+instance Params Int16 where
+    listValue a = [toAnyType a]
+
+instance DynamicType Int16 where
+    toAnyType _ = mkAnyType int16
+
+int32 :: Int32
+int32 = Int32 $ mkAnyType FFI.int32Type
+
+instance Params Int32 where
+    listValue a = [toAnyType a]
+
+instance DynamicType Int32 where
+    toAnyType _ = mkAnyType int32
+
+int64 :: Int64
+int64 = Int64 $ mkAnyType FFI.int64Type
+
+instance Params Int64 where
+    listValue a = [toAnyType a]
+
+instance DynamicType Int64 where
+    toAnyType _ = mkAnyType int64
+
+integer :: Int -> IntWidth a
+integer = IntWidth . mkAnyType . FFI.integerType . fromIntegral
+
+-- Not possible:
+--
+-- instance Params (IntWidth a) where
+--     listValue a = [toAnyType a]
+--
+-- instance DynamicType (IntWidth a) where
+--     toAnyType _ = mkAnyType integerType
+
+float :: Float
+float = Float $ mkAnyType FFI.floatType
+
+instance Params Float where
+    listValue a = [toAnyType a]
+
+instance DynamicType Float where
+    toAnyType _ = mkAnyType float
+
+double :: Double
+double = Double $ mkAnyType FFI.doubleType
+
+instance Params Double where
+    listValue a = [toAnyType a]
+
+instance DynamicType Double where
+    toAnyType _ = mkAnyType double
+
+x86Float80 :: X86Float80
+x86Float80 = X86Float80 $ mkAnyType FFI.x86FP80Type
+
+instance Params X86Float80 where
+    listValue a = [toAnyType a]
+
+instance DynamicType X86Float80 where
+    toAnyType _ = mkAnyType x86Float80
+
+float128 :: Float128
+float128 = Float128 $ mkAnyType FFI.fp128Type
+
+instance Params Float128 where
+    listValue a = [toAnyType a]
+
+instance DynamicType Float128 where
+    toAnyType _ = mkAnyType float128
+
+ppcFloat128 :: PPCFloat128
+ppcFloat128 = PPCFloat128 $ mkAnyType FFI.ppcFP128Type
+
+instance Params PPCFloat128 where
+    listValue a = [toAnyType a]
+
+instance DynamicType PPCFloat128 where
+    toAnyType _ = mkAnyType ppcFloat128
+
+void :: Void
+void = Void $ mkAnyType FFI.voidType
+
+instance Params Void where
+    listValue a = [toAnyType a]
+
+instance DynamicType Void where
+    toAnyType _ = mkAnyType void
+
+instance (DynamicType a, Params b) => Params (a :-> b) where
+    listValue a = toAnyType (car a) : listValue (cdr a)
+
+functionType :: Bool -> [AnyType] -> AnyType
+functionType varargs ps = unsafePerformIO $ do
+    let (retType:rParamTypes) = reverse ps
+        paramTypes = reverse rParamTypes
+    withArrayLen (map typeRef paramTypes) $ \len ptr ->
+        return . mkAnyType $ FFI.functionType (typeRef retType) ptr
+                                        (fromIntegral len) (fromBool varargs)
+
+function :: Params p => p -> Function p
+function = Function . functionType False . listValue
+
+instance DynamicType p => Params (Function p) where
+    listValue a = [toAnyType (functionParams a)]
+    
+functionVarArg :: Params p => p -> Function p
+functionVarArg = Function . functionType True . listValue
+
+isFunctionVarArg :: (Params p) => Function p -> Bool
+isFunctionVarArg = toBool . FFI.isFunctionVarArg . typeRef
+
+getReturnType :: (Params p) => Function p -> AnyType
+getReturnType = mkAnyType . FFI.getReturnType . typeRef
+
+getParamTypes :: (Params p) => Function p -> [AnyType]
+getParamTypes typ = unsafePerformIO $ do
+    let typ' = typeRef typ
+        count = FFI.countParamTypes typ'
+        len = fromIntegral count
+    allocaArray len $ \ptr -> do
+      FFI.getParamTypes typ' ptr
+      map mkAnyType <$> peekArray len ptr
+
+array :: (Type t) => t -> Array t
+array typ = Array . mkAnyType $ FFI.arrayType (typeRef typ) 0
+
+instance (Type t, DynamicType t) => DynamicType (Array t) where
+    toAnyType = mkAnyType . array . toAnyType . arrayElementType
+
+pointer :: (Type t) => t -> Pointer t
+pointer typ = Pointer . mkAnyType $ FFI.pointerType (typeRef typ) 0
+
+instance (Type t, DynamicType t) => DynamicType (Pointer t) where
+    toAnyType = mkAnyType . pointer . toAnyType . pointerElementType
+
+vector :: (Type t) => t -> Vector t
+vector typ = Vector . mkAnyType $ FFI.vectorType (typeRef typ) 0
+
+instance (Type t, DynamicType t) => DynamicType (Vector t) where
+    toAnyType = mkAnyType . vector . toAnyType . vectorElementType
+
+elementTypeDyn :: Type a => a -> AnyType
+elementTypeDyn = mkAnyType . FFI.getElementType . typeRef

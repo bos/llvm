@@ -12,46 +12,46 @@ import Prelude hiding (mod)
 defineGlobal :: (V.ConstValue a, V.TypedValue a t) => T.Module -> String -> a -> IO (V.GlobalVar t)
 defineGlobal mod name val = do
   print "foo"
-  global <- Core.addGlobal mod (V.valueType val) name
+  global <- Core.addGlobal mod (V.typeOf val) name
   print "bar"
   Core.setInitializer global val
   return global
 
-declareFunction :: T.Params p => T.Module -> String -> T.Function p -> IO V.Function
+declareFunction :: T.Params p => T.Module -> String -> T.Function p -> IO (V.Function p)
 declareFunction mod name typ = do
   maybeFunc <- Core.getNamedFunction mod name
   case maybeFunc of
     Nothing -> Core.addFunction mod name typ
-    Just func -> return $ let t = T.fromAnyType . Core.typeOf $ func :: T.Pointer a
-                          in if Core.getElementType t /= T.toAnyType typ
-                             then Core.constBitCast (Core.pointerType typ) func
+    Just func -> return $ let t = V.typeOf func
+                          in if T.elementTypeDyn t /= T.toAnyType typ
+                             then V.constBitCast (T.pointer typ) func
                              else func
 
 defineFunction :: T.Params p => T.Module -> String -> T.Function p
-               -> IO (V.Function, V.BasicBlock)
+               -> IO (V.Function p, V.BasicBlock)
 defineFunction mod name typ = do
   func <- Core.addFunction mod name typ
   bblk <- Core.appendBasicBlock func "entry"
   return (func, bblk)
 
-buildModule :: IO (T.Module, V.Function)
+buildModule :: IO (T.Module, V.Function T.Int32)
 buildModule = do
   mod <- Core.createModule "hello"
-  greetz <- defineGlobal mod "greeting" (Core.const "hello jit!")
+  greetz <- defineGlobal mod "greeting" (V.const "hello jit!")
   let t = undefined :: T.Pointer T.Int8 :-> T.Int32
   putStrLn $ "type of puts: " ++ show t
-  puts <- declareFunction mod "puts" (Core.functionType t)
+  puts <- declareFunction mod "puts" (T.function t)
   (func, entry) <- defineFunction mod "main"
-                   (Core.functionType (undefined :: T.Int32))
+                   (T.function (undefined :: T.Int32))
   bld <- Core.createBuilder
   Core.positionAtEnd bld entry
-  let zero = Core.const (0::Int32)
+  let zero = V.const (0::Int32)
   tmp <- Core.buildGEP bld greetz [zero, zero] "tmp"
   Core.buildCall bld puts [V.mkAnyValue tmp] ""
   Core.buildRet bld zero
   return (mod, func)
 
-execute :: T.Module -> V.Function -> IO ()
+execute :: T.Module -> V.Function a -> IO ()
 execute mod func = do
   prov <- Core.createModuleProviderForExistingModule mod
   ee <- EE.createExecutionEngine prov
