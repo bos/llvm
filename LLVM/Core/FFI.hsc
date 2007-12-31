@@ -247,7 +247,7 @@ foreign import ccall unsafe "LLVMConstBitCast" constBitCast
     :: ValueRef -> TypeRef -> ValueRef
 
 
-data BasicBlock
+type BasicBlock = Value
 type BasicBlockRef = Ptr BasicBlock
 
 foreign import ccall unsafe "LLVMAppendBasicBlock" appendBasicBlock

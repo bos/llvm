@@ -52,5 +52,6 @@ library
       LLVM.Core.FFI
       LLVM.Core.Instances
       LLVM.Core.Types
+      LLVM.Core.Values
       LLVM.ExecutionEngine
       LLVM.ExecutionEngine.FFI

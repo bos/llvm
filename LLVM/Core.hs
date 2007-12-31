@@ -1,3 +1,5 @@
+{-# LANGUAGE FunctionalDependencies, MultiParamTypeClasses #-}
+
 module LLVM.Core
     (
     -- * Modules
@@ -7,9 +9,9 @@ module LLVM.Core
     , createModuleProviderForExistingModule
 
     -- * Types
-    , T.mkAny
-    , T.fromAny
-    , T.toAny
+    , T.mkAnyType
+    , T.fromAnyType
+    , T.toAnyType
     , addTypeName
     , deleteTypeName
     , getElementType
@@ -103,6 +105,7 @@ import System.IO.Unsafe (unsafePerformIO)
 import qualified LLVM.Core.FFI as FFI
 import LLVM.Core.Types ((:->))
 import qualified LLVM.Core.Types as T
+import qualified LLVM.Core.Values as V
 import LLVM.Core.Instances ()
 
 
@@ -140,58 +143,58 @@ deleteTypeName mod name =
       withCString name $ FFI.deleteTypeName modPtr
 
 getElementType :: T.Sequence t => t -> T.AnyType
-getElementType = T.mkAny . FFI.getElementType . T.fromType
+getElementType = T.mkAnyType . FFI.getElementType . T.fromType
 
 class TypeInstance a where
     typeInstance :: a -> T.AnyType
 
 int1Type :: T.Int1
-int1Type = T.Int1 $ T.mkAny FFI.int1Type
+int1Type = T.Int1 $ T.mkAnyType FFI.int1Type
 
 instance T.Params T.Int1 where
     listValue a = [typeInstance a]
 
 instance TypeInstance T.Int1 where
-    typeInstance _ = T.toAny int1Type
+    typeInstance _ = T.toAnyType int1Type
 
 int8Type :: T.Int8
-int8Type = T.Int8 $ T.mkAny FFI.int8Type
+int8Type = T.Int8 $ T.mkAnyType FFI.int8Type
 
 instance T.Params T.Int8 where
     listValue a = [typeInstance a]
 
 instance TypeInstance T.Int8 where
-    typeInstance _ = T.toAny int8Type
+    typeInstance _ = T.toAnyType int8Type
 
 int16Type :: T.Int16
-int16Type = T.Int16 $ T.mkAny FFI.int16Type
+int16Type = T.Int16 $ T.mkAnyType FFI.int16Type
 
 instance T.Params T.Int16 where
     listValue a = [typeInstance a]
 
 instance TypeInstance T.Int16 where
-    typeInstance _ = T.toAny int16Type
+    typeInstance _ = T.toAnyType int16Type
 
 int32Type :: T.Int32
-int32Type = T.Int32 $ T.mkAny FFI.int32Type
+int32Type = T.Int32 $ T.mkAnyType FFI.int32Type
 
 instance T.Params T.Int32 where
     listValue a = [typeInstance a]
 
 instance TypeInstance T.Int32 where
-    typeInstance _ = T.toAny int32Type
+    typeInstance _ = T.toAnyType int32Type
 
 int64Type :: T.Int64
-int64Type = T.Int64 $ T.mkAny FFI.int64Type
+int64Type = T.Int64 $ T.mkAnyType FFI.int64Type
 
 instance T.Params T.Int64 where
     listValue a = [typeInstance a]
 
 instance TypeInstance T.Int64 where
-    typeInstance _ = T.toAny int64Type
+    typeInstance _ = T.toAnyType int64Type
 
 integerType :: Int -> T.IntWidth a
-integerType = T.IntWidth . T.mkAny . FFI.integerType . fromIntegral
+integerType = T.IntWidth . T.mkAnyType . FFI.integerType . fromIntegral
 
 -- Not possible:
 --
@@ -199,61 +202,61 @@ integerType = T.IntWidth . T.mkAny . FFI.integerType . fromIntegral
 --     listValue a = [typeInstance a]
 --
 -- instance TypeInstance (T.IntWidth a) where
---     typeInstance _ = T.toAny integerType
+--     typeInstance _ = T.toAnyType integerType
 
 floatType :: T.Float
-floatType = T.Float $ T.mkAny FFI.floatType
+floatType = T.Float $ T.mkAnyType FFI.floatType
 
 instance T.Params T.Float where
     listValue a = [typeInstance a]
 
 instance TypeInstance T.Float where
-    typeInstance _ = T.toAny floatType
+    typeInstance _ = T.toAnyType floatType
 
 doubleType :: T.Double
-doubleType = T.Double $ T.mkAny FFI.doubleType
+doubleType = T.Double $ T.mkAnyType FFI.doubleType
 
 instance T.Params T.Double where
     listValue a = [typeInstance a]
 
 instance TypeInstance T.Double where
-    typeInstance _ = T.toAny doubleType
+    typeInstance _ = T.toAnyType doubleType
 
 x86Float80Type :: T.X86Float80
-x86Float80Type = T.X86Float80 $ T.mkAny FFI.x86FP80Type
+x86Float80Type = T.X86Float80 $ T.mkAnyType FFI.x86FP80Type
 
 instance T.Params T.X86Float80 where
     listValue a = [typeInstance a]
 
 instance TypeInstance T.X86Float80 where
-    typeInstance _ = T.toAny x86Float80Type
+    typeInstance _ = T.toAnyType x86Float80Type
 
 float128Type :: T.Float128
-float128Type = T.Float128 $ T.mkAny FFI.fp128Type
+float128Type = T.Float128 $ T.mkAnyType FFI.fp128Type
 
 instance T.Params T.Float128 where
     listValue a = [typeInstance a]
 
 instance TypeInstance T.Float128 where
-    typeInstance _ = T.toAny float128Type
+    typeInstance _ = T.toAnyType float128Type
 
 ppcFloat128Type :: T.PPCFloat128
-ppcFloat128Type = T.PPCFloat128 $ T.mkAny FFI.ppcFP128Type
+ppcFloat128Type = T.PPCFloat128 $ T.mkAnyType FFI.ppcFP128Type
 
 instance T.Params T.PPCFloat128 where
     listValue a = [typeInstance a]
 
 instance TypeInstance T.PPCFloat128 where
-    typeInstance _ = T.toAny ppcFloat128Type
+    typeInstance _ = T.toAnyType ppcFloat128Type
 
 voidType :: T.Void
-voidType = T.Void $ T.mkAny FFI.voidType
+voidType = T.Void $ T.mkAnyType FFI.voidType
 
 instance T.Params T.Void where
     listValue a = [typeInstance a]
 
 instance TypeInstance T.Void where
-    typeInstance _ = T.toAny voidType
+    typeInstance _ = T.toAnyType voidType
 
 instance (TypeInstance a, T.Params b) => T.Params (a :-> b) where
     listValue a = typeInstance (T.car a) : T.listValue (T.cdr a)
@@ -263,7 +266,7 @@ functionTypeInternal varargs a = unsafePerformIO $ do
     let (retType:rParamTypes) = reverse (T.listValue a)
         paramTypes = reverse rParamTypes
     withArrayLen (map T.fromType paramTypes) $ \len ptr ->
-        return . T.Function . T.mkAny $ FFI.functionType (T.fromType retType) ptr
+        return . T.Function . T.mkAnyType $ FFI.functionType (T.fromType retType) ptr
                                         (fromIntegral len) (fromBool varargs)
     
 functionType :: T.Params p => p -> T.Function p
@@ -279,7 +282,7 @@ isFunctionVarArg :: (T.Params p) => T.Function p -> Bool
 isFunctionVarArg = toBool . FFI.isFunctionVarArg . T.fromType
 
 getReturnType :: (T.Params p) => T.Function p -> T.AnyType
-getReturnType = T.mkAny . FFI.getReturnType . T.fromType
+getReturnType = T.mkAnyType . FFI.getReturnType . T.fromType
 
 getParamTypes :: (T.Params p) => T.Function p -> [T.AnyType]
 getParamTypes typ = unsafePerformIO $ do
@@ -288,175 +291,186 @@ getParamTypes typ = unsafePerformIO $ do
         len = fromIntegral count
     allocaArray len $ \ptr -> do
       FFI.getParamTypes typ' ptr
-      map T.mkAny <$> peekArray len ptr
+      map T.mkAnyType <$> peekArray len ptr
 
 arrayType :: (T.Type t) => t -> T.Array t
-arrayType typ = T.Array . T.mkAny $ FFI.arrayType (T.fromType typ) 0
+arrayType typ = T.Array . T.mkAnyType $ FFI.arrayType (T.fromType typ) 0
+
+instance V.TypedValue V.AnyValue T.AnyType where
+    valueType a = T.mkAnyType (typeOf a)
 
 instance (T.Type t, TypeInstance t) => TypeInstance (T.Array t) where
-    typeInstance = T.toAny . arrayType . typeInstance . T.arrayElement
+    typeInstance = T.toAnyType . arrayType . typeInstance . T.arrayElement
 
 pointerType :: (T.Type t) => t -> T.Pointer t
-pointerType typ = T.Pointer . T.mkAny $ FFI.pointerType (T.fromType typ) 0
+pointerType typ = T.Pointer . T.mkAnyType $ FFI.pointerType (T.fromType typ) 0
 
 instance (T.Type t, TypeInstance t) => TypeInstance (T.Pointer t) where
-    typeInstance = T.toAny . pointerType . typeInstance . T.pointerElement
+    typeInstance = T.toAnyType . pointerType . typeInstance . T.pointerElement
 
 vectorType :: (T.Type t) => t -> T.Vector t
-vectorType typ = T.Vector . T.mkAny $ FFI.vectorType (T.fromType typ) 0
+vectorType typ = T.Vector . T.mkAnyType $ FFI.vectorType (T.fromType typ) 0
 
 instance (T.Type t, TypeInstance t) => TypeInstance (T.Vector t) where
-    typeInstance = T.toAny . vectorType . typeInstance . T.vectorElement
+    typeInstance = T.toAnyType . vectorType . typeInstance . T.vectorElement
 
 
-addGlobal :: (T.Type t) => T.Module -> t -> String -> IO T.Value
+addGlobal :: (T.Type t) => T.Module -> t -> String -> IO (V.GlobalVar t)
 addGlobal mod typ name =
     T.withModule mod $ \modPtr ->
       withCString name $ \namePtr ->
-        T.Value <$> FFI.addGlobal modPtr (T.fromType typ) namePtr
+        V.GlobalVar . V.mkAnyValue <$> FFI.addGlobal modPtr (T.fromType typ) namePtr
 
-setInitializer :: T.Value -> T.Value -> IO ()
+setInitializer :: V.ConstValue t => V.GlobalVar a -> t -> IO ()
 setInitializer global cnst =
-    FFI.setInitializer (T.fromValue global) (T.fromValue cnst)
+    FFI.setInitializer (V.fromValue global) (V.fromValue cnst)
 
-typeOf :: T.Value -> T.AnyType
-typeOf val = unsafePerformIO $ T.mkAny <$> FFI.typeOf (T.fromValue val)
+typeOf :: V.Value t => t -> T.AnyType
+typeOf val = unsafePerformIO $ T.mkAnyType <$> FFI.typeOf (V.fromValue val)
 
 addFunction :: (T.Params p) => T.Module -> String -> T.Function p
-            -> IO T.Value
+            -> IO V.Function
 addFunction mod name typ =
     T.withModule mod $ \modPtr ->
       withCString name $ \namePtr ->
-        T.Value <$> FFI.addFunction modPtr namePtr (T.fromType typ)
+        V.Function . V.mkAnyValue <$> FFI.addFunction modPtr namePtr (T.fromType typ)
 
-deleteFunction :: T.Value -> IO ()
-deleteFunction = FFI.deleteFunction . T.fromValue
+deleteFunction :: V.Function -> IO ()
+deleteFunction = FFI.deleteFunction . V.fromValue
 
 maybePtr :: (Ptr a -> b) -> Ptr a -> Maybe b
 maybePtr f ptr | ptr /= nullPtr = Just (f ptr)
                | otherwise = Nothing
 
-getNamedFunction :: T.Module -> String -> IO (Maybe T.Value)
+getNamedFunction :: T.Module -> String -> IO (Maybe V.Function)
 getNamedFunction mod name =
     T.withModule mod $ \modPtr ->
       withCString name $ \namePtr ->
-        maybePtr T.Value <$> FFI.getNamedFunction modPtr namePtr
+        maybePtr (V.Function . V.mkAnyValue) <$> FFI.getNamedFunction modPtr namePtr
 
-constWord :: (T.Integer t, Integral a) => t -> a -> T.Value
+constWord :: (T.Integer t, Integral a) => t -> a -> V.ConstInt t
 constWord typ val =
-    T.Value $ FFI.constInt (T.fromType typ) (fromIntegral val) 0
+    V.ConstInt . V.mkAnyValue $ FFI.constInt (T.fromType typ) (fromIntegral val) 0
 
-constInt :: (T.Integer t, Integral a) => t -> a -> T.Value
+constInt :: (T.Integer t, Integral a) => t -> a -> V.ConstInt t
 constInt typ val =
-    T.Value $ FFI.constInt (T.fromType typ) (fromIntegral val) 1
+    V.ConstInt . V.mkAnyValue $ FFI.constInt (T.fromType typ) (fromIntegral val) 1
 
-constReal :: (T.Real t, RealFloat a) => t -> a -> T.Value
-constReal typ val = T.Value $ FFI.constReal (T.fromType typ) (realToFrac val)
+constReal :: (T.Real t, RealFloat a) => t -> a -> V.ConstReal t
+constReal typ val = V.ConstReal . V.mkAnyValue $ FFI.constReal (T.fromType typ) (realToFrac val)
 
-constString :: String -> T.Value
+att :: V.ConstArray a -> T.Pointer a
+att = T.fromAnyType . T.mkAnyType . typeOf
+
+instance V.TypedValue (V.ConstArray a) (T.Pointer a) where
+    valueType = att
+
+constString :: String -> V.ConstArray T.Int8
 constString s = unsafePerformIO $
     withCStringLen s $ \(sPtr, sLen) ->
-      return . T.Value $ FFI.constString sPtr (fromIntegral sLen) 1
+      return . V.ConstArray . V.mkAnyValue $ FFI.constString sPtr (fromIntegral sLen) 1
 
-constStringNul :: String -> T.Value
+constStringNul :: String -> V.ConstArray T.Int8
 constStringNul s = unsafePerformIO $
     withCStringLen s $ \(sPtr, sLen) ->
-      return . T.Value $ FFI.constString sPtr (fromIntegral sLen) 0
+      return . V.ConstArray . V.mkAnyValue $ FFI.constString sPtr (fromIntegral sLen) 0
 
-constBitCast :: (T.Type t) => t -> T.Value -> T.Value
+constBitCast :: (V.ConstValue a, V.ConstValue b, V.HasAnyValue b, T.Type t) => t -> a -> b
 constBitCast typ val =
-    T.Value $ FFI.constBitCast (T.fromValue val) (T.fromType typ)
+    V.fromAnyValue . V.mkAnyValue $ FFI.constBitCast (V.fromValue val) (T.fromType typ)
 
-class Const a where
-    const :: a -> T.Value
+class V.ConstValue t => Const a t | a -> t where
+    const :: a -> t
 
-instance Const String where
+instance Const String (V.ConstArray T.Int8) where
     const = constStringNul
 
-instance Const Float where
+instance Const Float (V.ConstReal T.Float) where
     const = constReal floatType . fromRational . toRational
 
-instance Const Double where
+instance Const Double (V.ConstReal T.Double) where
     const = constReal doubleType
 
-instance Const Int8 where
+instance Const Int8 (V.ConstInt T.Int8) where
     const = constInt int8Type . fromIntegral
 
-instance Const Int16 where
+instance Const Int16 (V.ConstInt T.Int16) where
     const = constInt int16Type . fromIntegral
 
-instance Const Int32 where
+instance Const Int32 (V.ConstInt T.Int32) where
     const = constInt int32Type . fromIntegral
 
-instance Const Int64 where
+instance Const Int64 (V.ConstInt T.Int64) where
     const = constInt int64Type
 
-instance Const Word8 where
+instance Const Word8 (V.ConstInt T.Int8) where
     const = constWord int8Type . fromIntegral
 
-instance Const Word16 where
+instance Const Word16 (V.ConstInt T.Int16) where
     const = constWord int16Type . fromIntegral
 
-instance Const Word32 where
+instance Const Word32 (V.ConstInt T.Int32) where
     const = constWord int32Type . fromIntegral
 
-instance Const Word64 where
+instance Const Word64 (V.ConstInt T.Int64) where
     const = constWord int64Type . fromIntegral
 
 
-appendBasicBlock :: T.Value -> String -> IO T.BasicBlock
+appendBasicBlock :: V.Function -> String -> IO V.BasicBlock
 appendBasicBlock func name =
     withCString name $ \namePtr ->
-      T.BasicBlock <$> FFI.appendBasicBlock (T.fromValue func) namePtr
+      V.BasicBlock . V.mkAnyValue <$> FFI.appendBasicBlock (V.fromValue func) namePtr
 
-insertBasicBlock :: T.BasicBlock -> String -> IO T.BasicBlock
+insertBasicBlock :: V.BasicBlock -> String -> IO V.BasicBlock
 insertBasicBlock before name =
     withCString name $ \namePtr ->
-      T.BasicBlock <$> FFI.insertBasicBlock (T.fromBasicBlock before) namePtr
+      V.BasicBlock . V.mkAnyValue <$> FFI.insertBasicBlock (V.fromValue before) namePtr
 
-deleteBasicBlock :: T.BasicBlock -> IO ()
-deleteBasicBlock = FFI.deleteBasicBlock . T.fromBasicBlock
+deleteBasicBlock :: V.BasicBlock -> IO ()
+deleteBasicBlock = FFI.deleteBasicBlock . V.fromValue
 
 
-withBuilder :: T.Builder -> (FFI.BuilderRef -> IO a) -> IO a
-withBuilder bld = withForeignPtr (T.fromBuilder bld)
+withBuilder :: V.Builder -> (FFI.BuilderRef -> IO a) -> IO a
+withBuilder = withForeignPtr . V.fromBuilder
 
-createBuilder :: IO T.Builder
+createBuilder :: IO V.Builder
 createBuilder = do
   final <- h2c_builder FFI.disposeBuilder
   ptr <- FFI.createBuilder
-  T.Builder <$> newForeignPtr final ptr
+  V.Builder <$> newForeignPtr final ptr
 
 foreign import ccall "wrapper" h2c_builder
     :: (FFI.BuilderRef -> IO ()) -> IO (FinalizerPtr a)
 
-positionBefore :: T.Builder -> T.Value -> IO ()
+positionBefore :: V.Instruction i => V.Builder -> i -> IO ()
 positionBefore bld insn =
     withBuilder bld $ \bldPtr ->
-      FFI.positionBefore bldPtr (T.fromValue insn)
+      FFI.positionBefore bldPtr (V.fromValue insn)
 
-positionAtEnd :: T.Builder -> T.BasicBlock -> IO ()
+positionAtEnd :: V.Builder -> V.BasicBlock -> IO ()
 positionAtEnd bld bblk =
     withBuilder bld $ \bldPtr ->
-      FFI.positionAtEnd bldPtr (T.fromBasicBlock bblk)
+      FFI.positionAtEnd bldPtr (V.fromValue bblk)
 
-buildGEP :: T.Builder -> T.Value -> [T.Value] -> String -> IO T.Value
+buildGEP :: (V.Value p, V.Value i) => V.Builder -> p -> [i] -> String
+         -> IO V.GetElementPtrInst
 buildGEP bld ptr indices name =
     withBuilder bld $ \bldPtr ->
       withCString name $ \namePtr ->
-        withArrayLen (map T.fromValue indices) $ \idxLen idxPtr ->
-          T.Value <$> FFI.buildGEP bldPtr (T.fromValue ptr) idxPtr
+        withArrayLen (map V.fromValue indices) $ \idxLen idxPtr ->
+          V.GetElementPtrInst . V.mkAnyValue <$> FFI.buildGEP bldPtr (V.fromValue ptr) idxPtr
                                   (fromIntegral idxLen) namePtr
 
-buildRet :: T.Builder -> T.Value -> IO T.Value
+buildRet :: V.Value a => V.Builder -> a -> IO V.ReturnInst
 buildRet bld val =
     withBuilder bld $ \bldPtr ->
-      T.Value <$> FFI.buildRet bldPtr (T.fromValue val)
+      V.ReturnInst . V.mkAnyValue <$> FFI.buildRet bldPtr (V.fromValue val)
 
-buildCall :: T.Builder -> T.Value -> [T.Value] -> String -> IO T.Value
+buildCall :: V.Builder -> V.Function -> [V.AnyValue] -> String
+          -> IO V.CallInst
 buildCall bld func args name =
     withBuilder bld $ \bldPtr ->
-      withArrayLen (map T.fromValue args) $ \argLen argPtr ->
+      withArrayLen (map V.fromValue args) $ \argLen argPtr ->
         withCString name $ \namePtr ->
-          T.Value <$> FFI.buildCall bldPtr (T.fromValue func) argPtr
+          V.CallInst . V.mkAnyValue <$> FFI.buildCall bldPtr (V.fromValue func) argPtr
                                    (fromIntegral argLen) namePtr

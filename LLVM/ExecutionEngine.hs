@@ -23,7 +23,8 @@ import Foreign.Storable (peek)
 import System.IO.Error (userError)
 
 import qualified LLVM.ExecutionEngine.FFI as FFI
-import LLVM.Core.Types (ModuleProvider, withModuleProvider, Value(..))
+import qualified LLVM.Core.Types as T
+import qualified LLVM.Core.Values as V
 
 newtype ExecutionEngine = ExecutionEngine {
       fromExecutionEngine :: ForeignPtr FFI.ExecutionEngine
@@ -33,9 +34,9 @@ withExecutionEngine :: ExecutionEngine -> (Ptr FFI.ExecutionEngine -> IO a)
                     -> IO a
 withExecutionEngine ee = withForeignPtr (fromExecutionEngine ee)
 
-createExecutionEngine :: ModuleProvider -> IO ExecutionEngine
+createExecutionEngine :: T.ModuleProvider -> IO ExecutionEngine
 createExecutionEngine prov =
-    withModuleProvider prov $ \provPtr ->
+    T.withModuleProvider prov $ \provPtr ->
       alloca $ \eePtr ->
         alloca $ \errPtr -> do
           ret <- FFI.createExecutionEngine eePtr provPtr errPtr
@@ -62,9 +63,9 @@ newtype GenericValue = GenericValue {
       fromGenericValue :: Ptr FFI.GenericValue
     }
 
-runFunction :: ExecutionEngine -> Value -> [GenericValue] -> IO GenericValue
+runFunction :: ExecutionEngine -> V.Function -> [GenericValue] -> IO GenericValue
 runFunction ee func args =
     withExecutionEngine ee $ \eePtr ->
       withArrayLen (map fromGenericValue args) $ \argLen argPtr ->
-        GenericValue <$> FFI.runFunction eePtr (fromValue func)
+        GenericValue <$> FFI.runFunction eePtr (V.fromValue func)
                                         (fromIntegral argLen) argPtr
