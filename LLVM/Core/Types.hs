@@ -285,7 +285,8 @@ instance (Show a, Show b) => Show (a :-> b) where
     show a = show (car a) ++ " :-> " ++ show (cdr a)
 
 class Type a => DynamicType a where
-    toAnyType :: a -> AnyType
+    toAnyType :: a              -- ^ not inspected
+              -> AnyType
 
 int1 :: Int1
 int1 = Int1 $ mkAnyType FFI.int1Type

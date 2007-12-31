@@ -75,6 +75,12 @@ class Value a where
 class DynamicValue a where
     fromAnyValue :: AnyValue -> a
 
+-- | Recover the type of a value in a manner that preserves static
+-- type safety.
+class T.Type t => TypedValue a t | a -> t where
+    typeOf :: a                 -- ^ value is not inspected
+           -> t
+
 data AnyValue = forall a. Value a => AnyValue a
                 deriving (Typeable)
 
@@ -128,25 +134,50 @@ newtype Function t = Function AnyValue
     deriving (ConstValue, DynamicValue, GlobalValue, GlobalVariable,
               Typeable, Value)
 
-functionType :: Function a -> T.Function a
-functionType = T.fromAnyType . T.mkAnyType . typeOfDyn
+instance T.Params p => TypedValue (Function p) (T.Function p) where
+    typeOf _ = T.function undefined
 
 newtype ConstInt t = ConstInt AnyValue
     deriving (ConstValue, DynamicValue, Typeable, Value)
 
+instance TypedValue (ConstInt T.Int1) T.Int1 where
+    typeOf _ = T.int1
+
+instance TypedValue (ConstInt T.Int8) T.Int8 where
+    typeOf _ = T.int8
+
+instance TypedValue (ConstInt T.Int16) T.Int16 where
+    typeOf _ = T.int16
+
+instance TypedValue (ConstInt T.Int32) T.Int32 where
+    typeOf _ = T.int32
+
+instance TypedValue (ConstInt T.Int64) T.Int64 where
+    typeOf _ = T.int64
+
 newtype ConstArray t = ConstArray AnyValue
     deriving (ConstValue, DynamicValue, Typeable, Value)
 
-constArrayType :: ConstArray a -> T.Array a
-constArrayType = T.fromAnyType . T.mkAnyType . typeOfDyn
+instance T.Type a => TypedValue (ConstArray a) (T.Array a) where
+    typeOf _ = T.array undefined
 
 newtype ConstReal t = ConstReal AnyValue
     deriving (ConstValue, DynamicValue, Typeable, Value)
 
--- | Recover the type of a value in a manner that preserves static
--- type safety.
-class T.Type t => TypedValue a t | a -> t where
-    typeOf :: a -> t
+instance TypedValue (ConstReal T.Float) T.Float where
+    typeOf _ = T.float
+
+instance TypedValue (ConstReal T.Double) T.Double where
+    typeOf _ = T.double
+
+instance TypedValue (ConstReal T.X86Float80) T.X86Float80 where
+    typeOf _ = T.x86Float80
+
+instance TypedValue (ConstReal T.Float128) T.Float128 where
+    typeOf _ = T.float128
+
+instance TypedValue (ConstReal T.PPCFloat128) T.PPCFloat128 where
+    typeOf _ = T.ppcFloat128
 
 constWord :: (T.Integer t, Integral a) => t -> a -> ConstInt t
 constWord typ val =
@@ -211,12 +242,3 @@ instance Const Word64 (ConstInt T.Int64) where
 
 typeOfDyn :: Value a => a -> T.AnyType
 typeOfDyn val = unsafePerformIO $ T.mkAnyType <$> FFI.typeOf (valueRef val)
-
-instance TypedValue AnyValue T.AnyType where
-    typeOf = T.mkAnyType . typeOfDyn
-
-instance TypedValue (ConstArray a) (T.Array a) where
-    typeOf = constArrayType
-
-instance TypedValue (Function a) (T.Function a) where
-    typeOf = functionType
