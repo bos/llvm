@@ -127,14 +127,71 @@ module LLVM.Core.FFI
     , positionBefore
     , positionAtEnd
 
+    -- ** Terminators
+    , buildRetVoid
+    , buildRet
+    , buildBr
+    , buildCondBr
+    , buildSwitch
+    , buildInvoke
+    , buildUnwind
+    , buildUnreachable
+
+    -- ** Arithmetic
+    , buildAdd
+    , buildSub
+    , buildMul
+    , buildUDiv
+    , buildSDiv
+    , buildFDiv
+    , buildURem
+    , buildSRem
+    , buildFRem
+    , buildShl
+    , buildLShr
+    , buildAShr
+    , buildAnd
+    , buildOr
+    , buildXor
+    , buildNeg
+    , buildNot
+
     -- ** Memory
+    , buildMalloc
+    , buildArrayMalloc
+    , buildAlloca
+    , buildArrayAlloca
+    , buildFree
+    , buildLoad
+    , buildStore
     , buildGEP
 
-    -- ** Terminators
-    , buildRet
+    -- ** Casts
+    , buildTrunc
+    , buildZExt
+    , buildSExt
+    , buildFPToUI
+    , buildFPToSI
+    , buildUIToFP
+    , buildSIToFP
+    , buildFPTrunc
+    , buildFPExt
+    , buildPtrToInt
+    , buildIntToPtr
+    , buildBitCast
+
+    -- ** Comparisons
+    , buildICmp
+    , buildFCmp
+    , buildPhi
 
     -- ** Miscellaneous instructions
     , buildCall
+    , buildSelect
+    , buildVAArg
+    , buildExtractElement
+    , buildInsertElement
+    , buildShuffleVector
     ) where
 
 import Foreign.C.String (CString)
@@ -416,13 +473,122 @@ foreign import ccall unsafe "LLVMPositionBuilderBefore" positionBefore
 foreign import ccall unsafe "LLVMPositionBuilderAtEnd" positionAtEnd
     :: BuilderRef -> BasicBlockRef -> IO ()
 
-foreign import ccall unsafe "LLVMBuildGEP" buildGEP
-        :: BuilderRef -> ValueRef -> Ptr ValueRef -> CUInt -> CString
-        -> IO ValueRef
-
+foreign import ccall unsafe "LLVMBuildRetVoid" buildRetVoid
+    :: BuilderRef -> IO ValueRef
 foreign import ccall unsafe "LLVMBuildRet" buildRet
-        :: BuilderRef -> ValueRef -> IO ValueRef           
+    :: BuilderRef -> ValueRef -> IO ValueRef
+foreign import ccall unsafe "LLVMBuildBr" buildBr
+    :: BuilderRef -> BasicBlockRef -> IO ValueRef
+foreign import ccall unsafe "LLVMBuildCondBr" buildCondBr
+    :: BuilderRef -> ValueRef -> BasicBlockRef -> BasicBlockRef -> IO ValueRef
+foreign import ccall unsafe "LLVMBuildSwitch" buildSwitch
+    :: BuilderRef -> ValueRef -> BasicBlockRef -> CUInt -> IO ValueRef
+foreign import ccall unsafe "LLVMBuildInvoke" buildInvoke
+    :: BuilderRef -> ValueRef -> Ptr ValueRef -> CUInt
+    -> BasicBlockRef -> BasicBlockRef -> CString -> IO ValueRef
+foreign import ccall unsafe "LLVMBuildUnwind" buildUnwind
+    :: BuilderRef -> IO ValueRef
+foreign import ccall unsafe "LLVMBuildUnreachable" buildUnreachable
+    :: BuilderRef -> IO ValueRef
 
+foreign import ccall unsafe "LLVMBuildAdd" buildAdd
+    :: BuilderRef -> ValueRef -> ValueRef -> CString -> IO ValueRef
+foreign import ccall unsafe "LLVMBuildSub" buildSub
+    :: BuilderRef -> ValueRef -> ValueRef -> CString -> IO ValueRef
+foreign import ccall unsafe "LLVMBuildMul" buildMul
+    :: BuilderRef -> ValueRef -> ValueRef -> CString -> IO ValueRef
+foreign import ccall unsafe "LLVMBuildUDiv" buildUDiv
+    :: BuilderRef -> ValueRef -> ValueRef -> CString -> IO ValueRef
+foreign import ccall unsafe "LLVMBuildSDiv" buildSDiv
+    :: BuilderRef -> ValueRef -> ValueRef -> CString -> IO ValueRef
+foreign import ccall unsafe "LLVMBuildFDiv" buildFDiv
+    :: BuilderRef -> ValueRef -> ValueRef -> CString -> IO ValueRef
+foreign import ccall unsafe "LLVMBuildURem" buildURem
+    :: BuilderRef -> ValueRef -> ValueRef -> CString -> IO ValueRef
+foreign import ccall unsafe "LLVMBuildSRem" buildSRem
+    :: BuilderRef -> ValueRef -> ValueRef -> CString -> IO ValueRef
+foreign import ccall unsafe "LLVMBuildFRem" buildFRem
+    :: BuilderRef -> ValueRef -> ValueRef -> CString -> IO ValueRef
+foreign import ccall unsafe "LLVMBuildShl" buildShl
+    :: BuilderRef -> ValueRef -> ValueRef -> CString -> IO ValueRef
+foreign import ccall unsafe "LLVMBuildLShr" buildLShr
+    :: BuilderRef -> ValueRef -> ValueRef -> CString -> IO ValueRef
+foreign import ccall unsafe "LLVMBuildAShr" buildAShr
+    :: BuilderRef -> ValueRef -> ValueRef -> CString -> IO ValueRef
+foreign import ccall unsafe "LLVMBuildAnd" buildAnd
+    :: BuilderRef -> ValueRef -> ValueRef -> CString -> IO ValueRef
+foreign import ccall unsafe "LLVMBuildOr" buildOr
+    :: BuilderRef -> ValueRef -> ValueRef -> CString -> IO ValueRef
+foreign import ccall unsafe "LLVMBuildXor" buildXor
+    :: BuilderRef -> ValueRef -> ValueRef -> CString -> IO ValueRef
+foreign import ccall unsafe "LLVMBuildNeg" buildNeg
+    :: BuilderRef -> ValueRef -> CString -> IO ValueRef
+foreign import ccall unsafe "LLVMBuildNot" buildNot
+    :: BuilderRef -> ValueRef -> CString -> IO ValueRef
+
+-- Memory
+foreign import ccall unsafe "LLVMBuildMalloc" buildMalloc
+    :: BuilderRef -> TypeRef -> CString -> IO ValueRef
+foreign import ccall unsafe "LLVMBuildArrayMalloc" buildArrayMalloc
+    :: BuilderRef -> TypeRef -> ValueRef -> CString -> IO ValueRef
+foreign import ccall unsafe "LLVMBuildAlloca" buildAlloca
+    :: BuilderRef -> TypeRef -> CString -> IO ValueRef
+foreign import ccall unsafe "LLVMBuildArrayAlloca" buildArrayAlloca
+    :: BuilderRef -> TypeRef -> ValueRef -> CString -> IO ValueRef
+foreign import ccall unsafe "LLVMBuildFree" buildFree
+    :: BuilderRef -> ValueRef -> IO ValueRef
+foreign import ccall unsafe "LLVMBuildLoad" buildLoad
+    :: BuilderRef -> ValueRef -> CString -> IO ValueRef
+foreign import ccall unsafe "LLVMBuildStore" buildStore
+    :: BuilderRef -> ValueRef -> ValueRef -> IO ValueRef
+foreign import ccall unsafe "LLVMBuildGEP" buildGEP
+    :: BuilderRef -> ValueRef -> Ptr ValueRef -> CUInt -> CString
+    -> IO ValueRef
+
+-- Casts
+foreign import ccall unsafe "LLVMBuildTrunc" buildTrunc
+    :: BuilderRef -> ValueRef -> TypeRef -> CString -> IO ValueRef
+foreign import ccall unsafe "LLVMBuildZExt" buildZExt
+    :: BuilderRef -> ValueRef -> TypeRef -> CString -> IO ValueRef
+foreign import ccall unsafe "LLVMBuildSExt" buildSExt
+    :: BuilderRef -> ValueRef -> TypeRef -> CString -> IO ValueRef
+foreign import ccall unsafe "LLVMBuildFPToUI" buildFPToUI
+    :: BuilderRef -> ValueRef -> TypeRef -> CString -> IO ValueRef
+foreign import ccall unsafe "LLVMBuildFPToSI" buildFPToSI
+    :: BuilderRef -> ValueRef -> TypeRef -> CString -> IO ValueRef
+foreign import ccall unsafe "LLVMBuildUIToFP" buildUIToFP
+    :: BuilderRef -> ValueRef -> TypeRef -> CString -> IO ValueRef
+foreign import ccall unsafe "LLVMBuildSIToFP" buildSIToFP
+    :: BuilderRef -> ValueRef -> TypeRef -> CString -> IO ValueRef
+foreign import ccall unsafe "LLVMBuildFPTrunc" buildFPTrunc
+    :: BuilderRef -> ValueRef -> TypeRef -> CString -> IO ValueRef
+foreign import ccall unsafe "LLVMBuildFPExt" buildFPExt
+    :: BuilderRef -> ValueRef -> TypeRef -> CString -> IO ValueRef
+foreign import ccall unsafe "LLVMBuildPtrToInt" buildPtrToInt
+    :: BuilderRef -> ValueRef -> TypeRef -> CString -> IO ValueRef
+foreign import ccall unsafe "LLVMBuildIntToPtr" buildIntToPtr
+    :: BuilderRef -> ValueRef -> TypeRef -> CString -> IO ValueRef
+foreign import ccall unsafe "LLVMBuildBitCast" buildBitCast
+    :: BuilderRef -> ValueRef -> TypeRef -> CString -> IO ValueRef
+
+-- Comparisons
+foreign import ccall unsafe "LLVMBuildICmp" buildICmp
+    :: BuilderRef -> CInt -> ValueRef -> ValueRef -> CString -> IO ValueRef
+foreign import ccall unsafe "LLVMBuildFCmp" buildFCmp
+    :: BuilderRef -> CInt -> ValueRef -> ValueRef -> CString -> IO ValueRef
+
+-- Miscellaneous instructions
+foreign import ccall unsafe "LLVMBuildPhi" buildPhi
+    :: BuilderRef -> TypeRef -> CString -> IO ValueRef
 foreign import ccall unsafe "LLVMBuildCall" buildCall
-        :: BuilderRef -> ValueRef -> Ptr ValueRef -> CUInt -> CString
-        -> IO ValueRef
+    :: BuilderRef -> ValueRef -> Ptr ValueRef -> CUInt -> CString -> IO ValueRef
+foreign import ccall unsafe "LLVMBuildSelect" buildSelect
+    :: BuilderRef -> ValueRef -> ValueRef -> ValueRef -> CString -> IO ValueRef
+foreign import ccall unsafe "LLVMBuildVAArg" buildVAArg
+    :: BuilderRef -> ValueRef -> TypeRef -> CString -> IO ValueRef
+foreign import ccall unsafe "LLVMBuildExtractElement" buildExtractElement
+    :: BuilderRef -> ValueRef -> ValueRef -> CString -> IO ValueRef
+foreign import ccall unsafe "LLVMBuildInsertElement" buildInsertElement
+    :: BuilderRef -> ValueRef -> ValueRef -> ValueRef -> CString -> IO ValueRef
+foreign import ccall unsafe "LLVMBuildShuffleVector" buildShuffleVector
+    :: BuilderRef -> ValueRef -> ValueRef -> ValueRef -> CString -> IO ValueRef
