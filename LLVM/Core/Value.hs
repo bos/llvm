@@ -112,6 +112,12 @@ newtype GlobalVar t = GlobalVar AnyValue
     deriving (ConstValue, DynamicValue, GlobalValue, GlobalVariable,
               Typeable, Value)
 
+globalVarType :: GlobalVar t -> t
+globalVarType _ = undefined
+
+instance T.Type t => TypedValue (GlobalVar t) t where
+    typeOf = globalVarType
+
 newtype Function t = Function AnyValue
     deriving (ConstValue, DynamicValue, GlobalValue, GlobalVariable,
               Typeable, Value)
