@@ -72,11 +72,11 @@ module LLVM.Core.Builders
     , intToPtr
     , bitCast
 
-    {-
     -- * Comparisons
     , icmp
     , fcmp
 
+    {-
     -- * Miscellaneous instructions
     , phi
     , call
@@ -97,7 +97,7 @@ import Foreign.Marshal.Array (withArrayLen)
 import Prelude hiding (and, not, or)
 
 import qualified LLVM.Core.FFI as FFI
--- import qualified LLVM.Core.Instructions as I
+import qualified LLVM.Core.Instructions as I
 import qualified LLVM.Core.Types as T
 import qualified LLVM.Core.Values as V
 
@@ -303,3 +303,13 @@ intToPtr = typed FFI.buildIntToPtr
 bitCast :: (V.TypedValue v s, T.Type t)
            => Builder -> String -> v -> s -> IO (Instruction t)
 bitCast = typed FFI.buildBitCast
+
+fcmp :: (T.Real t, V.TypedValue v t)
+        => Builder -> String -> I.RealPredicate -> v -> v
+        -> IO (Instruction T.Int1)
+fcmp bld name p = binary (flip FFI.buildFCmp (I.fromRP p)) bld name
+
+icmp :: (T.Integer t, V.TypedValue v t)
+        => Builder -> String -> I.IntPredicate -> v -> v
+        -> IO (Instruction T.Int1)
+icmp bld name p = binary (flip FFI.buildICmp (I.fromIP p)) bld name
