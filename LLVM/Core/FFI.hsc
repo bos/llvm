@@ -192,6 +192,9 @@ module LLVM.Core.FFI
     , buildExtractElement
     , buildInsertElement
     , buildShuffleVector
+
+    -- ** Other helpers
+    , addCase
     ) where
 
 import Foreign.C.String (CString)
@@ -592,3 +595,6 @@ foreign import ccall unsafe "LLVMBuildInsertElement" buildInsertElement
     :: BuilderRef -> ValueRef -> ValueRef -> ValueRef -> CString -> IO ValueRef
 foreign import ccall unsafe "LLVMBuildShuffleVector" buildShuffleVector
     :: BuilderRef -> ValueRef -> ValueRef -> ValueRef -> CString -> IO ValueRef
+
+foreign import ccall unsafe "LLVMAddCase" addCase
+    :: ValueRef -> ValueRef -> BasicBlockRef -> IO ()

@@ -15,7 +15,6 @@ module LLVM.Core.Builders
     , positionBefore
     , positionAtEnd
 
-    {-
     -- * Terminators
     , retVoid
     , ret
@@ -25,7 +24,6 @@ module LLVM.Core.Builders
     , invoke
     , unwind
     , unreachable
-    -}
 
     -- * Arithmetic
     , add
@@ -89,6 +87,8 @@ module LLVM.Core.Builders
     ) where
 
 import Control.Applicative ((<$>))
+import Control.Arrow ((***))
+import Control.Monad (forM_)
 import Data.Typeable (Typeable)
 import Foreign.C.String (CString, withCString)
 import Foreign.ForeignPtr (FinalizerPtr, ForeignPtr, newForeignPtr,
@@ -136,6 +136,8 @@ newtype Instruction a = Instruction V.AnyValue
     deriving (V.DynamicValue, Typeable, V.Value)
 
 
+instruction :: IO FFI.ValueRef -> IO (Instruction t)
+instruction = fmap (Instruction . V.mkAnyValue)
 
 buildGEP :: (V.Value p, V.Value i) => Builder -> p -> [i] -> String
          -> IO (Instruction a)
@@ -143,13 +145,13 @@ buildGEP bld ptr indices name =
     withBuilder bld $ \bldPtr ->
       withCString name $ \namePtr ->
         withArrayLen (map V.valueRef indices) $ \idxLen idxPtr ->
-          Instruction . V.mkAnyValue <$> FFI.buildGEP bldPtr (V.valueRef ptr) idxPtr
+          instruction $ FFI.buildGEP bldPtr (V.valueRef ptr) idxPtr
                                   (fromIntegral idxLen) namePtr
 
 buildRet :: V.Value a => Builder -> a -> IO (Instruction a)
 buildRet bld val =
     withBuilder bld $ \bldPtr ->
-      Instruction . V.mkAnyValue <$> FFI.buildRet bldPtr (V.valueRef val)
+      instruction $ FFI.buildRet bldPtr (V.valueRef val)
 
 buildCall :: Builder -> V.Function a -> [V.AnyValue] -> String
           -> IO (Instruction a)
@@ -157,8 +159,8 @@ buildCall bld func args name =
     withBuilder bld $ \bldPtr ->
       withArrayLen (map V.valueRef args) $ \argLen argPtr ->
         withCString name $ \namePtr ->
-          Instruction . V.mkAnyValue <$> FFI.buildCall bldPtr (V.valueRef func) argPtr
-                                   (fromIntegral argLen) namePtr
+          instruction $ FFI.buildCall bldPtr (V.valueRef func) argPtr
+                          (fromIntegral argLen) namePtr
 
 unary :: (V.Value a)
          => (FFI.BuilderRef -> FFI.ValueRef -> CString -> IO FFI.ValueRef)
@@ -313,3 +315,51 @@ icmp :: (T.Integer t, V.TypedValue v t)
         => Builder -> String -> I.IntPredicate -> v -> v
         -> IO (Instruction T.Int1)
 icmp bld name p = binary (flip FFI.buildICmp (I.fromIP p)) bld name
+
+retVoid :: Builder -> IO (Instruction T.Void)
+retVoid bld = withBuilder bld $ instruction . FFI.buildRetVoid
+
+ret :: (T.FirstClass t, V.TypedValue v t) => Builder -> v -> IO (Instruction t)
+ret bld v =
+    withBuilder bld $ \bldPtr ->
+      instruction $ FFI.buildRet bldPtr (V.valueRef v)
+
+br :: Builder -> BasicBlock -> IO (Instruction T.Void)
+br bld bblk =
+    withBuilder bld $ \bldPtr ->
+      instruction $ FFI.buildBr bldPtr (V.valueRef bblk)
+
+condBr :: (V.TypedValue v T.Int1)
+          => Builder -> v -> BasicBlock -> BasicBlock
+          -> IO (Instruction T.Void)
+condBr bld bit true false =
+    withBuilder bld $ \bldPtr ->
+      instruction $ FFI.buildCondBr bldPtr (V.valueRef bit)
+                      (V.valueRef true) (V.valueRef false)
+
+switch :: (T.Integer t, V.TypedValue v t)
+          => Builder -> v -> BasicBlock -> [(v, BasicBlock)]
+          -> IO (Instruction T.Void)
+switch bld val noMatch cases =
+    withBuilder bld $ \bldPtr -> do
+        inst <- FFI.buildSwitch bldPtr (V.valueRef val)
+                        (V.valueRef noMatch) (fromIntegral $ length cases)
+        forM_ (map (V.valueRef *** V.valueRef) cases) $
+            uncurry (FFI.addCase inst)
+        instruction $ return inst
+
+invoke :: Builder -> String -> V.Function t -> [V.AnyValue]
+       -> BasicBlock -> BasicBlock -> IO (Instruction T.Void)
+invoke bld name func args thenBlk catchBlk =
+  withBuilder bld $ \bldPtr ->
+    withCString name $ \namePtr ->
+      withArrayLen (map V.valueRef args) $ \argLen argPtr ->
+        instruction $ FFI.buildInvoke bldPtr (V.valueRef func) argPtr
+                        (fromIntegral argLen) (V.valueRef thenBlk)
+                        (V.valueRef catchBlk) namePtr
+
+unwind :: Builder -> IO (Instruction T.Void)
+unwind bld = withBuilder bld $ instruction . FFI.buildUnwind
+
+unreachable :: Builder -> IO (Instruction T.Void)
+unreachable bld = withBuilder bld $ instruction . FFI.buildUnreachable
