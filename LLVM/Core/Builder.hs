@@ -1,6 +1,6 @@
 {-# LANGUAGE DeriveDataTypeable, FlexibleContexts #-}
 
-module LLVM.Core.Builders
+module LLVM.Core.Builder
     (
       Instruction(..)
     , BasicBlock(..)
@@ -44,7 +44,6 @@ module LLVM.Core.Builders
     , neg
     , not
 
-    {-
     -- * Memory
     , malloc
     , arrayMalloc
@@ -53,8 +52,7 @@ module LLVM.Core.Builders
     , free
     , load
     , store
-    , gEP
-    -}
+    , gep
 
     -- * Casts
     , trunc
@@ -97,9 +95,9 @@ import Foreign.Marshal.Array (withArrayLen)
 import Prelude hiding (and, not, or)
 
 import qualified LLVM.Core.FFI as FFI
-import qualified LLVM.Core.Instructions as I
-import qualified LLVM.Core.Types as T
-import qualified LLVM.Core.Values as V
+import qualified LLVM.Core.Instruction as I
+import qualified LLVM.Core.Type as T
+import qualified LLVM.Core.Value as V
 
 
 newtype Builder = Builder {
@@ -177,9 +175,7 @@ binary :: (V.Value a, V.Value b)
           -> Builder -> String -> a -> b -> IO (Instruction t)
 binary ffi bld name a b =
     withBuilder bld $ \bldPtr ->
-      withCString name $ \namePtr ->
-        Instruction . V.mkAnyValue <$>
-        ffi bldPtr (V.valueRef a) (V.valueRef b) namePtr
+      withCString name $ instruction . ffi bldPtr (V.valueRef a) (V.valueRef b) 
 
 add :: (T.Arithmetic t, V.Value v, V.TypedValue v t)
        => Builder -> String -> v -> v -> IO (Instruction t)
@@ -363,3 +359,64 @@ unwind bld = withBuilder bld $ instruction . FFI.buildUnwind
 
 unreachable :: Builder -> IO (Instruction T.Void)
 unreachable bld = withBuilder bld $ instruction . FFI.buildUnreachable
+
+allocWith :: (T.Type t)
+             => (FFI.BuilderRef -> FFI.TypeRef -> CString -> IO FFI.ValueRef)
+             -> Builder -> String -> t -> IO FFI.ValueRef
+allocWith ffi bld name typ =
+    withBuilder bld $ \bldPtr ->
+      withCString name $ ffi bldPtr (T.typeRef typ)
+
+arrayAllocWith :: (T.Type t, T.Integer n, V.TypedValue v n)
+               => (FFI.BuilderRef -> FFI.TypeRef -> FFI.ValueRef -> CString
+                   -> IO FFI.ValueRef)
+               -> Builder -> String -> t -> v -> IO FFI.ValueRef
+arrayAllocWith ffi bld name typ count =
+    withBuilder bld $ \bldPtr ->
+      withCString name $ ffi bldPtr (T.typeRef typ) (V.valueRef count)
+
+malloc :: (T.Type t) => Builder -> String -> t -> IO (Instruction (T.Array t))
+malloc bld name typ = instruction $ allocWith FFI.buildMalloc bld name typ
+
+arrayMalloc :: (T.Type t, V.TypedValue v T.Int32)
+               => Builder -> String -> t -> v -> IO (Instruction (T.Array t))
+arrayMalloc bld name typ count =
+    instruction $ arrayAllocWith FFI.buildArrayMalloc bld name typ count
+
+alloca :: (T.Type t)
+          => Builder -> String -> t -> IO (Instruction (T.Pointer t))
+alloca bld name typ = instruction $ allocWith FFI.buildAlloca bld name typ
+
+arrayAlloca :: (T.Type t, V.TypedValue v T.Int32)
+               => Builder -> String -> t -> v -> IO (Instruction (T.Pointer t))
+arrayAlloca bld name typ count =
+    instruction $ arrayAllocWith FFI.buildArrayAlloca bld name typ count
+
+free :: (V.TypedValue v (T.Pointer t))
+        => Builder -> v -> IO (Instruction T.Void)
+free bld ary =
+    withBuilder bld $ \bldPtr ->
+      instruction $ FFI.buildFree bldPtr (V.valueRef ary)
+
+load :: (V.TypedValue v (T.Pointer t))
+        => Builder -> String -> v -> IO (Instruction t)
+load bld name ptr =
+    withBuilder bld $ \bldPtr ->
+        instruction $ withCString name $ FFI.buildLoad bldPtr (V.valueRef ptr)
+
+store :: (V.TypedValue v t, V.TypedValue p (T.Pointer t))
+        => Builder -> v -> p -> IO (Instruction T.Void)
+store bld val ptr =
+    withBuilder bld $ \bldPtr ->
+      instruction $ FFI.buildStore bldPtr (V.valueRef val) (V.valueRef ptr) 
+
+gep :: (T.Sequence s e, V.TypedValue p s,
+        T.Integer t, V.TypedValue i t,
+        T.Type u) =>
+       Builder -> String -> p -> [i] -> IO (Instruction u)
+gep bld name ptr idxs =
+    withBuilder bld $ \bldPtr ->
+        withCString name $ \namePtr ->
+          withArrayLen (map V.valueRef idxs) $ \idxLen idxPtr ->
+            instruction $ FFI.buildGEP bldPtr (V.valueRef ptr) idxPtr
+                            (fromIntegral idxLen) namePtr

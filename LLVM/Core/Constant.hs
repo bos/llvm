@@ -1,6 +1,6 @@
 {-# LANGUAGE DeriveDataTypeable, FlexibleContexts #-}
 
-module LLVM.Core.Constants
+module LLVM.Core.Constant
     (
       ConstExpr(..)
 
@@ -55,9 +55,9 @@ import Data.Typeable (Typeable)
 import Prelude hiding (and, not, or)
 
 import qualified LLVM.Core.FFI as FFI
-import qualified LLVM.Core.Instructions as I
-import qualified LLVM.Core.Types as T
-import qualified LLVM.Core.Values as V
+import qualified LLVM.Core.Instruction as I
+import qualified LLVM.Core.Type as T
+import qualified LLVM.Core.Value as V
 
 
 newtype ConstExpr t = ConstExpr V.AnyValue

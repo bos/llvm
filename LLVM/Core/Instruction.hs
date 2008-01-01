@@ -1,4 +1,4 @@
-module LLVM.Core.Instructions
+module LLVM.Core.Instruction
     (
       IntPredicate(..)
     , RealPredicate(..)

@@ -2,48 +2,25 @@
 module HelloJit (main) where
 
 import Data.Int (Int32)
-import LLVM.Core.Types ((:->))
-import qualified LLVM.Core as Core
-import qualified LLVM.Core.Builders as B
-import qualified LLVM.Core.Constants as C
-import qualified LLVM.Core.Types as T
-import qualified LLVM.Core.Values as V
-import qualified LLVM.ExecutionEngine as EE
 import Prelude hiding (mod)
 
-defineGlobal :: (V.ConstValue a, V.TypedValue a t) => T.Module -> String -> a -> IO (V.GlobalVar t)
-defineGlobal mod name val = do
-  print "foo"
-  global <- Core.addGlobal mod (V.typeOf val) name
-  print "bar"
-  Core.setInitializer global val
-  return global
+import LLVM.Core.Type ((:->))
+import qualified LLVM.Core as Core
+import qualified LLVM.Core.Builder as B
+import qualified LLVM.Core.Type as T
+import qualified LLVM.Core.Value as V
+import qualified LLVM.Core.Utils as U
+import qualified LLVM.ExecutionEngine as EE
 
-declareFunction :: T.Params p => T.Module -> String -> T.Function p -> IO (V.Function p)
-declareFunction mod name typ = do
-  maybeFunc <- Core.getNamedFunction mod name
-  case maybeFunc of
-    Nothing -> Core.addFunction mod name typ
-    Just func -> return $ let t = V.typeOf func
-                          in if T.elementTypeDyn t /= T.toAnyType typ
-                             then C.bitCast func (T.pointer typ)
-                             else func
-
-defineFunction :: T.Params p => T.Module -> String -> T.Function p
-               -> IO (V.Function p, B.BasicBlock)
-defineFunction mod name typ = do
-  func <- Core.addFunction mod name typ
-  bblk <- Core.appendBasicBlock func "entry"
-  return (func, bblk)
 
 buildModule :: IO (T.Module, V.Function T.Int32)
 buildModule = do
   mod <- Core.createModule "hello"
-  greetz <- defineGlobal mod "greeting" (V.const "hello jit!")
+  greetz <- U.defineGlobal mod "greeting" (V.const "hello jit!")
   let t = undefined :: T.Pointer T.Int8 :-> T.Int32
   putStrLn $ "type of puts: " ++ show t
-  puts <- declareFunction mod "puts" (T.function t)
-  (func, entry) <- defineFunction mod "main"
+  puts <- U.declareFunction mod "puts" (T.function t)
+  (func, entry) <- U.defineFunction mod "main"
                    (T.function (undefined :: T.Int32))
   bld <- B.createBuilder
   B.positionAtEnd bld entry

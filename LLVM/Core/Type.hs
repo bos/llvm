@@ -5,7 +5,7 @@
   , MultiParamTypeClasses
   #-}
 
-module LLVM.Core.Types
+module LLVM.Core.Type
     (
       Module(..)
     , withModule
@@ -14,6 +14,7 @@ module LLVM.Core.Types
 
     -- * Types
     , Type(..)
+    , TypeValue(..)
     , AnyType
     , HasAnyType(..)
     , DynamicType(..)
@@ -120,6 +121,9 @@ withModuleProvider prov = withForeignPtr (fromModuleProvider prov)
 
 class Type a where
     typeRef :: a -> FFI.TypeRef
+
+class Type t => TypeValue t where
+    typeValue :: a -> t
 
 class Type a => Arithmetic a
 class Arithmetic a => Integer a
@@ -307,6 +311,9 @@ int1 _ = Int1 $ mkAnyType FFI.int1Type
 
 instance Params Int1 where
     listValue a = [toAnyType a]
+
+instance TypeValue Int1 where
+    typeValue = int1
 
 instance DynamicType Int1 where
     toAnyType = mkAnyType . int1

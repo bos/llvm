@@ -35,9 +35,9 @@ import Foreign.Ptr (Ptr, nullPtr)
 import Prelude hiding (mod)
 
 import qualified LLVM.Core.FFI as FFI
-import qualified LLVM.Core.Builders as B
-import qualified LLVM.Core.Types as T
-import qualified LLVM.Core.Values as V
+import qualified LLVM.Core.Builder as B
+import qualified LLVM.Core.Type as T
+import qualified LLVM.Core.Value as V
 
 
 createModule :: String -> IO T.Module

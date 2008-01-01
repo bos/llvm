@@ -23,8 +23,8 @@ import Foreign.Storable (peek)
 import System.IO.Error (userError)
 
 import qualified LLVM.ExecutionEngine.FFI as FFI
-import qualified LLVM.Core.Types as T
-import qualified LLVM.Core.Values as V
+import qualified LLVM.Core.Type as T
+import qualified LLVM.Core.Value as V
 
 newtype ExecutionEngine = ExecutionEngine {
       fromExecutionEngine :: ForeignPtr FFI.ExecutionEngine

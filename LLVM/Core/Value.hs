@@ -5,7 +5,7 @@
   , MultiParamTypeClasses
   #-}
 
-module LLVM.Core.Values
+module LLVM.Core.Value
     (
     -- * Values
 
@@ -58,7 +58,7 @@ import Prelude hiding (Integer, Real)
 import System.IO.Unsafe (unsafePerformIO)
 
 import qualified LLVM.Core.FFI as FFI
-import qualified LLVM.Core.Types as T
+import qualified LLVM.Core.Type as T
 
 -- import Debug.Trace
 
