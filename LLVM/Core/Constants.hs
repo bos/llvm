@@ -127,14 +127,12 @@ xor :: (V.ConstValue v, T.Integer t, V.TypedValue v t)
 xor = binary FFI.constXor
 
 icmp :: (V.ConstValue v, T.Integer t, V.TypedValue v t)
-        => I.RealPredicate -> v -> v -> ConstExpr t
-icmp p a b = ConstExpr . V.mkAnyValue $
-             FFI.constFCmp (I.fromRP p) (V.valueRef a) (V.valueRef b)
+        => I.IntPredicate -> v -> v -> ConstExpr T.Int1
+icmp p = binary (FFI.constICmp (I.fromIP p))
 
 fcmp :: (V.ConstValue v, T.Real t, V.TypedValue v t)
-        => I.RealPredicate -> v -> v -> ConstExpr t
-fcmp p a b = ConstExpr . V.mkAnyValue $
-             FFI.constFCmp (I.fromRP p) (V.valueRef a) (V.valueRef b)
+        => I.RealPredicate -> v -> v -> ConstExpr T.Int1
+fcmp p = binary (FFI.constFCmp (I.fromRP p))
 
 shl :: (V.ConstValue v, T.Integer t, V.TypedValue v t)
        => v -> v -> ConstExpr t
