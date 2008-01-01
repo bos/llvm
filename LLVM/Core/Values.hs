@@ -29,7 +29,6 @@ module LLVM.Core.Values
     , GlobalVar(..)
     , Function(..)
     , TypedValue(..)
-    , BasicBlock(..)
 
     -- * Constants
     , ConstInt(..)
@@ -47,15 +46,6 @@ module LLVM.Core.Values
     -- *** Composite constants
     , constString
     , constStringNul
-
-    -- * Instructions
-    , Instruction
-    , CallInst(..)
-    , GetElementPtrInst(..)
-    , ReturnInst(..)
-
-    -- * Operations on values
-    , Builder(..)
     ) where
 
 import Control.Applicative ((<$>))
@@ -63,7 +53,6 @@ import Data.Int (Int8, Int16, Int32, Int64)
 import Data.Typeable (Typeable)
 import Data.Word (Word8, Word16, Word32, Word64)
 import Foreign.C.String (withCStringLen)
-import Foreign.ForeignPtr (ForeignPtr)
 import Foreign.Marshal.Utils (fromBool)
 import Prelude hiding (Integer, Real)
 import System.IO.Unsafe (unsafePerformIO)
@@ -105,7 +94,6 @@ class Arithmetic a => Real a
 class Arithmetic a => Vector a
 class ConstValue a => GlobalValue a
 class GlobalValue a => GlobalVariable a
-class Value a => Instruction a
 
 instance Value AnyValue where
     valueRef (AnyValue a) = valueRef a
@@ -113,27 +101,9 @@ instance Value AnyValue where
 instance ConstValue AnyValue
 instance GlobalValue AnyValue
 instance GlobalVariable AnyValue
-instance Instruction AnyValue
 instance Arithmetic AnyValue
 instance Integer AnyValue
 instance Real AnyValue
-
-newtype BasicBlock = BasicBlock AnyValue
-    deriving (DynamicValue, Typeable, Value)
-
-newtype Builder = Builder {
-      fromBuilder :: ForeignPtr FFI.Builder
-    }
-    deriving (Typeable)
-
-newtype CallInst = CallInst AnyValue
-    deriving (DynamicValue, Instruction, Typeable, Value)
-
-newtype GetElementPtrInst = GetElementPtrInst AnyValue
-    deriving (DynamicValue, Instruction, Typeable, Value)
-
-newtype ReturnInst = ReturnInst AnyValue
-    deriving (DynamicValue, Instruction, Typeable, Value)
 
 newtype Global t = Global AnyValue
     deriving (ConstValue, DynamicValue, GlobalValue, Typeable, Value)

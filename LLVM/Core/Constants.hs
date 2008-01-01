@@ -4,7 +4,7 @@ module LLVM.Core.Constants
     (
       ConstExpr(..)
 
-    -- * Constant expressions
+    -- * Arithmetic
     , neg
     , not
     , add
@@ -19,12 +19,14 @@ module LLVM.Core.Constants
     , and
     , or
     , xor
-    , icmp
-    , fcmp
     , shl
     , lshr
     , ashr
+
+    -- * Memory
     , gep
+
+    -- * Conversions
     , trunc
     , sExt
     , zExt
@@ -37,6 +39,12 @@ module LLVM.Core.Constants
     , ptrToInt
     , intToPtr
     , bitCast
+
+    -- * Comparisons
+    , icmp
+    , fcmp
+
+    -- * Miscellaneous operations
     , select
     , extractElement
     , insertElement

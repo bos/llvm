@@ -4,6 +4,7 @@ module HelloJit (main) where
 import Data.Int (Int32)
 import LLVM.Core.Types ((:->))
 import qualified LLVM.Core as Core
+import qualified LLVM.Core.Builders as B
 import qualified LLVM.Core.Constants as C
 import qualified LLVM.Core.Types as T
 import qualified LLVM.Core.Values as V
@@ -29,7 +30,7 @@ declareFunction mod name typ = do
                              else func
 
 defineFunction :: T.Params p => T.Module -> String -> T.Function p
-               -> IO (V.Function p, V.BasicBlock)
+               -> IO (V.Function p, B.BasicBlock)
 defineFunction mod name typ = do
   func <- Core.addFunction mod name typ
   bblk <- Core.appendBasicBlock func "entry"
@@ -44,12 +45,12 @@ buildModule = do
   puts <- declareFunction mod "puts" (T.function t)
   (func, entry) <- defineFunction mod "main"
                    (T.function (undefined :: T.Int32))
-  bld <- Core.createBuilder
-  Core.positionAtEnd bld entry
+  bld <- B.createBuilder
+  B.positionAtEnd bld entry
   let zero = V.const (0::Int32)
-  tmp <- Core.buildGEP bld greetz [zero, zero] "tmp"
-  Core.buildCall bld puts [V.mkAnyValue tmp] ""
-  Core.buildRet bld zero
+  tmp <- B.buildGEP bld greetz [zero, zero] "tmp"
+  B.buildCall bld puts [V.mkAnyValue tmp] ""
+  B.buildRet bld zero
   return (mod, func)
 
 execute :: T.Module -> V.Function a -> IO ()

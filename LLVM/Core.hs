@@ -25,31 +25,17 @@ module LLVM.Core
     , appendBasicBlock
     , insertBasicBlock
     , deleteBasicBlock
-
-    -- * Instruction building
-    , createBuilder
-    , positionBefore
-    , positionAtEnd
-
-    -- ** Memory
-    , buildGEP
-
-    -- ** Terminators
-    , buildRet
-
-    -- ** Miscellaneous instructions
-    , buildCall
     ) where
 
 import Control.Applicative ((<$>))
 import Foreign.C.String (withCString)
-import Foreign.Marshal.Array (withArrayLen)
 import Foreign.Marshal.Utils (toBool)
-import Foreign.ForeignPtr (FinalizerPtr, newForeignPtr, withForeignPtr)
+import Foreign.ForeignPtr (FinalizerPtr, newForeignPtr)
 import Foreign.Ptr (Ptr, nullPtr)
 import Prelude hiding (mod)
 
 import qualified LLVM.Core.FFI as FFI
+import qualified LLVM.Core.Builders as B
 import qualified LLVM.Core.Types as T
 import qualified LLVM.Core.Values as V
 
@@ -117,61 +103,15 @@ getNamedFunction mod name =
       withCString name $ \namePtr ->
         maybePtr (V.Function . V.mkAnyValue) <$> FFI.getNamedFunction modPtr namePtr
 
-appendBasicBlock :: V.Function a -> String -> IO V.BasicBlock
+appendBasicBlock :: V.Function a -> String -> IO B.BasicBlock
 appendBasicBlock func name =
     withCString name $ \namePtr ->
-      V.BasicBlock . V.mkAnyValue <$> FFI.appendBasicBlock (V.valueRef func) namePtr
+      B.BasicBlock . V.mkAnyValue <$> FFI.appendBasicBlock (V.valueRef func) namePtr
 
-insertBasicBlock :: V.BasicBlock -> String -> IO V.BasicBlock
+insertBasicBlock :: B.BasicBlock -> String -> IO B.BasicBlock
 insertBasicBlock before name =
     withCString name $ \namePtr ->
-      V.BasicBlock . V.mkAnyValue <$> FFI.insertBasicBlock (V.valueRef before) namePtr
+      B.BasicBlock . V.mkAnyValue <$> FFI.insertBasicBlock (V.valueRef before) namePtr
 
-deleteBasicBlock :: V.BasicBlock -> IO ()
+deleteBasicBlock :: B.BasicBlock -> IO ()
 deleteBasicBlock = FFI.deleteBasicBlock . V.valueRef
-
-
-withBuilder :: V.Builder -> (FFI.BuilderRef -> IO a) -> IO a
-withBuilder = withForeignPtr . V.fromBuilder
-
-createBuilder :: IO V.Builder
-createBuilder = do
-  final <- h2c_builder FFI.disposeBuilder
-  ptr <- FFI.createBuilder
-  V.Builder <$> newForeignPtr final ptr
-
-foreign import ccall "wrapper" h2c_builder
-    :: (FFI.BuilderRef -> IO ()) -> IO (FinalizerPtr a)
-
-positionBefore :: V.Instruction i => V.Builder -> i -> IO ()
-positionBefore bld insn =
-    withBuilder bld $ \bldPtr ->
-      FFI.positionBefore bldPtr (V.valueRef insn)
-
-positionAtEnd :: V.Builder -> V.BasicBlock -> IO ()
-positionAtEnd bld bblk =
-    withBuilder bld $ \bldPtr ->
-      FFI.positionAtEnd bldPtr (V.valueRef bblk)
-
-buildGEP :: (V.Value p, V.Value i) => V.Builder -> p -> [i] -> String
-         -> IO V.GetElementPtrInst
-buildGEP bld ptr indices name =
-    withBuilder bld $ \bldPtr ->
-      withCString name $ \namePtr ->
-        withArrayLen (map V.valueRef indices) $ \idxLen idxPtr ->
-          V.GetElementPtrInst . V.mkAnyValue <$> FFI.buildGEP bldPtr (V.valueRef ptr) idxPtr
-                                  (fromIntegral idxLen) namePtr
-
-buildRet :: V.Value a => V.Builder -> a -> IO V.ReturnInst
-buildRet bld val =
-    withBuilder bld $ \bldPtr ->
-      V.ReturnInst . V.mkAnyValue <$> FFI.buildRet bldPtr (V.valueRef val)
-
-buildCall :: V.Builder -> V.Function a -> [V.AnyValue] -> String
-          -> IO V.CallInst
-buildCall bld func args name =
-    withBuilder bld $ \bldPtr ->
-      withArrayLen (map V.valueRef args) $ \argLen argPtr ->
-        withCString name $ \namePtr ->
-          V.CallInst . V.mkAnyValue <$> FFI.buildCall bldPtr (V.valueRef func) argPtr
-                                   (fromIntegral argLen) namePtr

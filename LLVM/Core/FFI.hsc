@@ -183,9 +183,9 @@ module LLVM.Core.FFI
     -- ** Comparisons
     , buildICmp
     , buildFCmp
-    , buildPhi
 
     -- ** Miscellaneous instructions
+    , buildPhi
     , buildCall
     , buildSelect
     , buildVAArg
