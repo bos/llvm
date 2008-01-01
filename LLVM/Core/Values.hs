@@ -71,8 +71,8 @@ class DynamicValue a where
 
 -- | Recover the type of a value in a manner that preserves static
 -- type safety.
-class T.Type t => TypedValue a t | a -> t where
-    typeOf :: a                 -- ^ value is not inspected
+class (T.Type t, Value v) => TypedValue v t | v -> t where
+    typeOf :: v                 -- ^ value is not inspected
            -> t
 
 data AnyValue = forall a. Value a => AnyValue a
