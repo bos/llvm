@@ -25,9 +25,9 @@ buildModule = do
   bld <- B.createBuilder
   B.positionAtEnd bld entry
   let zero = V.const (0::Int32)
-  tmp <- B.buildGEP bld greetz [zero, zero] "tmp"
-  B.buildCall bld puts [V.mkAnyValue tmp] ""
-  B.buildRet bld zero
+  tmp <- B.getArrayPtr bld "tmp" greetz [zero, zero]
+  B.call_ bld "" puts [V.mkAnyValue tmp]
+  B.ret bld zero
   return (mod, func)
 
 execute :: T.Module -> V.Function a -> IO ()

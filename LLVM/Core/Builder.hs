@@ -5,10 +5,6 @@ module LLVM.Core.Builder
       Instruction(..)
     , BasicBlock(..)
 
-    , buildCall
-    , buildRet
-    , buildGEP
-
     -- * Instruction building
     , createBuilder
 
@@ -52,7 +48,8 @@ module LLVM.Core.Builder
     , free
     , load
     , store
-    , gep
+    , getElementPtr
+    , getArrayPtr
 
     -- * Casts
     , trunc
@@ -72,10 +69,11 @@ module LLVM.Core.Builder
     , icmp
     , fcmp
 
-    {-
     -- * Miscellaneous instructions
-    , phi
     , call
+    , call_
+    {-
+    , phi
     , select
     , vaArg
     , extractElement
@@ -136,29 +134,6 @@ newtype Instruction a = Instruction V.AnyValue
 
 instruction :: IO FFI.ValueRef -> IO (Instruction t)
 instruction = fmap (Instruction . V.mkAnyValue)
-
-buildGEP :: (V.Value p, V.Value i) => Builder -> p -> [i] -> String
-         -> IO (Instruction a)
-buildGEP bld ptr indices name =
-    withBuilder bld $ \bldPtr ->
-      withCString name $ \namePtr ->
-        withArrayLen (map V.valueRef indices) $ \idxLen idxPtr ->
-          instruction $ FFI.buildGEP bldPtr (V.valueRef ptr) idxPtr
-                                  (fromIntegral idxLen) namePtr
-
-buildRet :: V.Value a => Builder -> a -> IO (Instruction a)
-buildRet bld val =
-    withBuilder bld $ \bldPtr ->
-      instruction $ FFI.buildRet bldPtr (V.valueRef val)
-
-buildCall :: Builder -> V.Function a -> [V.AnyValue] -> String
-          -> IO (Instruction a)
-buildCall bld func args name =
-    withBuilder bld $ \bldPtr ->
-      withArrayLen (map V.valueRef args) $ \argLen argPtr ->
-        withCString name $ \namePtr ->
-          instruction $ FFI.buildCall bldPtr (V.valueRef func) argPtr
-                          (fromIntegral argLen) namePtr
 
 unary :: (V.Value a)
          => (FFI.BuilderRef -> FFI.ValueRef -> CString -> IO FFI.ValueRef)
@@ -410,13 +385,37 @@ store bld val ptr =
     withBuilder bld $ \bldPtr ->
       instruction $ FFI.buildStore bldPtr (V.valueRef val) (V.valueRef ptr) 
 
-gep :: (T.Sequence s e, V.TypedValue p s,
-        T.Integer t, V.TypedValue i t,
-        T.Type u) =>
-       Builder -> String -> p -> [i] -> IO (Instruction u)
-gep bld name ptr idxs =
+getElementPtr :: (T.Sequence s e, V.TypedValue p s,
+                  T.Integer t, V.TypedValue i t,
+                  T.Type u)
+                 => Builder -> String -> p -> [i] -> IO (Instruction u)
+getElementPtr bld name ptr idxs =
     withBuilder bld $ \bldPtr ->
         withCString name $ \namePtr ->
           withArrayLen (map V.valueRef idxs) $ \idxLen idxPtr ->
             instruction $ FFI.buildGEP bldPtr (V.valueRef ptr) idxPtr
                             (fromIntegral idxLen) namePtr
+
+getArrayPtr :: (T.Type t, V.TypedValue v (T.Array t),
+               T.Integer x, V.TypedValue i x)
+              => Builder -> String -> v -> [i] -> IO (Instruction t)
+getArrayPtr = getElementPtr
+
+callRef :: (T.Params p)
+           => Builder -> String -> V.Function p -> [V.AnyValue]
+           -> IO FFI.ValueRef
+callRef bld name func args =
+    withBuilder bld $ \bldPtr ->
+      withArrayLen (map V.valueRef args) $ \argLen argPtr ->
+        withCString name $ \namePtr ->
+          FFI.buildCall bldPtr (V.valueRef func) argPtr
+                 (fromIntegral argLen) namePtr
+
+call :: (T.Params p, T.FirstClass t)
+        => Builder -> String -> V.Function p -> [V.AnyValue]
+     -> IO (Instruction t)
+call bld name func args = instruction $ callRef bld name func args
+
+call_ :: (T.Params p)
+        => Builder -> String -> V.Function p -> [V.AnyValue] -> IO ()
+call_ bld name func args = callRef bld name func args >> return ()
