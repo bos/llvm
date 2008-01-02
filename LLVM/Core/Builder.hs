@@ -74,8 +74,8 @@ module LLVM.Core.Builder
     , call_
     , extractElement
     , insertElement
-    {-
     , phi
+    {-
     , select
     , vaArg
     , shuffleVector
@@ -89,7 +89,7 @@ import Data.Typeable (Typeable)
 import Foreign.C.String (CString, withCString)
 import Foreign.ForeignPtr (FinalizerPtr, ForeignPtr, newForeignPtr,
                            withForeignPtr)
-import Foreign.Marshal.Array (withArrayLen)
+import Foreign.Marshal.Array (withArray, withArrayLen)
 import Prelude hiding (and, not, or)
 
 import qualified LLVM.Core.FFI as FFI
@@ -308,6 +308,9 @@ condBr bld bit true false =
       instruction $ FFI.buildCondBr bldPtr (V.valueRef bit)
                       (V.valueRef true) (V.valueRef false)
 
+unwrap :: (V.Value a, V.Value b) => (a, b) -> (FFI.ValueRef, FFI.ValueRef)
+unwrap = V.valueRef *** V.valueRef
+
 switch :: (T.Integer t, V.TypedValue v t)
           => Builder -> v -> BasicBlock -> [(v, BasicBlock)]
           -> IO (Instruction T.Void)
@@ -315,8 +318,7 @@ switch bld val noMatch cases =
     withBuilder bld $ \bldPtr -> do
         inst <- FFI.buildSwitch bldPtr (V.valueRef val)
                         (V.valueRef noMatch) (fromIntegral $ length cases)
-        forM_ (map (V.valueRef *** V.valueRef) cases) $
-            uncurry (FFI.addCase inst)
+        forM_ (map unwrap cases) $ uncurry (FFI.addCase inst)
         instruction $ return inst
 
 invoke :: Builder -> String -> V.Function t -> [V.AnyValue]
@@ -438,3 +440,15 @@ insertElement bld name vec elt idx =
         withCString name $ \namePtr ->
             instruction $ FFI.buildInsertElement bldPtr (V.valueRef vec)
                             (V.valueRef elt) (V.valueRef idx) namePtr
+
+phi :: (V.TypedValue v t)
+       => Builder -> String -> t -> [(v, BasicBlock)] -> IO (Instruction t)
+phi bld name typ incoming =
+    withBuilder bld $ \bldPtr ->
+      withCString name $ \namePtr -> do
+        inst <- FFI.buildPhi bldPtr (T.typeRef typ) namePtr
+        let (vals, bblks) = unzip . map unwrap $ incoming
+        withArrayLen vals $ \count valPtr ->
+          withArray bblks $ \bblkPtr ->
+            FFI.addIncoming inst valPtr bblkPtr (fromIntegral count)
+        instruction $ return inst

@@ -195,6 +195,7 @@ module LLVM.Core.FFI
 
     -- ** Other helpers
     , addCase
+    , addIncoming
     ) where
 
 import Foreign.C.String (CString)
@@ -598,3 +599,6 @@ foreign import ccall unsafe "LLVMBuildShuffleVector" buildShuffleVector
 
 foreign import ccall unsafe "LLVMAddCase" addCase
     :: ValueRef -> ValueRef -> BasicBlockRef -> IO ()
+
+foreign import ccall unsafe "LLVMAddIncoming" addIncoming
+    :: ValueRef -> Ptr ValueRef -> Ptr ValueRef -> CUInt -> IO ()
