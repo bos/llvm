@@ -75,8 +75,8 @@ module LLVM.Core.Builder
     , extractElement
     , insertElement
     , phi
-    {-
     , select
+    {-
     , vaArg
     , shuffleVector
     -}
@@ -452,3 +452,12 @@ phi bld name typ incoming =
           withArray bblks $ \bblkPtr ->
             FFI.addIncoming inst valPtr bblkPtr (fromIntegral count)
         instruction $ return inst
+
+select :: (V.TypedValue p T.Int1,
+           V.TypedValue v t)
+          => Builder -> String -> p -> v -> v -> IO (Instruction t)
+select bld name bit true false =
+    withBuilder bld $ \bldPtr ->
+      withCString name $ \namePtr -> do
+        instruction $ FFI.buildSelect bldPtr (V.valueRef bit)
+                        (V.valueRef true) (V.valueRef false) namePtr
