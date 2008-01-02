@@ -72,12 +72,12 @@ module LLVM.Core.Builder
     -- * Miscellaneous instructions
     , call
     , call_
+    , extractElement
+    , insertElement
     {-
     , phi
     , select
     , vaArg
-    , extractElement
-    , insertElement
     , shuffleVector
     -}
     ) where
@@ -419,3 +419,22 @@ call bld name func args = instruction $ callRef bld name func args
 call_ :: (T.Params p)
         => Builder -> String -> V.Function p -> [V.AnyValue] -> IO ()
 call_ bld name func args = callRef bld name func args >> return ()
+
+extractElement :: (V.TypedValue v (T.Vector t),
+                   V.TypedValue i T.Int32)
+                  => Builder -> String -> v -> i -> IO (Instruction t)
+extractElement bld name vec idx =
+    withBuilder bld $ \bldPtr ->
+        withCString name $ \namePtr ->
+            instruction $ FFI.buildExtractElement bldPtr (V.valueRef vec)
+                            (V.valueRef idx) namePtr
+
+insertElement :: (V.TypedValue v (T.Vector t),
+                  V.TypedValue e t,
+                  V.TypedValue i T.Int32)
+                  => Builder -> String -> v -> e -> i -> IO (Instruction t)
+insertElement bld name vec elt idx =
+    withBuilder bld $ \bldPtr ->
+        withCString name $ \namePtr ->
+            instruction $ FFI.buildInsertElement bldPtr (V.valueRef vec)
+                            (V.valueRef elt) (V.valueRef idx) namePtr
