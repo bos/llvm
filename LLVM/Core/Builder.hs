@@ -76,8 +76,8 @@ module LLVM.Core.Builder
     , insertElement
     , phi
     , select
-    {-
     , vaArg
+    {-
     , shuffleVector
     -}
     ) where
@@ -461,3 +461,11 @@ select bld name bit true false =
       withCString name $ \namePtr -> do
         instruction $ FFI.buildSelect bldPtr (V.valueRef bit)
                         (V.valueRef true) (V.valueRef false) namePtr
+
+vaArg :: (V.Value v, T.Type t)
+         => Builder -> String -> v -> t -> IO (Instruction t)
+vaArg bld name valist typ =
+    withBuilder bld $ \bldPtr ->
+      withCString name $ \namePtr ->
+        instruction $ FFI.buildVAArg bldPtr (V.valueRef valist)
+                        (T.typeRef typ) namePtr
