@@ -77,9 +77,7 @@ module LLVM.Core.Builder
     , phi
     , select
     , vaArg
-    {-
     , shuffleVector
-    -}
     ) where
 
 import Control.Applicative ((<$>))
@@ -469,3 +467,13 @@ vaArg bld name valist typ =
       withCString name $ \namePtr ->
         instruction $ FFI.buildVAArg bldPtr (V.valueRef valist)
                         (T.typeRef typ) namePtr
+
+shuffleVector :: (V.TypedValue v (T.Vector t),
+                  V.TypedValue m (T.Vector T.Int32))
+                 => Builder -> String -> v -> v -> m
+                 -> IO (Instruction (T.Vector t))
+shuffleVector bld name a b mask =
+    withBuilder bld $ \bldPtr ->
+      withCString name $ \namePtr ->
+        instruction $ FFI.buildShuffleVector bldPtr (V.valueRef a)
+                        (V.valueRef b) (V.valueRef mask) namePtr
