@@ -63,6 +63,9 @@ module LLVM.Core.FFI
     , addFunction
     , deleteFunction
     , getNamedFunction
+    , countParams
+    , getParam
+    , getParams
       
     -- * Constants
 
@@ -329,6 +332,15 @@ foreign import ccall unsafe "LLVMAddFunction" addFunction
 
 foreign import ccall unsafe "LLVMDeleteFunction" deleteFunction
     :: ValueRef -> IO ()
+
+foreign import ccall unsafe "LLVMCountParams" countParams
+    :: ValueRef -> CUInt
+
+foreign import ccall unsafe "LLVMGetParam" getParam
+    :: ValueRef -> CUInt -> ValueRef
+
+foreign import ccall unsafe "LLVMGetParams" getParams
+    :: ValueRef -> Ptr ValueRef -> IO ()
 
 foreign import ccall unsafe "LLVMConstInt" constInt
     :: TypeRef -> CULLong -> CInt -> ValueRef
