@@ -102,76 +102,93 @@ binary :: (V.ConstValue a, V.ConstValue b)
           -> ConstExpr t
 binary ffi a b = ConstExpr . V.mkAnyValue $ ffi (V.valueRef a) (V.valueRef b)
 
-add :: (V.ConstValue v, V.Arithmetic v, T.Arithmetic t)
-       => v -> v -> ConstExpr t
+add :: (T.Arithmetic t, V.ConstValue a, V.TypedValue a t,
+        V.ConstValue b, V.TypedValue b t)
+       => a -> b -> ConstExpr t
 add = binary FFI.constAdd
 
-sub :: (V.ConstValue v, V.Arithmetic v, T.Arithmetic t)
-       => v -> v -> ConstExpr t
+sub :: (T.Arithmetic t, V.ConstValue a, V.TypedValue a t,
+        V.ConstValue b, V.TypedValue b t)
+       => a -> b -> ConstExpr t
 sub = binary FFI.constSub
 
-mul :: (V.ConstValue v, V.Arithmetic v, T.Arithmetic t)
-       => v -> v -> ConstExpr t
+mul :: (T.Arithmetic t, V.ConstValue a, V.TypedValue a t,
+        V.ConstValue b, V.TypedValue b t)
+       => a -> b -> ConstExpr t
 mul = binary FFI.constMul
 
-udiv :: (V.ConstValue v, T.Integer t, V.TypedValue v t)
-       => v -> v -> ConstExpr t
+udiv :: (T.Integer t, V.ConstValue a, V.TypedValue a t,
+         V.ConstValue b, V.TypedValue b t)
+       => a -> b -> ConstExpr t
 udiv = binary FFI.constUDiv
 
-sdiv :: (V.ConstValue v, T.Integer t, V.TypedValue v t)
-       => v -> v -> ConstExpr t
+sdiv :: (T.Integer t, V.ConstValue a, V.TypedValue a t,
+         V.ConstValue b, V.TypedValue b t)
+       => a -> b -> ConstExpr t
 sdiv = binary FFI.constSDiv
 
-fdiv :: (V.ConstValue v, T.Real t, V.TypedValue v t)
-       => v -> v -> ConstExpr t
+fdiv :: (T.Real t, V.ConstValue a, V.TypedValue a t,
+         V.ConstValue b, V.TypedValue b t)
+       => a -> b -> ConstExpr t
 fdiv = binary FFI.constFDiv
 
-urem :: (V.ConstValue v, T.Integer t, V.TypedValue v t)
-       => v -> v -> ConstExpr t
+urem :: (T.Integer t, V.ConstValue a, V.TypedValue a t,
+         V.ConstValue b, V.TypedValue b t)
+       => a -> b -> ConstExpr t
 urem = binary FFI.constURem
 
-srem :: (V.ConstValue v, T.Integer t, V.TypedValue v t)
-       => v -> v -> ConstExpr t
+srem :: (T.Integer t, V.ConstValue a, V.TypedValue a t,
+         V.ConstValue b, V.TypedValue b t)
+       => a -> b -> ConstExpr t
 srem = binary FFI.constURem
 
-frem :: (V.ConstValue v, T.Real t, V.TypedValue v t)
-       => v -> v -> ConstExpr t
+frem :: (T.Real t, V.ConstValue a, V.TypedValue a t,
+         V.ConstValue b, V.TypedValue b t)
+       => a -> b -> ConstExpr t
 frem = binary FFI.constFRem
 
-and :: (V.ConstValue v, T.Integer t, V.TypedValue v t)
-       => v -> v -> ConstExpr t
+and :: (T.Integer t, V.ConstValue a, V.TypedValue a t,
+        V.ConstValue b, V.TypedValue b t)
+       => a -> b -> ConstExpr t
 and = binary FFI.constAnd
 
-or :: (V.ConstValue v, T.Integer t, V.TypedValue v t)
-      => v -> v -> ConstExpr t
+or :: (T.Integer t, V.ConstValue a, V.TypedValue a t,
+       V.ConstValue b, V.TypedValue b t)
+      => a -> b -> ConstExpr t
 or = binary FFI.constOr
 
-xor :: (V.ConstValue v, T.Integer t, V.TypedValue v t)
-       => v -> v -> ConstExpr t
+xor :: (T.Integer t, V.ConstValue a, V.TypedValue a t,
+        V.ConstValue b, V.TypedValue b t)
+       => a -> b -> ConstExpr t
 xor = binary FFI.constXor
 
-icmp :: (V.ConstValue v, T.Integer t, V.TypedValue v t)
-        => I.IntPredicate -> v -> v -> ConstExpr T.Int1
+icmp :: (T.Integer t, V.ConstValue a, V.TypedValue a t,
+         V.ConstValue b, V.TypedValue b t)
+        => I.IntPredicate -> a -> b -> ConstExpr T.Int1
 icmp p = binary (FFI.constICmp (I.fromIP p))
 
-fcmp :: (V.ConstValue v, T.Real t, V.TypedValue v t)
-        => I.RealPredicate -> v -> v -> ConstExpr T.Int1
+fcmp :: (T.Real t, V.ConstValue a, V.TypedValue a t,
+         V.ConstValue b, V.TypedValue b t)
+        => I.RealPredicate -> a -> b -> ConstExpr T.Int1
 fcmp p = binary (FFI.constFCmp (I.fromRP p))
 
-shl :: (V.ConstValue v, T.Integer t, V.TypedValue v t)
-       => v -> v -> ConstExpr t
+shl :: (T.Integer t, V.ConstValue a, V.TypedValue a t,
+         V.ConstValue b, V.TypedValue b t)
+       => a -> b -> ConstExpr t
 shl = binary FFI.constShl
 
-lshr :: (V.ConstValue v, T.Integer t, V.TypedValue v t)
-       => v -> v -> ConstExpr t
+lshr :: (T.Integer t, V.ConstValue a, V.TypedValue a t,
+         V.ConstValue b, V.TypedValue b t)
+       => a -> b -> ConstExpr t
 lshr = binary FFI.constLShr
 
-ashr :: (V.ConstValue v, T.Integer t, V.TypedValue v t)
-       => v -> v -> ConstExpr t
+ashr :: (T.Integer t, V.ConstValue a, V.TypedValue a t,
+         V.ConstValue b, V.TypedValue b t)
+       => a -> b -> ConstExpr t
 ashr = binary FFI.constAShr
 
 gep :: (V.ConstValue v, T.Integer t, V.TypedValue v t)
-       => v -> v -> ConstExpr t
+       => a -> b -> ConstExpr t
 gep = undefined
 
 typed :: (V.ConstValue v, T.Type s, V.ConstValue w, V.DynamicValue w)
@@ -232,8 +249,8 @@ bitCast :: (V.ConstValue v, T.Type t,
 bitCast = typed FFI.constBitCast
 
 select :: (V.TypedValue k T.Int1,
-           V.ConstValue v, V.TypedValue v t)
-          => k -> v -> v -> ConstExpr t
+           V.ConstValue a, V.TypedValue a t, V.ConstValue b, V.TypedValue b t)
+          => k -> a -> b -> ConstExpr t
 select k = binary (FFI.constSelect (V.valueRef k))
 
 extractElement :: (V.ConstValue v, V.TypedValue v (T.Vector a),
