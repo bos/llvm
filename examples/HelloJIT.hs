@@ -27,7 +27,7 @@ buildModule = do
   bld <- B.createBuilder
   B.positionAtEnd bld entry
   let zero = C.const (0::Int32)
-  tmp <- B.getArrayPtr bld "tmp" greetz [zero, zero]
+  tmp <- B.getElementPtr bld "tmp" greetz [zero, zero]
   B.call_ bld "" puts (tmp :-> zero)
   B.ret bld zero
   return (mod, func)

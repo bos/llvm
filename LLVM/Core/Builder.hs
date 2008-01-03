@@ -55,7 +55,6 @@ module LLVM.Core.Builder
     , load
     , store
     , getElementPtr
-    , getArrayPtr
 
     -- * Casts
     , trunc
@@ -392,20 +391,15 @@ store bld val ptr =
       instruction $ FFI.buildStore bldPtr (V.valueRef val) (V.valueRef ptr) 
 
 getElementPtr :: (T.Sequence s e, V.TypedValue p s,
-                  T.Integer t, V.TypedValue i t,
-                  T.Type u)
-                 => Builder -> String -> p -> [i] -> IO (Instruction u)
+                  T.Integer t, V.TypedValue i t)
+                 => Builder -> String -> p -> [i]
+                 -> IO (Instruction (T.Pointer e))
 getElementPtr bld name ptr idxs =
     withBuilder bld $ \bldPtr ->
         withCString name $ \namePtr ->
           withArrayLen (map V.valueRef idxs) $ \idxLen idxPtr ->
             instruction $ FFI.buildGEP bldPtr (V.valueRef ptr) idxPtr
                             (fromIntegral idxLen) namePtr
-
-getArrayPtr :: (T.Type t, V.TypedValue v (T.Array t),
-               T.Integer x, V.TypedValue i x)
-              => Builder -> String -> v -> [i] -> IO (Instruction (T.Pointer t))
-getArrayPtr = getElementPtr
 
 class Params t v | t -> v where
     toAnyList :: t -> v -> [V.AnyValue]
