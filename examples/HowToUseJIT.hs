@@ -19,16 +19,18 @@ main = do
 
   (add1, addEntry) <- U.defineFunction m "add1" (T.function t)
   let a :-> b :-> _ = V.params add1
-  -- mapM_ V.dumpValue [a,b,ret]
+  V.setName a "a"
+
   bld <- B.createBuilder
   B.positionAtEnd bld addEntry
   v1 <- B.add bld "" (C.const (1::Int32)) a
   v2 <- B.add bld "" v1 b
   B.ret bld v2
+  V.dumpValue add1
 
   (foo, fooEntry) <- U.defineFunction m "foo" (T.function (undefined :: T.Int32))
   B.positionAtEnd bld fooEntry
-  c <- B.call bld "" add1 [V.anyValue (C.const (1::Int32)), V.anyValue (C.const (10::Int32))]
+  c <- B.call bld "wibble" add1 [V.anyValue (C.const (1::Int32)), V.anyValue (C.const (10::Int32))]
   B.ret bld (c::V.Instruction T.Int32)
   V.dumpValue foo
 
