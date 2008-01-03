@@ -31,6 +31,7 @@ module LLVM.Core.Value
     , GlobalVar(..)
     , Function(..)
     , TypedValue(..)
+    , Argument(..)
 
     , Instruction(..)
 
@@ -132,8 +133,8 @@ newtype GlobalVar t = GlobalVar AnyValue
     deriving (ConstValue, DynamicValue, GlobalValue, GlobalVariable,
               Typeable, Value)
 
-fromAny :: T.Type t => t -> [AnyValue] -> (Argument t, [AnyValue])
-fromAny _ (x:xs) = (Argument x,xs)
+fromAny :: (DynamicValue v, TypedValue v t, T.Type t) => t -> [AnyValue] -> (v, [AnyValue])
+fromAny _ (x:xs) = (fromAnyValue x,xs)
 fromAny _ _ = error "LLVM.Core.Value.fromAny: empty list"
 
 globalVarType :: GlobalVar t -> t
@@ -142,18 +143,30 @@ globalVarType _ = undefined
 instance T.Type t => TypedValue (GlobalVar t) t where
     typeOf = globalVarType
 
-newtype Function t = Function AnyValue
-    deriving (ConstValue, DynamicValue, GlobalValue, GlobalVariable,
-              Typeable, Value)
+data Function r p = Function {
+      fromFunction :: AnyValue
+    }
+    deriving (Typeable)
+
+instance ConstValue (Function r p)
+instance GlobalValue (Function r p)
+instance GlobalVariable (Function r p)
+
+instance DynamicValue (Function r p) where
+    fromAnyValue = Function
+
+instance Value (Function r p) where
+    valueRef = valueRef . anyValue
+    anyValue = fromFunction
 
 newtype Argument t = Argument AnyValue
     deriving (DynamicValue, Typeable, Value)
 
-instance T.Params p => TypedValue (Function p) (T.Function p) where
-    typeOf _ = T.function undefined
+instance (T.DynamicType r, T.Params p) => TypedValue (Function r p) (T.Function r p) where
+    typeOf _ = T.function undefined undefined
 
 instance (Params b c) => Params (a :-> b) (Argument a :-> c) where
-    fromAnyList a (x:xs) = let (y,ys) = fromAnyList (T.cdr a) xs
+    fromAnyList t (x:xs) = let (y,ys) = fromAnyList (T.cdr t) xs
                            in (Argument x :-> y,ys)
     fromAnyList _ _ = error "LLVM.Core.Value.fromAnyList(:->): empty list"
 
@@ -229,6 +242,9 @@ instance (T.DynamicType t) => TypedValue (Instruction (T.Array t)) (T.Array t) w
 instance (T.DynamicType t) => TypedValue (Instruction (T.Pointer t)) (T.Pointer t) where
     typeOf _ = T.pointer undefined
 
+instance (T.DynamicType t) => Params (T.Pointer t) (Instruction (T.Pointer t)) where
+    fromAnyList = fromAny
+
 newtype ConstReal t = ConstReal AnyValue
     deriving (Arithmetic, ConstValue, DynamicValue, Real, Typeable, Value)
 
@@ -277,22 +293,20 @@ instance TypedValue (Argument T.PPCFloat128) T.PPCFloat128 where
 instance Params T.PPCFloat128 (Argument T.PPCFloat128) where
     fromAnyList = fromAny
 
-countParams :: Function p -> Int
+countParams :: Function r p -> Int
 countParams = fromIntegral . FFI.countParams . valueRef
 
-listParams :: Function p -> [AnyValue]
+listParams :: Function r p -> [AnyValue]
 listParams f = unsafePerformIO $ do
   let len = countParams f
   allocaArray len $ \ptr -> do
     FFI.getParams (valueRef f) ptr
     map mkAnyValue <$> peekArray len ptr
 
-params :: (T.Params p, Params p v) => Function p -> v
-params f = case fromAnyList paramTypes paramValues of
+params :: (T.DynamicType r, T.Params p, Params p v) => Function r p -> v
+params f = case fromAnyList (T.params (typeOf f)) (listParams f) of
              (p, []) -> p
-             _ -> error "incompletely consumed params"
-    where paramValues = listParams f ++ [anyValue f]
-          paramTypes = T.params (typeOf f)
+             _ -> error "LLVM.Core.Value.params: incompletely consumed params"
 
 typeOfDyn :: Value a => a -> T.AnyType
 typeOfDyn val = unsafePerformIO $ T.mkAnyType <$> FFI.typeOf (valueRef val)
