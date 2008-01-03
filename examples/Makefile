@@ -1,6 +1,6 @@
 ghc := ghc
 ghcflags := -Wall -Werror
-examples := HelloJIT HowToUseJIT
+examples := Fibonacci HelloJIT HowToUseJIT
 
 all: $(examples)
 
