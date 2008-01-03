@@ -159,60 +159,60 @@ add :: (T.Arithmetic t,
        => Builder -> String -> a -> b -> IO (Instruction t)
 add = binary FFI.buildAdd
 
-sub :: (T.Arithmetic t, V.Value v, V.TypedValue v t)
-       => Builder -> String -> v -> v -> IO (Instruction t)
+sub :: (T.Arithmetic t, V.TypedValue a t, V.TypedValue b t)
+       => Builder -> String -> a -> b -> IO (Instruction t)
 sub = binary FFI.buildSub
 
-mul :: (T.Arithmetic t, V.Value v, V.TypedValue v t)
-       => Builder -> String -> v -> v -> IO (Instruction t)
+mul :: (T.Arithmetic t, V.TypedValue a t, V.TypedValue b t)
+       => Builder -> String -> a -> b -> IO (Instruction t)
 mul = binary FFI.buildSub
 
-uDiv :: (T.Integer t, V.Value v, V.TypedValue v t)
-       => Builder -> String -> v -> v -> IO (Instruction t)
+uDiv :: (T.Integer t, V.TypedValue a t, V.TypedValue b t)
+       => Builder -> String -> a -> b -> IO (Instruction t)
 uDiv = binary FFI.buildUDiv
 
-sDiv :: (T.Integer t, V.Value v, V.TypedValue v t)
-       => Builder -> String -> v -> v -> IO (Instruction t)
+sDiv :: (T.Integer t, V.TypedValue a t, V.TypedValue b t)
+       => Builder -> String -> a -> b -> IO (Instruction t)
 sDiv = binary FFI.buildSDiv
 
-fDiv :: (T.Real t, V.Value v, V.TypedValue v t)
-       => Builder -> String -> v -> v -> IO (Instruction t)
+fDiv :: (T.Real t, V.TypedValue a t, V.TypedValue b t)
+       => Builder -> String -> a -> b -> IO (Instruction t)
 fDiv = binary FFI.buildFDiv
 
-uRem :: (T.Integer t, V.Value v, V.TypedValue v t)
-       => Builder -> String -> v -> v -> IO (Instruction t)
+uRem :: (T.Integer t, V.TypedValue a t, V.TypedValue b t)
+       => Builder -> String -> a -> b -> IO (Instruction t)
 uRem = binary FFI.buildURem
 
-sRem :: (T.Integer t, V.Value v, V.TypedValue v t)
-       => Builder -> String -> v -> v -> IO (Instruction t)
+sRem :: (T.Integer t, V.TypedValue a t, V.TypedValue b t)
+       => Builder -> String -> a -> b -> IO (Instruction t)
 sRem = binary FFI.buildSRem
 
-fRem :: (T.Real t, V.Value v, V.TypedValue v t)
-       => Builder -> String -> v -> v -> IO (Instruction t)
+fRem :: (T.Real t, V.TypedValue a t, V.TypedValue b t)
+       => Builder -> String -> a -> b -> IO (Instruction t)
 fRem = binary FFI.buildFRem
 
-shl :: (T.Integer t, V.Value v, V.TypedValue v t)
-       => Builder -> String -> v -> v -> IO (Instruction t)
+shl :: (T.Integer t, V.TypedValue a t, V.TypedValue b t)
+       => Builder -> String -> a -> b -> IO (Instruction t)
 shl = binary FFI.buildShl
 
-lShr :: (T.Integer t, V.Value v, V.TypedValue v t)
-        => Builder -> String -> v -> v -> IO (Instruction t)
+lShr :: (T.Integer t, V.TypedValue a t, V.TypedValue b t)
+        => Builder -> String -> a -> b -> IO (Instruction t)
 lShr = binary FFI.buildLShr
 
-aShr :: (T.Integer t, V.TypedValue v t)
-        => Builder -> String -> v -> v -> IO (Instruction t)
+aShr :: (T.Integer t, V.TypedValue a t, V.TypedValue b t)
+        => Builder -> String -> a -> b -> IO (Instruction t)
 aShr = binary FFI.buildAShr
 
-and :: (T.Integer t, V.TypedValue v t)
-       => Builder -> String -> v -> v -> IO (Instruction t)
+and :: (T.Integer t, V.TypedValue a t, V.TypedValue b t)
+       => Builder -> String -> a -> b -> IO (Instruction t)
 and = binary FFI.buildAnd
 
-or :: (T.Integer t, V.TypedValue v t)
-      => Builder -> String -> v -> v -> IO (Instruction t)
+or :: (T.Integer t, V.TypedValue a t, V.TypedValue b t)
+      => Builder -> String -> a -> b -> IO (Instruction t)
 or = binary FFI.buildOr
 
-xor :: (T.Integer t, V.TypedValue v t)
-       => Builder -> String -> v -> v -> IO (Instruction t)
+xor :: (T.Integer t, V.TypedValue a t, V.TypedValue b t)
+       => Builder -> String -> a -> b -> IO (Instruction t)
 xor = binary FFI.buildAnd
 
 neg :: (T.Arithmetic t, V.TypedValue v t)
@@ -280,13 +280,13 @@ bitCast :: (V.TypedValue v s, T.Type t)
            => Builder -> String -> v -> s -> IO (Instruction t)
 bitCast = typed FFI.buildBitCast
 
-fcmp :: (T.Real t, V.TypedValue v t)
-        => Builder -> String -> I.RealPredicate -> v -> v
+fcmp :: (T.Real t, V.TypedValue a t, V.TypedValue b t)
+        => Builder -> String -> I.RealPredicate -> a -> b
         -> IO (Instruction T.Int1)
 fcmp bld name p = binary (flip FFI.buildFCmp (I.fromRP p)) bld name
 
-icmp :: (T.Integer t, V.TypedValue v t)
-        => Builder -> String -> I.IntPredicate -> v -> v
+icmp :: (T.Integer t, V.TypedValue a t, V.TypedValue b t)
+        => Builder -> String -> I.IntPredicate -> a -> b
         -> IO (Instruction T.Int1)
 icmp bld name p = binary (flip FFI.buildICmp (I.fromIP p)) bld name
 
@@ -470,9 +470,8 @@ phi bld name typ incoming =
             FFI.addIncoming inst valPtr bblkPtr (fromIntegral count)
         instruction $ return inst
 
-select :: (V.TypedValue p T.Int1,
-           V.TypedValue v t)
-          => Builder -> String -> p -> v -> v -> IO (Instruction t)
+select :: (V.TypedValue p T.Int1, V.TypedValue a t, V.TypedValue b t)
+          => Builder -> String -> p -> a -> b -> IO (Instruction t)
 select bld name bit true false =
     withBuilder bld $ \bldPtr ->
       withCString name $ \namePtr -> do
@@ -487,9 +486,10 @@ vaArg bld name valist typ =
         instruction $ FFI.buildVAArg bldPtr (V.valueRef valist)
                         (T.typeRef typ) namePtr
 
-shuffleVector :: (V.TypedValue v (T.Vector t),
+shuffleVector :: (V.TypedValue a (T.Vector t),
+                  V.TypedValue b (T.Vector t),
                   V.TypedValue m (T.Vector T.Int32))
-                 => Builder -> String -> v -> v -> m
+                 => Builder -> String -> a -> b -> m
                  -> IO (Instruction (T.Vector t))
 shuffleVector bld name a b mask =
     withBuilder bld $ \bldPtr ->
