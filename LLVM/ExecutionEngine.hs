@@ -105,9 +105,9 @@ class Generic a t | a -> t where
     createGeneric :: a -> IO (GenericValue t)
     fromGeneric :: GenericValue t -> a
 
-toGenericInt :: (Integral a, T.Type t) => t -> Bool -> a -> IO (GenericValue t)
-toGenericInt typ signed val = createGenericValueWith $
-    FFI.createGenericValueOfInt (T.typeRef typ)
+toGenericInt :: (Integral a, T.Type t) => (b -> t) -> Bool -> a -> IO (GenericValue t)
+toGenericInt typf signed val = createGenericValueWith $
+    FFI.createGenericValueOfInt (T.typeRef (typf undefined))
            (fromIntegral val) (fromBool signed)
 
 fromGenericInt :: (Integral a, T.Type t) => Bool -> GenericValue t -> a
@@ -116,39 +116,43 @@ fromGenericInt signed val = unsafePerformIO $
       return . fromIntegral $ FFI.genericValueToInt ref (fromBool signed)
 
 instance Generic Bool T.Int1 where
-    createGeneric = toGenericInt undefined False . fromBool
+    createGeneric = toGenericInt T.int1 False . fromBool
     fromGeneric = toBool . fromGenericInt False
 
 instance Generic Int8 T.Int8 where
-    createGeneric = toGenericInt undefined True . fromIntegral
+    createGeneric = toGenericInt T.int8 True . fromIntegral
     fromGeneric = fromIntegral . fromGenericInt True
 
 instance Generic Int16 T.Int16 where
-    createGeneric = toGenericInt undefined True . fromIntegral
+    createGeneric = toGenericInt T.int16 True . fromIntegral
     fromGeneric = fromIntegral . fromGenericInt True
 
 instance Generic Int32 T.Int32 where
-    createGeneric = toGenericInt undefined True . fromIntegral
+    createGeneric = toGenericInt T.int32 True . fromIntegral
+    fromGeneric = fromIntegral . fromGenericInt True
+
+instance Generic Int T.Int32 where
+    createGeneric = toGenericInt T.int32 True . fromIntegral
     fromGeneric = fromIntegral . fromGenericInt True
 
 instance Generic Int64 T.Int64 where
-    createGeneric = toGenericInt undefined True . fromIntegral
+    createGeneric = toGenericInt T.int64 True . fromIntegral
     fromGeneric = fromIntegral . fromGenericInt True
 
 instance Generic Word8 T.Int8 where
-    createGeneric = toGenericInt undefined False . fromIntegral
+    createGeneric = toGenericInt T.int8 False . fromIntegral
     fromGeneric = fromIntegral . fromGenericInt False
 
 instance Generic Word16 T.Int16 where
-    createGeneric = toGenericInt undefined False . fromIntegral
+    createGeneric = toGenericInt T.int16 False . fromIntegral
     fromGeneric = fromIntegral . fromGenericInt False
 
 instance Generic Word32 T.Int32 where
-    createGeneric = toGenericInt undefined False . fromIntegral
+    createGeneric = toGenericInt T.int32 False . fromIntegral
     fromGeneric = fromIntegral . fromGenericInt False
 
 instance Generic Word64 T.Int64 where
-    createGeneric = toGenericInt undefined False . fromIntegral
+    createGeneric = toGenericInt T.int64 False . fromIntegral
     fromGeneric = fromIntegral . fromGenericInt False
 
 toGenericReal :: (Real a, T.Type t) => t -> a -> IO (GenericValue t)
