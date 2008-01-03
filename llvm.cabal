@@ -10,12 +10,16 @@ category: Compilers/Interpreters
 cabal-version: >= 1.2.1
 
 extra-source-files:
-    Makefile
     INSTALL.txt
+    Makefile
     PROBLEMS.txt
     README.txt
     configure
     configure.ac
+    examples/Fibonacci.hs
+    examples/HelloJIT.hs
+    examples/HowToUseJIT.hs
+    examples/Makefile
     llvm.buildinfo.in
 
 extra-tmp-files:
