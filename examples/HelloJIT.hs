@@ -32,12 +32,13 @@ buildModule = do
   B.ret bld zero
   return (mod, func)
 
-execute :: T.Module -> V.Function a -> IO ()
+execute :: T.Module -> V.Function T.Int32 -> IO ()
 execute mod func = do
   prov <- Core.createModuleProviderForExistingModule mod
   ee <- EE.createExecutionEngine prov
   EE.runStaticConstructors ee
-  EE.runFunction ee func []
+  gv <- EE.runFunction ee func []
+  print (EE.fromGeneric gv :: Int32)
   EE.runStaticDestructors ee
   return ()
 
