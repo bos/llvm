@@ -3,6 +3,7 @@
   , ExistentialQuantification
   , FunctionalDependencies
   , MultiParamTypeClasses
+  , UndecidableInstances
   #-}
 
 module LLVM.Core.Value
@@ -17,6 +18,7 @@ module LLVM.Core.Value
 
     -- ** Type classes
     , Value(..)
+    , Params(..)
     , ConstValue
     , GlobalValue
     , GlobalVariable
@@ -30,34 +32,30 @@ module LLVM.Core.Value
     , Function(..)
     , TypedValue(..)
 
+    , Instruction(..)
+
     -- * Constants
     , ConstInt(..)
     , ConstReal(..)
     , ConstArray(..)
 
     -- ** Useful functions
-    , Const(..)
-
-    -- *** Scalar constants
-    , constInt
-    , constWord
-    , constReal
-
-    -- *** Composite constants
-    , constString
-    , constStringNul
+    , params
+    , getValueName
+    , setValueName
+    , dumpValue
     ) where
 
 import Control.Applicative ((<$>))
-import Data.Int (Int8, Int16, Int32, Int64)
 import Data.Typeable (Typeable)
-import Data.Word (Word8, Word16, Word32, Word64)
-import Foreign.C.String (withCStringLen)
-import Foreign.Marshal.Utils (fromBool)
+import Foreign.C.String (peekCString, withCString)
+import Foreign.Marshal.Array (allocaArray, peekArray)
+import Foreign.Ptr (nullPtr)
 import Prelude hiding (Integer, Real)
 import System.IO.Unsafe (unsafePerformIO)
 
 import qualified LLVM.Core.FFI as FFI
+import LLVM.Core.Type ((:->)(..))
 import qualified LLVM.Core.Type as T
 
 -- import Debug.Trace
@@ -65,9 +63,13 @@ import qualified LLVM.Core.Type as T
 
 class Value a where
     valueRef :: a -> FFI.ValueRef
+    anyValue :: a -> AnyValue
 
 class DynamicValue a where
     fromAnyValue :: AnyValue -> a
+
+class Params t v | t -> v where
+    fromAnyList :: t -> [AnyValue] -> (v, [AnyValue])
 
 -- | Recover the type of a value in a manner that preserves static
 -- type safety.
@@ -83,6 +85,7 @@ instance DynamicValue AnyValue where
 
 instance Value FFI.ValueRef where
     valueRef = id
+    anyValue = AnyValue
 
 mkAnyValue :: Value a => a -> AnyValue
 mkAnyValue = AnyValue
@@ -97,6 +100,7 @@ class GlobalValue a => GlobalVariable a
 
 instance Value AnyValue where
     valueRef (AnyValue a) = valueRef a
+    anyValue = id
 
 instance ConstValue AnyValue
 instance GlobalValue AnyValue
@@ -105,12 +109,32 @@ instance Arithmetic AnyValue
 instance Integer AnyValue
 instance Real AnyValue
 
+getValueName :: Value v => v -> IO (Maybe String)
+getValueName v = do
+  namePtr <- FFI.getValueName (valueRef v)
+  if namePtr == nullPtr
+    then return Nothing
+    else Just <$> peekCString namePtr
+
+setValueName :: Value v => v -> String -> IO ()
+setValueName v name = withCString name (FFI.setValueName (valueRef v))
+
+dumpValue :: Value v => v -> IO ()
+dumpValue = FFI.dumpValue . valueRef
+
+newtype Instruction a = Instruction AnyValue
+    deriving (DynamicValue, Typeable, Value)
+
 newtype Global t = Global AnyValue
     deriving (ConstValue, DynamicValue, GlobalValue, Typeable, Value)
 
 newtype GlobalVar t = GlobalVar AnyValue
     deriving (ConstValue, DynamicValue, GlobalValue, GlobalVariable,
               Typeable, Value)
+
+fromAny :: T.Type t => t -> [AnyValue] -> (Argument t, [AnyValue])
+fromAny _ (x:xs) = (Argument x,xs)
+fromAny _ _ = error "LLVM.Core.Value.fromAny: empty list"
 
 globalVarType :: GlobalVar t -> t
 globalVarType _ = undefined
@@ -122,8 +146,16 @@ newtype Function t = Function AnyValue
     deriving (ConstValue, DynamicValue, GlobalValue, GlobalVariable,
               Typeable, Value)
 
+newtype Argument t = Argument AnyValue
+    deriving (DynamicValue, Typeable, Value)
+
 instance T.Params p => TypedValue (Function p) (T.Function p) where
     typeOf _ = T.function undefined
+
+instance (Params b c) => Params (a :-> b) (Argument a :-> c) where
+    fromAnyList a (x:xs) = let (y,ys) = fromAnyList (T.cdr a) xs
+                           in (Argument x :-> y,ys)
+    fromAnyList _ _ = error "LLVM.Core.Value.fromAnyList(:->): empty list"
 
 newtype ConstInt t = ConstInt AnyValue
     deriving (Arithmetic, ConstValue, DynamicValue, Integer, Typeable, Value)
@@ -131,17 +163,50 @@ newtype ConstInt t = ConstInt AnyValue
 instance TypedValue (ConstInt T.Int1) T.Int1 where
     typeOf = T.int1
 
+instance TypedValue (Argument T.Int1) T.Int1 where
+    typeOf = T.int1
+
+instance Params T.Int1 (Argument T.Int1) where
+    fromAnyList = fromAny
+
 instance TypedValue (ConstInt T.Int8) T.Int8 where
     typeOf = T.int8
+
+instance TypedValue (Argument T.Int8) T.Int8 where
+    typeOf = T.int8
+
+-- instance Params T.Int8 where
+--     fromAnyList = fromAny
 
 instance TypedValue (ConstInt T.Int16) T.Int16 where
     typeOf = T.int16
 
+instance TypedValue (Argument T.Int16) T.Int16 where
+    typeOf = T.int16
+
+-- instance Params T.Int16 where
+--     fromAnyList = fromAny
+
 instance TypedValue (ConstInt T.Int32) T.Int32 where
     typeOf = T.int32
 
+instance TypedValue (Argument T.Int32) T.Int32 where
+    typeOf = T.int32
+
+instance TypedValue (Instruction T.Int32) T.Int32 where
+    typeOf = T.int32
+
+instance Params T.Int32 (Argument T.Int32) where
+    fromAnyList = fromAny
+
 instance TypedValue (ConstInt T.Int64) T.Int64 where
     typeOf = T.int64
+
+instance TypedValue (Argument T.Int64) T.Int64 where
+    typeOf = T.int64
+
+-- instance Params T.Int64 where
+--     fromAnyList = fromAny
 
 newtype ConstArray t = ConstArray AnyValue
     deriving (ConstValue, DynamicValue, Typeable, Value)
@@ -155,76 +220,64 @@ newtype ConstReal t = ConstReal AnyValue
 instance TypedValue (ConstReal T.Float) T.Float where
     typeOf = T.float
 
+instance TypedValue (Argument T.Float) T.Float where
+    typeOf = T.float
+
+-- instance Params T.Float where
+--     fromAnyList = fromAny
+
 instance TypedValue (ConstReal T.Double) T.Double where
     typeOf = T.double
+
+instance TypedValue (Argument T.Double) T.Double where
+    typeOf = T.double
+
+-- instance Params T.Double where
+--     fromAnyList = fromAny
 
 instance TypedValue (ConstReal T.X86Float80) T.X86Float80 where
     typeOf = T.x86Float80
 
+instance TypedValue (Argument T.X86Float80) T.X86Float80 where
+    typeOf = T.x86Float80
+
+-- instance Params T.X86Float80 where
+--     fromAnyList = fromAny
+
 instance TypedValue (ConstReal T.Float128) T.Float128 where
     typeOf = T.float128
+
+instance TypedValue (Argument T.Float128) T.Float128 where
+    typeOf = T.float128
+
+-- instance Params T.Float128 where
+--     fromAnyList = fromAny
 
 instance TypedValue (ConstReal T.PPCFloat128) T.PPCFloat128 where
     typeOf = T.ppcFloat128
 
-constWord :: (T.Integer t, Integral a) => (b -> t) -> a -> ConstInt t
-constWord typ val =
-    ConstInt . mkAnyValue $ FFI.constInt (T.typeRef (typ undefined)) (fromIntegral val) 0
+instance TypedValue (Argument T.PPCFloat128) T.PPCFloat128 where
+    typeOf = T.ppcFloat128
 
-constInt :: (T.Integer t, Integral a) => (b -> t) -> a -> ConstInt t
-constInt typ val =
-    ConstInt . mkAnyValue $ FFI.constInt (T.typeRef (typ undefined)) (fromIntegral val) 1
+-- instance Params T.PPCFloat128 where
+--     fromAnyList = fromAny
 
-constReal :: (T.Real t, RealFloat a) => (b -> t) -> a -> ConstReal t
-constReal typ val = ConstReal . mkAnyValue $ FFI.constReal (T.typeRef (typ undefined)) (realToFrac val)
+countParams :: Function p -> Int
+countParams = fromIntegral . FFI.countParams . valueRef
 
-constStringInternal :: Bool -> String -> ConstArray T.Int8
-constStringInternal nulTerm s = unsafePerformIO $
-    withCStringLen s $ \(sPtr, sLen) ->
-      return . ConstArray . mkAnyValue $
-      FFI.constString sPtr (fromIntegral sLen) (fromBool (not nulTerm))
+listParams :: Function p -> [AnyValue]
+listParams f = unsafePerformIO $ do
+  let len = countParams f
+  allocaArray len $ \ptr -> do
+    FFI.getParams (valueRef f) ptr
+    map mkAnyValue <$> peekArray len ptr
 
-constString :: String -> ConstArray T.Int8
-constString = constStringInternal False
-
-constStringNul :: String -> ConstArray T.Int8
-constStringNul = constStringInternal True
-
-class ConstValue t => Const a t | a -> t where
-    const :: a -> t
-
-instance Const String (ConstArray T.Int8) where
-    const = constStringNul
-
-instance Const Float (ConstReal T.Float) where
-    const = constReal T.float . fromRational . toRational
-
-instance Const Double (ConstReal T.Double) where
-    const = constReal T.double
-
-instance Const Int8 (ConstInt T.Int8) where
-    const = constInt T.int8 . fromIntegral
-
-instance Const Int16 (ConstInt T.Int16) where
-    const = constInt T.int16 . fromIntegral
-
-instance Const Int32 (ConstInt T.Int32) where
-    const = constInt T.int32 . fromIntegral
-
-instance Const Int64 (ConstInt T.Int64) where
-    const = constInt T.int64
-
-instance Const Word8 (ConstInt T.Int8) where
-    const = constWord T.int8 . fromIntegral
-
-instance Const Word16 (ConstInt T.Int16) where
-    const = constWord T.int16 . fromIntegral
-
-instance Const Word32 (ConstInt T.Int32) where
-    const = constWord T.int32 . fromIntegral
-
-instance Const Word64 (ConstInt T.Int64) where
-    const = constWord T.int64 . fromIntegral
+params :: (T.Params p, Params p v) => Function p -> v
+params f = case fromAnyList paramTypes paramValues of
+             (p, []) -> p
+             _ -> error "incompletely consumed params"
+    where paramValues = listParams f ++ [anyValue f]
+          paramTypes = T.params (typeOf f)
 
 typeOfDyn :: Value a => a -> T.AnyType
 typeOfDyn val = unsafePerformIO $ T.mkAnyType <$> FFI.typeOf (valueRef val)

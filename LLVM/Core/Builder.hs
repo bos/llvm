@@ -94,6 +94,7 @@ import qualified LLVM.Core.FFI as FFI
 import qualified LLVM.Core.Instruction as I
 import qualified LLVM.Core.Type as T
 import qualified LLVM.Core.Value as V
+import LLVM.Core.Value (Instruction(..))
 
 
 newtype Builder = Builder {
@@ -126,10 +127,6 @@ positionAtEnd bld bblk =
     withBuilder bld $ \bldPtr ->
       FFI.positionAtEnd bldPtr (V.valueRef bblk)
 
-newtype Instruction a = Instruction V.AnyValue
-    deriving (V.DynamicValue, Typeable, V.Value)
-
-
 instruction :: IO FFI.ValueRef -> IO (Instruction t)
 instruction = fmap (Instruction . V.mkAnyValue)
 
@@ -150,8 +147,10 @@ binary ffi bld name a b =
     withBuilder bld $ \bldPtr ->
       withCString name $ instruction . ffi bldPtr (V.valueRef a) (V.valueRef b) 
 
-add :: (T.Arithmetic t, V.Value v, V.TypedValue v t)
-       => Builder -> String -> v -> v -> IO (Instruction t)
+add :: (T.Arithmetic t,
+        V.Value a, V.TypedValue a t,
+        V.Value b, V.TypedValue b t)
+       => Builder -> String -> a -> b -> IO (Instruction t)
 add = binary FFI.buildAdd
 
 sub :: (T.Arithmetic t, V.Value v, V.TypedValue v t)

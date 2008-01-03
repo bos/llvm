@@ -73,6 +73,7 @@ module LLVM.Core.Type
     -- ** Function-related types
     , Function(..)
     , function
+    , params
     , functionVarArg
     , isFunctionVarArg
     , getReturnType
@@ -99,7 +100,7 @@ import System.IO.Unsafe (unsafePerformIO)
 
 import qualified LLVM.Core.FFI as FFI
 
--- import Debug.Trace
+import Debug.Trace
 
 
 newtype Module = Module {
@@ -121,6 +122,7 @@ withModuleProvider prov = withForeignPtr (fromModuleProvider prov)
 
 class Type a where
     typeRef :: a -> FFI.TypeRef
+    anyType :: a -> AnyType
 
 class Type t => TypeValue t where
     typeValue :: a -> t
@@ -136,6 +138,7 @@ class HasAnyType a where
     fromAnyType :: AnyType -> a
 
 instance Type FFI.TypeRef where
+    anyType = AnyType
     typeRef = id
 
 data AnyType = forall a. Type a => AnyType a
@@ -152,12 +155,14 @@ mkAnyType = AnyType
 
 instance Type AnyType where
     typeRef (AnyType a) = typeRef a
+    anyType = id
 
 instance HasAnyType AnyType where
     fromAnyType = id
 
-class Params l where
-    listValue :: l -> [AnyType]
+class Params a where
+    toAnyList :: a -> [AnyType]
+    fromAnyList :: [AnyType] -> (a, [AnyType])
 
 instance Integer AnyType
 
@@ -278,14 +283,21 @@ newtype Void = Void AnyType
 instance Show Void where
     show _ = "Void"
 
+class Type a => DynamicType a where
+    toAnyType :: a              -- ^ not inspected
+              -> AnyType
+
 newtype Function p = Function AnyType
     deriving (HasAnyType, Type, Typeable)
              
+instance (Show p, Params p) => Show (Function p) where
+    show a = "Function " ++ show (params a)
+
 functionParams :: Function p -> p
 functionParams _ = undefined
 
 instance Params p => DynamicType (Function p) where
-    toAnyType = functionType False . listValue . functionParams
+    toAnyType = functionType False . toAnyList . functionParams
 
 instance DynamicType AnyType where
     toAnyType = id
@@ -302,15 +314,17 @@ cdr _ = undefined
 instance (Show a, Show b) => Show (a :-> b) where
     show a = show (car a) ++ " :-> " ++ show (cdr a)
 
-class Type a => DynamicType a where
-    toAnyType :: a              -- ^ not inspected
-              -> AnyType
-
 int1 :: a -> Int1
 int1 _ = Int1 $ mkAnyType FFI.int1Type
 
+fromAny :: HasAnyType a => [AnyType] -> (a, [AnyType])
+fromAny e | trace ("eee " ++ show (length e) ) False = undefined
+fromAny (x:xs) = (fromAnyType x,xs)
+fromAny _ = error "LLVM.Core.Type.fromAny: empty list"
+
 instance Params Int1 where
-    listValue a = [toAnyType a]
+    toAnyList a = [toAnyType a]
+    fromAnyList = fromAny
 
 instance TypeValue Int1 where
     typeValue = int1
@@ -322,10 +336,12 @@ int8 :: a -> Int8
 int8 _ = Int8 $ mkAnyType FFI.int8Type
 
 instance Params Int8 where
-    listValue a = [toAnyType a]
+    toAnyList a = [toAnyType a]
+    fromAnyList = fromAny
 
 instance Params AnyType where
-    listValue a = [toAnyType a]
+    toAnyList a = [toAnyType a]
+    fromAnyList = fromAny
 
 instance DynamicType Int8 where
     toAnyType = mkAnyType . int8
@@ -334,7 +350,8 @@ int16 :: a -> Int16
 int16 _ = Int16 $ mkAnyType FFI.int16Type
 
 instance Params Int16 where
-    listValue a = [toAnyType a]
+    toAnyList a = [toAnyType a]
+    fromAnyList = fromAny
 
 instance DynamicType Int16 where
     toAnyType = mkAnyType . int16
@@ -343,7 +360,8 @@ int32 :: a -> Int32
 int32 _ = Int32 $ mkAnyType FFI.int32Type
 
 instance Params Int32 where
-    listValue a = [toAnyType a]
+    toAnyList a = [toAnyType a]
+    fromAnyList = fromAny
 
 instance DynamicType Int32 where
     toAnyType = mkAnyType . int32
@@ -352,7 +370,8 @@ int64 :: a -> Int64
 int64 _ = Int64 $ mkAnyType FFI.int64Type
 
 instance Params Int64 where
-    listValue a = [toAnyType a]
+    toAnyList a = [toAnyType a]
+    fromAnyList = fromAny
 
 instance DynamicType Int64 where
     toAnyType = mkAnyType . int64
@@ -363,7 +382,7 @@ integer width _ = IntWidth . mkAnyType . FFI.integerType $ fromIntegral width
 -- Not possible:
 --
 -- instance Params (IntWidth a) where
---     listValue a = [toAnyType a]
+--     toAnyList a = [toAnyType a]
 --
 -- instance DynamicType (IntWidth a) where
 --     toAnyType _ = mkAnyType integerType
@@ -372,7 +391,8 @@ float :: a -> Float
 float _ = Float $ mkAnyType FFI.floatType
 
 instance Params Float where
-    listValue a = [toAnyType a]
+    toAnyList a = [toAnyType a]
+    fromAnyList = fromAny
 
 instance DynamicType Float where
     toAnyType = mkAnyType . float
@@ -381,7 +401,8 @@ double :: a -> Double
 double _ = Double $ mkAnyType FFI.doubleType
 
 instance Params Double where
-    listValue a = [toAnyType a]
+    toAnyList a = [toAnyType a]
+    fromAnyList = fromAny
 
 instance DynamicType Double where
     toAnyType = mkAnyType . double
@@ -390,7 +411,8 @@ x86Float80 :: a -> X86Float80
 x86Float80 _ = X86Float80 $ mkAnyType FFI.x86FP80Type
 
 instance Params X86Float80 where
-    listValue a = [toAnyType a]
+    toAnyList a = [toAnyType a]
+    fromAnyList = fromAny
 
 instance DynamicType X86Float80 where
     toAnyType = mkAnyType . x86Float80
@@ -399,7 +421,8 @@ float128 :: a -> Float128
 float128 _ = Float128 $ mkAnyType FFI.fp128Type
 
 instance Params Float128 where
-    listValue a = [toAnyType a]
+    toAnyList a = [toAnyType a]
+    fromAnyList = fromAny
 
 instance DynamicType Float128 where
     toAnyType = mkAnyType . float128
@@ -408,7 +431,8 @@ ppcFloat128 :: a -> PPCFloat128
 ppcFloat128 _ = PPCFloat128 $ mkAnyType FFI.ppcFP128Type
 
 instance Params PPCFloat128 where
-    listValue a = [toAnyType a]
+    toAnyList a = [toAnyType a]
+    fromAnyList  = fromAny
 
 instance DynamicType PPCFloat128 where
     toAnyType = mkAnyType . ppcFloat128
@@ -417,13 +441,17 @@ void :: a -> Void
 void _ = Void $ mkAnyType FFI.voidType
 
 instance Params Void where
-    listValue a = [toAnyType a]
+    toAnyList a = [toAnyType a]
+    fromAnyList = fromAny
 
 instance DynamicType Void where
     toAnyType = mkAnyType . void
 
-instance (DynamicType a, Params b) => Params (a :-> b) where
-    listValue a = toAnyType (car a) : listValue (cdr a)
+instance (DynamicType a, HasAnyType a, Params b) => Params (a :-> b) where
+    toAnyList a = toAnyType (car a) : toAnyList (cdr a)
+    fromAnyList (x:xs) = let (y,ys) = fromAnyList xs
+                         in (fromAnyType x :-> y,ys)
+    fromAnyList _ = error "LLVM.Core.Type.fromAnyList(:->): empty list"
 
 functionType :: Bool -> [AnyType] -> AnyType
 functionType varargs ps = unsafePerformIO $ do
@@ -434,13 +462,19 @@ functionType varargs ps = unsafePerformIO $ do
                                         (fromIntegral len) (fromBool varargs)
 
 function :: Params p => p -> Function p
-function = Function . functionType False . listValue
+function = Function . functionType False . toAnyList
+
+params :: Params p => Function p -> p
+params f = case fromAnyList . toAnyList . functionParams $ f of
+             (p, []) -> p
+             _ -> error "LLVM.Core.Type.params: incompletely consumed params"
 
 instance DynamicType p => Params (Function p) where
-    listValue a = [toAnyType (functionParams a)]
+    toAnyList a = [toAnyType (functionParams a)]
+    fromAnyList = fromAny
     
 functionVarArg :: Params p => p -> Function p
-functionVarArg = Function . functionType True . listValue
+functionVarArg = Function . functionType True . toAnyList
 
 isFunctionVarArg :: (Params p) => Function p -> Bool
 isFunctionVarArg = toBool . FFI.isFunctionVarArg . typeRef

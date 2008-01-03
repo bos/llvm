@@ -1,6 +1,6 @@
 ghc := ghc
 ghcflags := -Wall -Werror
-examples := HelloJit
+examples := HelloJIT HowToUseJIT
 
 all: $(examples)
 

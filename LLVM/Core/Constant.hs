@@ -1,10 +1,16 @@
-{-# LANGUAGE DeriveDataTypeable, FlexibleContexts #-}
+{-# LANGUAGE
+    DeriveDataTypeable
+  , FlexibleContexts
+  , FunctionalDependencies
+  , MultiParamTypeClasses
+  #-}
 
 module LLVM.Core.Constant
     (
+    -- * Constant expressions
       ConstExpr(..)
 
-    -- * Arithmetic
+    -- ** Arithmetic
     , neg
     , not
     , add
@@ -23,10 +29,10 @@ module LLVM.Core.Constant
     , lshr
     , ashr
 
-    -- * Memory
+    -- ** Memory
     , gep
 
-    -- * Conversions
+    -- ** Conversions
     , trunc
     , sExt
     , zExt
@@ -40,19 +46,37 @@ module LLVM.Core.Constant
     , intToPtr
     , bitCast
 
-    -- * Comparisons
+    -- ** Comparisons
     , icmp
     , fcmp
 
-    -- * Miscellaneous operations
+    -- ** Miscellaneous operations
     , select
     , extractElement
     , insertElement
     , shuffleVector
+
+    -- * Constant values
+    , Const(..)
+
+    -- ** Scalar constants
+    , constInt
+    , constWord
+    , constReal
+
+    -- ** Composite constants
+    , constString
+    , constStringNul
     ) where
 
+import Data.Int (Int8, Int16, Int32, Int64)
 import Data.Typeable (Typeable)
-import Prelude hiding (and, not, or)
+import Data.Word (Word8, Word16, Word32, Word64)
+import Foreign.C.String (withCStringLen)
+import Foreign.Marshal.Utils (fromBool)
+import Prelude hiding (and, const, not, or)
+import qualified Prelude as Prelude
+import System.IO.Unsafe (unsafePerformIO)
 
 import qualified LLVM.Core.FFI as FFI
 import qualified LLVM.Core.Instruction as I
@@ -233,3 +257,65 @@ shuffleVector :: (V.ConstValue v1, V.TypedValue v1 (T.Vector a),
                   V.ConstValue m, V.TypedValue m (T.Vector T.Int32))
                  => v1 -> v2 -> m -> ConstExpr (T.Vector a)
 shuffleVector = ternary FFI.constShuffleVector
+
+constWord :: (T.Integer t, Integral a) => (b -> t) -> a -> V.ConstInt t
+constWord typ val =
+    V.ConstInt . V.mkAnyValue $ FFI.constInt (T.typeRef (typ undefined))
+         (fromIntegral val) 0
+
+constInt :: (T.Integer t, Integral a) => (b -> t) -> a -> V.ConstInt t
+constInt typ val =
+    V.ConstInt . V.mkAnyValue $ FFI.constInt (T.typeRef (typ undefined))
+                 (fromIntegral val) 1
+
+constReal :: (T.Real t, RealFloat a) => (b -> t) -> a -> V.ConstReal t
+constReal typ val = V.ConstReal . V.mkAnyValue $ FFI.constReal
+                    (T.typeRef (typ undefined)) (realToFrac val)
+
+constStringInternal :: Bool -> String -> V.ConstArray T.Int8
+constStringInternal nulTerm s = unsafePerformIO $
+    withCStringLen s $ \(sPtr, sLen) ->
+      return . V.ConstArray . V.mkAnyValue $
+      FFI.constString sPtr (fromIntegral sLen) (fromBool (Prelude.not nulTerm))
+
+constString :: String -> V.ConstArray T.Int8
+constString = constStringInternal False
+
+constStringNul :: String -> V.ConstArray T.Int8
+constStringNul = constStringInternal True
+
+class V.ConstValue t => Const a t | a -> t where
+    const :: a -> t
+
+instance Const String (V.ConstArray T.Int8) where
+    const = constStringNul
+
+instance Const Float (V.ConstReal T.Float) where
+    const = constReal T.float . fromRational . toRational
+
+instance Const Double (V.ConstReal T.Double) where
+    const = constReal T.double
+
+instance Const Int8 (V.ConstInt T.Int8) where
+    const = constInt T.int8 . fromIntegral
+
+instance Const Int16 (V.ConstInt T.Int16) where
+    const = constInt T.int16 . fromIntegral
+
+instance Const Int32 (V.ConstInt T.Int32) where
+    const = constInt T.int32 . fromIntegral
+
+instance Const Int64 (V.ConstInt T.Int64) where
+    const = constInt T.int64
+
+instance Const Word8 (V.ConstInt T.Int8) where
+    const = constWord T.int8 . fromIntegral
+
+instance Const Word16 (V.ConstInt T.Int16) where
+    const = constWord T.int16 . fromIntegral
+
+instance Const Word32 (V.ConstInt T.Int32) where
+    const = constWord T.int32 . fromIntegral
+
+instance Const Word64 (V.ConstInt T.Int64) where
+    const = constWord T.int64 . fromIntegral

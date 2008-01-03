@@ -58,6 +58,9 @@ module LLVM.Core.FFI
     , deleteGlobal
     , setInitializer
     , typeOf
+    , getValueName
+    , setValueName
+    , dumpValue
 
     -- ** Functions
     , addFunction
@@ -324,6 +327,15 @@ foreign import ccall unsafe "LLVMSetInitializer" setInitializer
 foreign import ccall unsafe "LLVMTypeOf" typeOf
     :: ValueRef -> IO TypeRef
 
+foreign import ccall unsafe "LLVMGetValueName" getValueName
+    :: ValueRef -> IO CString
+
+foreign import ccall unsafe "LLVMSetValueName" setValueName
+    :: ValueRef -> CString -> IO ()
+
+foreign import ccall unsafe "LLVMDumpValue" dumpValue
+    :: ValueRef -> IO ()
+
 foreign import ccall unsafe "LLVMGetNamedFunction" getNamedFunction
     :: ModuleRef -> CString -> IO ValueRef
 
@@ -352,97 +364,97 @@ foreign import ccall unsafe "LLVMConstString" constString
     :: CString -> CUInt -> CInt -> ValueRef
 
 foreign import ccall unsafe "LLVMConstNeg" constNeg
-        :: ValueRef -> ValueRef
+    :: ValueRef -> ValueRef
 
 foreign import ccall unsafe "LLVMConstNot" constNot
-        :: ValueRef -> ValueRef
+    :: ValueRef -> ValueRef
 
 foreign import ccall unsafe "LLVMConstAdd" constAdd
-        :: ValueRef -> ValueRef -> ValueRef
+    :: ValueRef -> ValueRef -> ValueRef
 
 foreign import ccall unsafe "LLVMConstSub" constSub
-        :: ValueRef -> ValueRef -> ValueRef
+    :: ValueRef -> ValueRef -> ValueRef
 
 foreign import ccall unsafe "LLVMConstMul" constMul
-        :: ValueRef -> ValueRef -> ValueRef
+    :: ValueRef -> ValueRef -> ValueRef
 
 foreign import ccall unsafe "LLVMConstUDiv" constUDiv
-        :: ValueRef -> ValueRef -> ValueRef
+    :: ValueRef -> ValueRef -> ValueRef
 
 foreign import ccall unsafe "LLVMConstSDiv" constSDiv
-        :: ValueRef -> ValueRef -> ValueRef
+    :: ValueRef -> ValueRef -> ValueRef
 
 foreign import ccall unsafe "LLVMConstFDiv" constFDiv
-        :: ValueRef -> ValueRef -> ValueRef
+    :: ValueRef -> ValueRef -> ValueRef
 
 foreign import ccall unsafe "LLVMConstURem" constURem
-        :: ValueRef -> ValueRef -> ValueRef
+    :: ValueRef -> ValueRef -> ValueRef
 
 foreign import ccall unsafe "LLVMConstSRem" constSRem
-        :: ValueRef -> ValueRef -> ValueRef
+    :: ValueRef -> ValueRef -> ValueRef
 
 foreign import ccall unsafe "LLVMConstFRem" constFRem
-        :: ValueRef -> ValueRef -> ValueRef
+    :: ValueRef -> ValueRef -> ValueRef
 
 foreign import ccall unsafe "LLVMConstAnd" constAnd
-        :: ValueRef -> ValueRef -> ValueRef
+    :: ValueRef -> ValueRef -> ValueRef
 
 foreign import ccall unsafe "LLVMConstOr" constOr
-        :: ValueRef -> ValueRef -> ValueRef
+    :: ValueRef -> ValueRef -> ValueRef
 
 foreign import ccall unsafe "LLVMConstXor" constXor
-        :: ValueRef -> ValueRef -> ValueRef
+    :: ValueRef -> ValueRef -> ValueRef
 
 foreign import ccall unsafe "LLVMConstICmp" constICmp
-        :: CInt -> ValueRef -> ValueRef -> ValueRef
+    :: CInt -> ValueRef -> ValueRef -> ValueRef
 
 foreign import ccall unsafe "LLVMConstFCmp" constFCmp
-        :: CInt -> ValueRef -> ValueRef -> ValueRef
+    :: CInt -> ValueRef -> ValueRef -> ValueRef
 
 foreign import ccall unsafe "LLVMConstShl" constShl
-        :: ValueRef -> ValueRef -> ValueRef
+    :: ValueRef -> ValueRef -> ValueRef
 
 foreign import ccall unsafe "LLVMConstLShr" constLShr
-        :: ValueRef -> ValueRef -> ValueRef
+    :: ValueRef -> ValueRef -> ValueRef
 
 foreign import ccall unsafe "LLVMConstAShr" constAShr
-        :: ValueRef -> ValueRef -> ValueRef
+    :: ValueRef -> ValueRef -> ValueRef
 
 foreign import ccall unsafe "LLVMConstGEP" constGEP
-        :: ValueRef -> Ptr ValueRef -> CUInt -> ValueRef
+    :: ValueRef -> Ptr ValueRef -> CUInt -> ValueRef
 
 foreign import ccall unsafe "LLVMConstTrunc" constTrunc
-        :: ValueRef -> TypeRef -> ValueRef
+    :: ValueRef -> TypeRef -> ValueRef
 
 foreign import ccall unsafe "LLVMConstSExt" constSExt
-        :: ValueRef -> TypeRef -> ValueRef
+    :: ValueRef -> TypeRef -> ValueRef
 
 foreign import ccall unsafe "LLVMConstZExt" constZExt
-        :: ValueRef -> TypeRef -> ValueRef
+    :: ValueRef -> TypeRef -> ValueRef
 
 foreign import ccall unsafe "LLVMConstFPTrunc" constFPTrunc
-        :: ValueRef -> TypeRef -> ValueRef
+    :: ValueRef -> TypeRef -> ValueRef
 
 foreign import ccall unsafe "LLVMConstFPExt" constFPExt
-        :: ValueRef -> TypeRef -> ValueRef
+    :: ValueRef -> TypeRef -> ValueRef
 
 foreign import ccall unsafe "LLVMConstUIToFP" constUIToFP
-        :: ValueRef -> TypeRef -> ValueRef
+    :: ValueRef -> TypeRef -> ValueRef
 
 foreign import ccall unsafe "LLVMConstSIToFP" constSIToFP
-        :: ValueRef -> TypeRef -> ValueRef
+    :: ValueRef -> TypeRef -> ValueRef
 
 foreign import ccall unsafe "LLVMConstFPToUI" constFPToUI
-        :: ValueRef -> TypeRef -> ValueRef
+    :: ValueRef -> TypeRef -> ValueRef
 
 foreign import ccall unsafe "LLVMConstFPToSI" constFPToSI
-        :: ValueRef -> TypeRef -> ValueRef
+    :: ValueRef -> TypeRef -> ValueRef
 
 foreign import ccall unsafe "LLVMConstPtrToInt" constPtrToInt
-        :: ValueRef -> TypeRef -> ValueRef
+    :: ValueRef -> TypeRef -> ValueRef
 
 foreign import ccall unsafe "LLVMConstIntToPtr" constIntToPtr
-        :: ValueRef -> TypeRef -> ValueRef
+    :: ValueRef -> TypeRef -> ValueRef
 
 foreign import ccall unsafe "LLVMConstBitCast" constBitCast
     :: ValueRef -> TypeRef -> ValueRef

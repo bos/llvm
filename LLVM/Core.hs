@@ -20,9 +20,6 @@ module LLVM.Core
     , addFunction
     , deleteFunction
     , getNamedFunction
-    , countParams
-    , getParam
-    , getParams
 
     -- * Basic blocks
     , appendBasicBlock
@@ -32,12 +29,10 @@ module LLVM.Core
 
 import Control.Applicative ((<$>))
 import Foreign.C.String (withCString)
-import Foreign.Marshal.Array (allocaArray, peekArray)
 import Foreign.Marshal.Utils (toBool)
 import Foreign.ForeignPtr (FinalizerPtr, newForeignPtr)
 import Foreign.Ptr (Ptr, nullPtr)
 import Prelude hiding (mod)
-import System.IO.Unsafe (unsafePerformIO)
 
 import qualified LLVM.Core.FFI as FFI
 import qualified LLVM.Core.Builder as B
@@ -107,19 +102,6 @@ getNamedFunction mod name =
     T.withModule mod $ \modPtr ->
       withCString name $ \namePtr ->
         maybePtr (V.Function . V.mkAnyValue) <$> FFI.getNamedFunction modPtr namePtr
-
-countParams :: V.Function p -> Int
-countParams = fromIntegral . FFI.countParams . V.valueRef
-
-getParam :: V.Function p -> Int -> V.AnyValue
-getParam f i = V.mkAnyValue $ FFI.getParam (V.valueRef f) (fromIntegral i)
-
-getParams :: V.Function p -> [V.AnyValue]
-getParams f = unsafePerformIO $ do
-  let len = countParams f
-  allocaArray len $ \ptr -> do
-    FFI.getParams (V.valueRef f) ptr
-    map V.mkAnyValue <$> peekArray len ptr
 
 appendBasicBlock :: V.Function a -> String -> IO B.BasicBlock
 appendBasicBlock func name =
