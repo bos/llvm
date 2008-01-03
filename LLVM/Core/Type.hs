@@ -287,17 +287,31 @@ class Type a => DynamicType a where
     toAnyType :: a              -- ^ not inspected
               -> AnyType
 
-newtype Function p = Function AnyType
-    deriving (HasAnyType, Type, Typeable)
-             
-instance (Show p, Params p) => Show (Function p) where
-    show a = "Function " ++ show (params a)
+data Function r p = Function {
+      fromNewFunction :: AnyType
+    }
+    deriving (Typeable)
 
-functionParams :: Function p -> p
+instance HasAnyType (Function r p) where
+    fromAnyType = Function
+
+instance Type (Function r p) where
+    typeRef = typeRef . fromNewFunction
+    anyType = fromNewFunction
+
+instance (Show r, Show p, Params p) => Show (Function r p) where
+    show a = "Function " ++ show (functionResult a) ++ " " ++ show (params a)
+
+functionParams :: Function r p -> p
 functionParams _ = undefined
 
-instance Params p => DynamicType (Function p) where
-    toAnyType = functionType False . toAnyList . functionParams
+functionResult :: Function r p -> r
+functionResult _ = undefined
+
+instance (DynamicType r, Params p) => DynamicType (Function r p) where
+    toAnyType f = let parms = toAnyList . functionParams $ f
+                      ret = toAnyType . functionResult $ f
+                  in functionType False ret parms
 
 instance DynamicType AnyType where
     toAnyType = id
@@ -321,6 +335,10 @@ fromAny :: HasAnyType a => [AnyType] -> (a, [AnyType])
 fromAny e | trace ("eee " ++ show (length e) ) False = undefined
 fromAny (x:xs) = (fromAnyType x,xs)
 fromAny _ = error "LLVM.Core.Type.fromAny: empty list"
+
+instance Params () where
+    toAnyList _ = []
+    fromAnyList _ = error "fromAnyList ()"
 
 instance Params Int1 where
     toAnyList a = [toAnyType a]
@@ -453,36 +471,34 @@ instance (DynamicType a, HasAnyType a, Params b) => Params (a :-> b) where
                          in (fromAnyType x :-> y,ys)
     fromAnyList _ = error "LLVM.Core.Type.fromAnyList(:->): empty list"
 
-functionType :: Bool -> [AnyType] -> AnyType
-functionType varargs ps = unsafePerformIO $ do
-    let (retType:rParamTypes) = reverse ps
-        paramTypes = reverse rParamTypes
+functionType :: Bool -> AnyType -> [AnyType] -> AnyType
+functionType varargs retType paramTypes = unsafePerformIO $
     withArrayLen (map typeRef paramTypes) $ \len ptr ->
         return . mkAnyType $ FFI.functionType (typeRef retType) ptr
                                         (fromIntegral len) (fromBool varargs)
 
-function :: Params p => p -> Function p
-function = Function . functionType False . toAnyList
-
-params :: Params p => Function p -> p
+params :: Params p => Function r p -> p
 params f = case fromAnyList . toAnyList . functionParams $ f of
              (p, []) -> p
-             _ -> error "LLVM.Core.Type.params: incompletely consumed params"
+             _ -> error "LLVM.Core.Type.newParams: incompletely consumed params"
 
-instance DynamicType p => Params (Function p) where
+function :: (DynamicType r, Params p) => r -> p -> Function r p
+function r p = Function . functionType False (toAnyType r) $ toAnyList p
+
+instance DynamicType p => Params (Function r p) where
     toAnyList a = [toAnyType (functionParams a)]
     fromAnyList = fromAny
     
-functionVarArg :: Params p => p -> Function p
-functionVarArg = Function . functionType True . toAnyList
-
-isFunctionVarArg :: (Params p) => Function p -> Bool
+functionVarArg :: (DynamicType r, Params p) => r -> p -> Function r p
+functionVarArg r p = Function . functionType True (toAnyType r) $ toAnyList p
+    
+isFunctionVarArg :: Function r p -> Bool
 isFunctionVarArg = toBool . FFI.isFunctionVarArg . typeRef
 
-getReturnType :: (Params p) => Function p -> AnyType
+getReturnType :: (Params p) => Function r p -> AnyType
 getReturnType = mkAnyType . FFI.getReturnType . typeRef
 
-getParamTypes :: (Params p) => Function p -> [AnyType]
+getParamTypes :: (Params p) => Function r p -> [AnyType]
 getParamTypes typ = unsafePerformIO $ do
     let typ' = typeRef typ
         count = FFI.countParamTypes typ'
@@ -516,6 +532,10 @@ pointer typ = pointerIn typ genericAddressSpace
 
 instance (DynamicType t) => DynamicType (Pointer t) where
     toAnyType = mkAnyType . pointer . toAnyType . pointerElementType
+
+instance (DynamicType t) => Params (Pointer t) where
+    toAnyList a = [toAnyType a]
+    fromAnyList = fromAny
 
 vector :: (DynamicType t) => t -> Int -> Vector t
 vector typ len = Vector . mkAnyType $ FFI.vectorType (typeRef (toAnyType typ)) (fromIntegral len)

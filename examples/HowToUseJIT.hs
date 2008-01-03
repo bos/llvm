@@ -15,10 +15,10 @@ import Data.Int (Int32)
 main :: IO ()
 main = do
   m <- Core.createModule "test"
-  let t = undefined :: T.Int32 :-> T.Int32 :-> T.Int32
+  let t = T.function (undefined :: T.Int32) (undefined :: T.Int32 :-> T.Int32)
 
-  (add1, addEntry) <- U.defineFunction m "add1" (T.function t)
-  let a :-> b :-> _ = V.params add1
+  (add1, addEntry) <- U.defineFunction m "add1" t
+  let a :-> b = V.params add1
   V.setName a "a"
 
   bld <- B.createBuilder
@@ -28,10 +28,10 @@ main = do
   B.ret bld v2
   V.dumpValue add1
 
-  (foo, fooEntry) <- U.defineFunction m "foo" (T.function (undefined :: T.Int32))
+  (foo, fooEntry) <- U.defineFunction m "foo" (T.function (undefined :: T.Int32) ())
   B.positionAtEnd bld fooEntry
-  c <- B.call bld "wibble" add1 (C.const (1::Int32) :-> C.const (10::Int32) :-> C.const (0::Int32))
-  B.ret bld (c::V.Instruction T.Int32)
+  c <- B.call bld "wibble" add1 (C.const (1::Int32) :-> C.const (10::Int32))
+  B.ret bld c
   V.dumpValue foo
 
   prov <- Core.createModuleProviderForExistingModule m

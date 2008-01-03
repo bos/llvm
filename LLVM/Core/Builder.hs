@@ -324,12 +324,13 @@ switch bld val noMatch cases =
         forM_ (map unwrap cases) $ uncurry (FFI.addCase inst)
         instruction $ return inst
 
-invoke :: Builder -> String -> V.Function t -> [V.AnyValue]
-       -> BasicBlock -> BasicBlock -> IO (Instruction T.Void)
+invoke :: (T.DynamicType r, T.Params p, Params p v, T.FirstClass r)
+          => Builder -> String -> V.Function r p -> v
+          -> BasicBlock -> BasicBlock -> IO (Instruction r)
 invoke bld name func args thenBlk catchBlk =
   withBuilder bld $ \bldPtr ->
     withCString name $ \namePtr ->
-      withArrayLen (map V.valueRef args) $ \argLen argPtr ->
+      withArrayLen (argList func args) $ \argLen argPtr ->
         instruction $ FFI.buildInvoke bldPtr (V.valueRef func) argPtr
                         (fromIntegral argLen) (V.valueRef thenBlk)
                         (V.valueRef catchBlk) namePtr
@@ -401,32 +402,41 @@ getElementPtr bld name ptr idxs =
             instruction $ FFI.buildGEP bldPtr (V.valueRef ptr) idxPtr
                             (fromIntegral idxLen) namePtr
 
-class Params t v | t -> v where
-    toAnyList :: t -> v -> [V.AnyValue]
+argList :: (Params p a, T.Params p, V.TypedValue v (T.Function r p))
+           => v -> a -> [FFI.ValueRef]
+argList func = map V.valueRef . toAnyList (T.params (V.typeOf func))
 
-instance (V.TypedValue c a, Params b d) => Params (a :-> b) (c :-> d) where
-    toAnyList t (a :-> b) = V.anyValue a : toAnyList (T.cdr t) b
-
-instance V.TypedValue v T.Int32 => Params T.Int32 v where
-    toAnyList _ a = [V.anyValue a]
-
-callRef :: (T.Params p, Params p v)
-           => Builder -> String -> V.Function p -> v -> IO FFI.ValueRef
+callRef :: (T.DynamicType r, T.Params p, Params p v)
+           => Builder -> String -> V.Function r p -> v -> IO FFI.ValueRef
 callRef bld name func args = do
-    let argList = init $ toAnyList (T.params (V.typeOf func)) args
     withBuilder bld $ \bldPtr ->
-      withArrayLen (map V.valueRef argList) $ \argLen argPtr ->
+      withArrayLen (argList func args) $ \argLen argPtr ->
         withCString name $ \namePtr ->
           FFI.buildCall bldPtr (V.valueRef func) argPtr
                  (fromIntegral argLen) namePtr
 
-call :: (T.Params p, Params p v, T.FirstClass t)
-        => Builder -> String -> V.Function p -> v
-     -> IO (Instruction t)
+class Params t v | t -> v where
+    toAnyList :: t -> v -> [V.AnyValue]
+
+listValue :: (V.TypedValue v t) => t -> v -> [V.AnyValue]
+listValue _ v = [V.anyValue v]
+
+instance (V.TypedValue v a, Params b c) => Params (a :-> b) (v :-> c) where
+    toAnyList t (a :-> b) = V.anyValue a : toAnyList (T.cdr t) b
+
+instance (V.TypedValue v T.Int32) => Params T.Int32 v where
+    toAnyList = listValue
+
+instance (T.Type t, V.TypedValue v (T.Pointer t)) => Params (T.Pointer t) v where
+    toAnyList = listValue
+
+call :: (T.DynamicType r, T.Params p, Params p v, T.FirstClass r)
+        => Builder -> String -> V.Function r p -> v
+     -> IO (Instruction r)
 call bld name func args = instruction $ callRef bld name func args
 
-call_ :: (T.Params p, Params p v)
-         => Builder -> String -> V.Function p -> v -> IO ()
+call_ :: (T.DynamicType r, T.Params p, Params p v)
+         => Builder -> String -> V.Function r p -> v -> IO ()
 call_ bld name func args = callRef bld name func args >> return ()
 
 extractElement :: (V.TypedValue v (T.Vector t),

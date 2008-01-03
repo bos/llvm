@@ -21,8 +21,9 @@ defineGlobal mod name val = do
   Core.setInitializer global val
   return global
 
-declareFunction :: T.Params p => T.Module -> String -> T.Function p
-                -> IO (V.Function p)
+declareFunction :: (T.DynamicType r, T.Params p)
+                   => T.Module -> String -> T.Function r p
+                   -> IO (V.Function r p)
 declareFunction mod name typ = do
   maybeFunc <- Core.getNamedFunction mod name
   case maybeFunc of
@@ -32,8 +33,8 @@ declareFunction mod name typ = do
                              then C.bitCast func (T.pointer typ)
                              else func
 
-defineFunction :: T.Params p => T.Module -> String -> T.Function p
-               -> IO (V.Function p, B.BasicBlock)
+defineFunction :: T.Params p => T.Module -> String -> T.Function r p
+               -> IO (V.Function r p, B.BasicBlock)
 defineFunction mod name typ = do
   func <- Core.addFunction mod name typ
   bblk <- Core.appendBasicBlock func "entry"

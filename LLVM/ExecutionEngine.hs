@@ -93,8 +93,8 @@ withAll ps a = go [] ps
     where go ptrs (x:xs) = withGenericValue x $ \ptr -> go (ptr:ptrs) xs
           go ptrs _ = withArrayLen (reverse ptrs) a
                    
-runFunction :: ExecutionEngine -> V.Function t -> [GenericValue t]
-            -> IO (GenericValue t)
+runFunction :: ExecutionEngine -> V.Function r p -> [GenericValue t]
+            -> IO (GenericValue r)
 runFunction ee func args =
     withExecutionEngine ee $ \eePtr ->
       withAll args $ \argLen argPtr ->

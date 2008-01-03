@@ -83,27 +83,27 @@ setInitializer :: V.ConstValue t => V.GlobalVar a -> t -> IO ()
 setInitializer global cnst =
     FFI.setInitializer (V.valueRef global) (V.valueRef cnst)
 
-addFunction :: (T.Params p) => T.Module -> String -> T.Function p
-            -> IO (V.Function p)
+addFunction :: (T.Params p) => T.Module -> String -> T.Function r p
+            -> IO (V.Function r p)
 addFunction mod name typ =
     T.withModule mod $ \modPtr ->
       withCString name $ \namePtr ->
         V.Function . V.mkAnyValue <$> FFI.addFunction modPtr namePtr (T.typeRef typ)
 
-deleteFunction :: V.Function a -> IO ()
+deleteFunction :: V.Function r p -> IO ()
 deleteFunction = FFI.deleteFunction . V.valueRef
 
 maybePtr :: (Ptr a -> b) -> Ptr a -> Maybe b
 maybePtr f ptr | ptr /= nullPtr = Just (f ptr)
                | otherwise = Nothing
 
-getNamedFunction :: T.Module -> String -> IO (Maybe (V.Function a))
+getNamedFunction :: T.Module -> String -> IO (Maybe (V.Function r p))
 getNamedFunction mod name =
     T.withModule mod $ \modPtr ->
       withCString name $ \namePtr ->
         maybePtr (V.Function . V.mkAnyValue) <$> FFI.getNamedFunction modPtr namePtr
 
-appendBasicBlock :: V.Function a -> String -> IO B.BasicBlock
+appendBasicBlock :: V.Function r p -> String -> IO B.BasicBlock
 appendBasicBlock func name =
     withCString name $ \namePtr ->
       B.BasicBlock . V.mkAnyValue <$> FFI.appendBasicBlock (V.valueRef func) namePtr
