@@ -1,4 +1,10 @@
-{-# LANGUAGE DeriveDataTypeable, FlexibleContexts #-}
+{-# LANGUAGE
+    DeriveDataTypeable
+  , FlexibleContexts
+  , FunctionalDependencies
+  , MultiParamTypeClasses
+  , UndecidableInstances
+  #-}
 
 module LLVM.Core.Builder
     (
@@ -94,6 +100,7 @@ import qualified LLVM.Core.FFI as FFI
 import qualified LLVM.Core.Instruction as I
 import qualified LLVM.Core.Type as T
 import qualified LLVM.Core.Value as V
+import LLVM.Core.Type ((:->)(..))
 import LLVM.Core.Value (Instruction(..))
 
 
@@ -397,26 +404,35 @@ getElementPtr bld name ptr idxs =
 
 getArrayPtr :: (T.Type t, V.TypedValue v (T.Array t),
                T.Integer x, V.TypedValue i x)
-              => Builder -> String -> v -> [i] -> IO (Instruction t)
+              => Builder -> String -> v -> [i] -> IO (Instruction (T.Pointer t))
 getArrayPtr = getElementPtr
 
-callRef :: (T.Params p)
-           => Builder -> String -> V.Function p -> [V.AnyValue]
-           -> IO FFI.ValueRef
-callRef bld name func args =
+class Params t v | t -> v where
+    toAnyList :: t -> v -> [V.AnyValue]
+
+instance (V.TypedValue c a, Params b d) => Params (a :-> b) (c :-> d) where
+    toAnyList t (a :-> b) = V.anyValue a : toAnyList (T.cdr t) b
+
+instance V.TypedValue v T.Int32 => Params T.Int32 v where
+    toAnyList _ a = [V.anyValue a]
+
+callRef :: (T.Params p, Params p v)
+           => Builder -> String -> V.Function p -> v -> IO FFI.ValueRef
+callRef bld name func args = do
+    let argList = init $ toAnyList (T.params (V.typeOf func)) args
     withBuilder bld $ \bldPtr ->
-      withArrayLen (map V.valueRef args) $ \argLen argPtr ->
+      withArrayLen (map V.valueRef argList) $ \argLen argPtr ->
         withCString name $ \namePtr ->
           FFI.buildCall bldPtr (V.valueRef func) argPtr
                  (fromIntegral argLen) namePtr
 
-call :: (T.Params p, T.FirstClass t)
-        => Builder -> String -> V.Function p -> [V.AnyValue]
+call :: (T.Params p, Params p v, T.FirstClass t)
+        => Builder -> String -> V.Function p -> v
      -> IO (Instruction t)
 call bld name func args = instruction $ callRef bld name func args
 
-call_ :: (T.Params p)
-        => Builder -> String -> V.Function p -> [V.AnyValue] -> IO ()
+call_ :: (T.Params p, Params p v)
+         => Builder -> String -> V.Function p -> v -> IO ()
 call_ bld name func args = callRef bld name func args >> return ()
 
 extractElement :: (V.TypedValue v (T.Vector t),

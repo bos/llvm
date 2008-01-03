@@ -166,6 +166,9 @@ instance TypedValue (ConstInt T.Int1) T.Int1 where
 instance TypedValue (Argument T.Int1) T.Int1 where
     typeOf = T.int1
 
+instance TypedValue (Instruction T.Int1) T.Int1 where
+    typeOf = T.int1
+
 instance Params T.Int1 (Argument T.Int1) where
     fromAnyList = fromAny
 
@@ -173,6 +176,9 @@ instance TypedValue (ConstInt T.Int8) T.Int8 where
     typeOf = T.int8
 
 instance TypedValue (Argument T.Int8) T.Int8 where
+    typeOf = T.int8
+
+instance TypedValue (Instruction T.Int8) T.Int8 where
     typeOf = T.int8
 
 instance Params T.Int8 (Argument T.Int8) where
@@ -205,6 +211,9 @@ instance TypedValue (ConstInt T.Int64) T.Int64 where
 instance TypedValue (Argument T.Int64) T.Int64 where
     typeOf = T.int64
 
+instance TypedValue (Instruction T.Int64) T.Int64 where
+    typeOf = T.int64
+
 instance Params T.Int64 (Argument T.Int64) where
     fromAnyList = fromAny
 
@@ -213,6 +222,12 @@ newtype ConstArray t = ConstArray AnyValue
 
 instance (T.DynamicType a) => TypedValue (ConstArray a) (T.Array a) where
     typeOf _ = T.array undefined 0
+
+instance (T.DynamicType t) => TypedValue (Instruction (T.Array t)) (T.Array t) where
+    typeOf _ = T.array undefined 0
+
+instance (T.DynamicType t) => TypedValue (Instruction (T.Pointer t)) (T.Pointer t) where
+    typeOf _ = T.pointer undefined
 
 newtype ConstReal t = ConstReal AnyValue
     deriving (Arithmetic, ConstValue, DynamicValue, Real, Typeable, Value)

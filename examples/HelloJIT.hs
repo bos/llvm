@@ -4,7 +4,7 @@ module HelloJIT (main) where
 import Data.Int (Int32)
 import Prelude hiding (mod)
 
-import LLVM.Core.Type ((:->))
+import LLVM.Core.Type ((:->)(..))
 import qualified LLVM.Core as Core
 import qualified LLVM.Core.Builder as B
 import qualified LLVM.Core.Constant as C
@@ -28,7 +28,7 @@ buildModule = do
   B.positionAtEnd bld entry
   let zero = C.const (0::Int32)
   tmp <- B.getArrayPtr bld "tmp" greetz [zero, zero]
-  B.call_ bld "" puts [V.mkAnyValue tmp]
+  B.call_ bld "" puts (tmp :-> zero)
   B.ret bld zero
   return (mod, func)
 

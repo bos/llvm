@@ -30,7 +30,7 @@ main = do
 
   (foo, fooEntry) <- U.defineFunction m "foo" (T.function (undefined :: T.Int32))
   B.positionAtEnd bld fooEntry
-  c <- B.call bld "wibble" add1 [V.anyValue (C.const (1::Int32)), V.anyValue (C.const (10::Int32))]
+  c <- B.call bld "wibble" add1 (C.const (1::Int32) :-> C.const (10::Int32) :-> C.const (0::Int32))
   B.ret bld (c::V.Instruction T.Int32)
   V.dumpValue foo
 
