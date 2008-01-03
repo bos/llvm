@@ -41,8 +41,8 @@ module LLVM.Core.Value
 
     -- ** Useful functions
     , params
-    , getValueName
-    , setValueName
+    , getName
+    , setName
     , dumpValue
     ) where
 
@@ -109,15 +109,15 @@ instance Arithmetic AnyValue
 instance Integer AnyValue
 instance Real AnyValue
 
-getValueName :: Value v => v -> IO (Maybe String)
-getValueName v = do
+getName :: Value v => v -> IO String
+getName v = do
   namePtr <- FFI.getValueName (valueRef v)
   if namePtr == nullPtr
-    then return Nothing
-    else Just <$> peekCString namePtr
+    then return []
+    else peekCString namePtr
 
-setValueName :: Value v => v -> String -> IO ()
-setValueName v name = withCString name (FFI.setValueName (valueRef v))
+setName :: Value v => v -> String -> IO ()
+setName v name = withCString name (FFI.setValueName (valueRef v))
 
 dumpValue :: Value v => v -> IO ()
 dumpValue = FFI.dumpValue . valueRef
@@ -175,8 +175,8 @@ instance TypedValue (ConstInt T.Int8) T.Int8 where
 instance TypedValue (Argument T.Int8) T.Int8 where
     typeOf = T.int8
 
--- instance Params T.Int8 where
---     fromAnyList = fromAny
+instance Params T.Int8 (Argument T.Int8) where
+    fromAnyList = fromAny
 
 instance TypedValue (ConstInt T.Int16) T.Int16 where
     typeOf = T.int16
@@ -184,8 +184,8 @@ instance TypedValue (ConstInt T.Int16) T.Int16 where
 instance TypedValue (Argument T.Int16) T.Int16 where
     typeOf = T.int16
 
--- instance Params T.Int16 where
---     fromAnyList = fromAny
+instance Params T.Int16 (Argument T.Int16) where
+    fromAnyList = fromAny
 
 instance TypedValue (ConstInt T.Int32) T.Int32 where
     typeOf = T.int32
@@ -205,8 +205,8 @@ instance TypedValue (ConstInt T.Int64) T.Int64 where
 instance TypedValue (Argument T.Int64) T.Int64 where
     typeOf = T.int64
 
--- instance Params T.Int64 where
---     fromAnyList = fromAny
+instance Params T.Int64 (Argument T.Int64) where
+    fromAnyList = fromAny
 
 newtype ConstArray t = ConstArray AnyValue
     deriving (ConstValue, DynamicValue, Typeable, Value)
@@ -223,8 +223,8 @@ instance TypedValue (ConstReal T.Float) T.Float where
 instance TypedValue (Argument T.Float) T.Float where
     typeOf = T.float
 
--- instance Params T.Float where
---     fromAnyList = fromAny
+instance Params T.Float (Argument T.Float) where
+    fromAnyList = fromAny
 
 instance TypedValue (ConstReal T.Double) T.Double where
     typeOf = T.double
@@ -232,8 +232,8 @@ instance TypedValue (ConstReal T.Double) T.Double where
 instance TypedValue (Argument T.Double) T.Double where
     typeOf = T.double
 
--- instance Params T.Double where
---     fromAnyList = fromAny
+instance Params T.Double (Argument T.Double) where
+    fromAnyList = fromAny
 
 instance TypedValue (ConstReal T.X86Float80) T.X86Float80 where
     typeOf = T.x86Float80
@@ -241,8 +241,8 @@ instance TypedValue (ConstReal T.X86Float80) T.X86Float80 where
 instance TypedValue (Argument T.X86Float80) T.X86Float80 where
     typeOf = T.x86Float80
 
--- instance Params T.X86Float80 where
---     fromAnyList = fromAny
+instance Params T.X86Float80 (Argument T.X86Float80) where
+    fromAnyList = fromAny
 
 instance TypedValue (ConstReal T.Float128) T.Float128 where
     typeOf = T.float128
@@ -250,8 +250,8 @@ instance TypedValue (ConstReal T.Float128) T.Float128 where
 instance TypedValue (Argument T.Float128) T.Float128 where
     typeOf = T.float128
 
--- instance Params T.Float128 where
---     fromAnyList = fromAny
+instance Params T.Float128 (Argument T.Float128) where
+    fromAnyList = fromAny
 
 instance TypedValue (ConstReal T.PPCFloat128) T.PPCFloat128 where
     typeOf = T.ppcFloat128
@@ -259,8 +259,8 @@ instance TypedValue (ConstReal T.PPCFloat128) T.PPCFloat128 where
 instance TypedValue (Argument T.PPCFloat128) T.PPCFloat128 where
     typeOf = T.ppcFloat128
 
--- instance Params T.PPCFloat128 where
---     fromAnyList = fromAny
+instance Params T.PPCFloat128 (Argument T.PPCFloat128) where
+    fromAnyList = fromAny
 
 countParams :: Function p -> Int
 countParams = fromIntegral . FFI.countParams . valueRef
