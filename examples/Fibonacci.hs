@@ -19,7 +19,7 @@ buildFib :: T.Module -> IO (V.Function T.Int32 T.Int32)
 buildFib m = do
   let one = C.const (1::Int32)
       two = C.const (2::Int32)
-  (fib, entry) <- U.defineFunction m "fib" (T.function (undefined::T.Int32) (undefined::T.Int32))
+  (fib, entry) <- U.defineFunction m "fib" (T.function undefined undefined)
   bld <- B.createBuilder
   exit <- Core.appendBasicBlock fib "return"
   recurse <- Core.appendBasicBlock fib "recurse"
