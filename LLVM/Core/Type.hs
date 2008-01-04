@@ -101,7 +101,7 @@ import System.IO.Unsafe (unsafePerformIO)
 
 import qualified LLVM.Core.FFI as FFI
 
-import Debug.Trace
+-- import Debug.Trace
 
 
 newtype Module = Module {
@@ -123,7 +123,6 @@ withModuleProvider prov = withForeignPtr (fromModuleProvider prov)
 
 class Type t where
     typeRef :: t -> FFI.TypeRef
-    anyType :: t -> AnyType
 
 class Type t => TypeValue t where
     typeValue :: a -> t
@@ -227,7 +226,7 @@ class Type t => DynamicType t where
               -> AnyType
 
 data Function r p = Function {
-      fromNewFunction :: AnyType
+      fromFunction :: AnyType
     }
     deriving (Typeable)
 
@@ -250,7 +249,6 @@ int1 :: a -> Int1
 int1 _ = Int1 $ mkAnyType FFI.int1Type
 
 fromAny :: HasAnyType a => [AnyType] -> (a, [AnyType])
-fromAny e | trace ("eee " ++ show (length e) ) False = undefined
 fromAny (x:xs) = (fromAnyType x,xs)
 fromAny _ = error "LLVM.Core.Type.fromAny: empty list"
 
@@ -544,16 +542,13 @@ instance (Show a, Show b) => Show (a :-> b) where show a = show (car a) ++ " :->
 --
 
 instance Type FFI.TypeRef where
-    anyType = AnyType
     typeRef = id
 
 instance Type AnyType where
     typeRef (AnyType a) = typeRef a
-    anyType = id
 
 instance Type (Function r p) where
-    typeRef = typeRef . fromNewFunction
-    anyType = fromNewFunction
+    typeRef = typeRef . fromFunction
 
 
 --
