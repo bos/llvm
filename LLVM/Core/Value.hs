@@ -195,7 +195,7 @@ instance (Params b c) => Params (a :-> b) (Argument a :-> c) where
     fromAnyList _ _ = error "LLVM.Core.Value.fromAnyList(:->): empty list"
 
 instance (T.DynamicType t) => Params (T.Pointer t) (Instruction (T.Pointer t)) where fromAnyList = fromAny
-instance (T.DynamicType t) => Params (T.Vector t) (Instruction (T.Vector t)) where fromAnyList = fromAny
+instance (T.DynamicType t, T.Primitive t) => Params (T.Vector t) (Instruction (T.Vector t)) where fromAnyList = fromAny
 instance Params T.Double (Argument T.Double) where fromAnyList = fromAny
 instance Params T.Float (Argument T.Float) where fromAnyList = fromAny
 instance Params T.Float128 (Argument T.Float128) where fromAnyList = fromAny
@@ -249,7 +249,7 @@ instance (T.DynamicType r, T.Params p) => TypedValue (Function r p) (T.Function 
 instance (T.DynamicType t) => TypedValue (ConstArray t) (T.Array t) where typeOf _ = T.array undefined 0
 instance (T.DynamicType t) => TypedValue (Instruction (T.Array t)) (T.Array t) where typeOf _ = T.array undefined 0
 instance (T.DynamicType t) => TypedValue (Instruction (T.Pointer t)) (T.Pointer t) where typeOf _ = T.pointer undefined
-instance (T.DynamicType t) => TypedValue (Instruction (T.Vector t)) (T.Vector t) where typeOf _ = T.vector undefined 1
+instance (T.DynamicType t, T.Primitive t) => TypedValue (Instruction (T.Vector t)) (T.Vector t) where typeOf _ = T.vector undefined 1
 instance (T.Type t) => TypedValue (GlobalVar t) t where typeOf = globalVarType
 
 --
