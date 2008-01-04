@@ -189,6 +189,17 @@ instance DynamicValue (Function r p) where
 -- Params
 --
 
+instance Params T.Int1 (Argument T.Int1) where fromAnyList = fromAny
+instance Params T.Int8 (Argument T.Int8) where fromAnyList = fromAny
+instance Params T.Int16 (Argument T.Int16) where fromAnyList = fromAny
+instance Params T.Int32 (Argument T.Int32) where fromAnyList = fromAny
+instance Params T.Int64 (Argument T.Int64) where fromAnyList = fromAny
+instance Params T.Float (Argument T.Float) where fromAnyList = fromAny
+instance Params T.Double (Argument T.Double) where fromAnyList = fromAny
+instance Params T.Float128 (Argument T.Float128) where fromAnyList = fromAny
+instance Params T.PPCFloat128 (Argument T.PPCFloat128) where fromAnyList = fromAny
+instance Params T.X86Float80 (Argument T.X86Float80) where fromAnyList = fromAny
+
 instance (Params b c) => Params (a :-> b) (Argument a :-> c) where
     fromAnyList t (x:xs) = let (y,ys) = fromAnyList (T.cdr t) xs
                            in (Argument x :-> y,ys)
@@ -196,53 +207,47 @@ instance (Params b c) => Params (a :-> b) (Argument a :-> c) where
 
 instance (T.DynamicType t) => Params (T.Pointer t) (Instruction (T.Pointer t)) where fromAnyList = fromAny
 instance (T.DynamicType t, T.Primitive t) => Params (T.Vector t) (Instruction (T.Vector t)) where fromAnyList = fromAny
-instance Params T.Double (Argument T.Double) where fromAnyList = fromAny
-instance Params T.Float (Argument T.Float) where fromAnyList = fromAny
-instance Params T.Float128 (Argument T.Float128) where fromAnyList = fromAny
-instance Params T.Int1 (Argument T.Int1) where fromAnyList = fromAny
-instance Params T.Int16 (Argument T.Int16) where fromAnyList = fromAny
-instance Params T.Int32 (Argument T.Int32) where fromAnyList = fromAny
-instance Params T.Int64 (Argument T.Int64) where fromAnyList = fromAny
-instance Params T.Int8 (Argument T.Int8) where fromAnyList = fromAny
-instance Params T.PPCFloat128 (Argument T.PPCFloat128) where fromAnyList = fromAny
-instance Params T.X86Float80 (Argument T.X86Float80) where fromAnyList = fromAny
-
 
 
 --
 -- TypedValue
 --
 
-instance TypedValue (Argument T.Float) T.Float where typeOf = T.float
-instance TypedValue (Argument T.Double) T.Double where typeOf = T.double
-instance TypedValue (Argument T.Float128) T.Float128 where typeOf = T.float128
-instance TypedValue (Argument T.PPCFloat128) T.PPCFloat128 where typeOf = T.ppcFloat128
-instance TypedValue (Argument T.X86Float80) T.X86Float80 where typeOf = T.x86Float80
 instance TypedValue (Argument T.Int1) T.Int1 where typeOf = T.int1
 instance TypedValue (Argument T.Int8) T.Int8 where typeOf = T.int8
 instance TypedValue (Argument T.Int16) T.Int16 where typeOf = T.int16
 instance TypedValue (Argument T.Int32) T.Int32 where typeOf = T.int32
 instance TypedValue (Argument T.Int64) T.Int64 where typeOf = T.int64
+
+instance TypedValue (Argument T.Float) T.Float where typeOf = T.float
+instance TypedValue (Argument T.Double) T.Double where typeOf = T.double
+instance TypedValue (Argument T.Float128) T.Float128 where typeOf = T.float128
+instance TypedValue (Argument T.PPCFloat128) T.PPCFloat128 where typeOf = T.ppcFloat128
+instance TypedValue (Argument T.X86Float80) T.X86Float80 where typeOf = T.x86Float80
+
 instance TypedValue (ConstInt T.Int1) T.Int1 where typeOf = T.int1
 instance TypedValue (ConstInt T.Int8) T.Int8 where typeOf = T.int8
 instance TypedValue (ConstInt T.Int16) T.Int16 where typeOf = T.int16
 instance TypedValue (ConstInt T.Int32) T.Int32 where typeOf = T.int32
 instance TypedValue (ConstInt T.Int64) T.Int64 where typeOf = T.int64
+
 instance TypedValue (ConstReal T.Float) T.Float where typeOf = T.float
 instance TypedValue (ConstReal T.Double) T.Double where typeOf = T.double
 instance TypedValue (ConstReal T.Float128) T.Float128 where typeOf = T.float128
 instance TypedValue (ConstReal T.PPCFloat128) T.PPCFloat128 where typeOf = T.ppcFloat128
 instance TypedValue (ConstReal T.X86Float80) T.X86Float80 where typeOf = T.x86Float80
-instance TypedValue (Instruction T.Float) T.Float where typeOf = T.float
-instance TypedValue (Instruction T.Double) T.Double where typeOf = T.double
-instance TypedValue (Instruction T.Float128) T.Float128 where typeOf = T.float128
-instance TypedValue (Instruction T.PPCFloat128) T.PPCFloat128 where typeOf = T.ppcFloat128
-instance TypedValue (Instruction T.X86Float80) T.X86Float80 where typeOf = T.x86Float80
+
 instance TypedValue (Instruction T.Int1) T.Int1 where typeOf = T.int1
 instance TypedValue (Instruction T.Int8) T.Int8 where typeOf = T.int8
 instance TypedValue (Instruction T.Int16) T.Int16 where typeOf = T.int16
 instance TypedValue (Instruction T.Int32) T.Int32 where typeOf = T.int32
 instance TypedValue (Instruction T.Int64) T.Int64 where typeOf = T.int64
+
+instance TypedValue (Instruction T.Float) T.Float where typeOf = T.float
+instance TypedValue (Instruction T.Double) T.Double where typeOf = T.double
+instance TypedValue (Instruction T.Float128) T.Float128 where typeOf = T.float128
+instance TypedValue (Instruction T.PPCFloat128) T.PPCFloat128 where typeOf = T.ppcFloat128
+instance TypedValue (Instruction T.X86Float80) T.X86Float80 where typeOf = T.x86Float80
 
 
 instance (T.DynamicType r, T.Params p) => TypedValue (Function r p) (T.Function r p) where typeOf _ = T.function undefined undefined
