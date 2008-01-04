@@ -14,6 +14,7 @@ module LLVM.Core.Type
 
     -- * Types
     , Type(..)
+    , TypeValue(..)
     , AnyType
     , HasAnyType(..)
     , DynamicType(..)
@@ -22,6 +23,7 @@ module LLVM.Core.Type
     -- ** Integer types
     , Arithmetic
     , FirstClass
+    , Primitive
     , Integer
     , integer
     , Int1(..)
@@ -119,24 +121,28 @@ withModuleProvider :: ModuleProvider -> (FFI.ModuleProviderRef -> IO a)
                    -> IO a
 withModuleProvider prov = withForeignPtr (fromModuleProvider prov)
 
-class Type a where
-    typeRef :: a -> FFI.TypeRef
-    anyType :: a -> AnyType
+class Type t where
+    typeRef :: t -> FFI.TypeRef
+    anyType :: t -> AnyType
 
-class Type a => Arithmetic a
-class Arithmetic a => Integer a
-class Arithmetic a => Real a
+class Type t => TypeValue t where
+    typeValue :: a -> t
 
-class FirstClass a
+class Type t => Arithmetic t
+class Arithmetic t => Integer t
+class Arithmetic t => Real t
+class Type t => Primitive t
+
+class FirstClass t
 instance FirstClass AnyType
 
-class HasAnyType a where
-    fromAnyType :: AnyType -> a
+class HasAnyType t where
+    fromAnyType :: AnyType -> t
 
-data AnyType = forall a. Type a => AnyType a
+data AnyType = forall t. Type t => AnyType t
                deriving (Typeable)
 
-mkAnyType :: Type a => a -> AnyType
+mkAnyType :: Type t => t -> AnyType
 mkAnyType = AnyType
 
 class Params a where
@@ -144,21 +150,27 @@ class Params a where
     fromAnyList :: [AnyType] -> (a, [AnyType])
 
 instance Integer AnyType
+instance Primitive AnyType
 
 newtype Int1 = Int1 AnyType
-    deriving (Arithmetic, FirstClass, HasAnyType, Integer, Type, Typeable)
+    deriving (Arithmetic, FirstClass, HasAnyType, Integer, Primitive, Type,
+              Typeable)
 
 newtype Int8 = Int8 AnyType
-    deriving (Arithmetic, FirstClass, HasAnyType, Integer, Type, Typeable)
+    deriving (Arithmetic, FirstClass, HasAnyType, Integer, Primitive, Type,
+              Typeable)
 
 newtype Int16 = Int16 AnyType
-    deriving (Arithmetic, FirstClass, HasAnyType, Integer, Type, Typeable)
+    deriving (Arithmetic, FirstClass, HasAnyType, Integer, Primitive, Type,
+              Typeable)
 
 newtype Int32 = Int32 AnyType
-    deriving (Arithmetic, FirstClass, HasAnyType, Integer, Type, Typeable)
+    deriving (Arithmetic, FirstClass, HasAnyType, Integer, Primitive, Type,
+              Typeable)
 
 newtype Int64 = Int64 AnyType
-    deriving (Arithmetic, FirstClass, HasAnyType, Integer, Type, Typeable)
+    deriving (Arithmetic, FirstClass, HasAnyType, Integer, Primitive, Type,
+              Typeable)
 
 newtype IntWidth a = IntWidth AnyType
     deriving (Arithmetic, FirstClass, HasAnyType, Integer, Type, Typeable)
@@ -167,19 +179,24 @@ instance Real AnyType
 instance Arithmetic AnyType
 
 newtype Float = Float AnyType
-    deriving (Arithmetic, FirstClass, HasAnyType, Real, Type, Typeable)
+    deriving (Arithmetic, FirstClass, HasAnyType, Primitive, Real, Type,
+              Typeable)
 
 newtype Double = Double AnyType
-    deriving (Arithmetic, FirstClass, HasAnyType, Real, Type, Typeable)
+    deriving (Arithmetic, FirstClass, HasAnyType, Primitive, Real, Type,
+              Typeable)
 
 newtype X86Float80 = X86Float80 AnyType
-    deriving (Arithmetic, FirstClass, HasAnyType, Real, Type, Typeable)
+    deriving (Arithmetic, FirstClass, HasAnyType, Primitive, Real, Type,
+              Typeable)
 
 newtype Float128 = Float128 AnyType
-    deriving (Arithmetic, FirstClass, HasAnyType, Real, Type, Typeable)
+    deriving (Arithmetic, FirstClass, HasAnyType, Primitive, Real, Type,
+              Typeable)
 
 newtype PPCFloat128 = PPCFloat128 AnyType
-    deriving (Arithmetic, FirstClass, HasAnyType, Real, Type, Typeable)
+    deriving (Arithmetic, FirstClass, HasAnyType, Primitive, Real, Type,
+              Typeable)
 
 class (Type a, Type t) => Sequence a t | a -> t where
     elementType :: a -> t
@@ -187,7 +204,7 @@ class (Type a, Type t) => Sequence a t | a -> t where
 newtype Array a = Array AnyType
     deriving (HasAnyType, Type, Typeable)
 
-arrayElementType :: Array a -> a
+arrayElementType :: Type t => Array t -> t
 arrayElementType _ = undefined
 
 newtype Pointer a = Pointer AnyType
@@ -205,8 +222,8 @@ vectorElementType _ = undefined
 newtype Void = Void AnyType
     deriving (HasAnyType, Type, Typeable)
 
-class Type a => DynamicType a where
-    toAnyType :: a              -- ^ not inspected
+class Type t => DynamicType t where
+    toAnyType :: t              -- ^ not inspected
               -> AnyType
 
 data Function r p = Function {
@@ -330,7 +347,7 @@ pointerIn typ space = Pointer . mkAnyType $ FFI.pointerType (typeRef (toAnyType 
 pointer :: (DynamicType t) => t -> Pointer t
 pointer typ = pointerIn typ genericAddressSpace
 
-vector :: (DynamicType t) => t -> Int -> Vector t
+vector :: (DynamicType t, Primitive t) => t -> Int -> Vector t
 vector typ len = Vector . mkAnyType $ FFI.vectorType (typeRef (toAnyType typ)) (fromIntegral len)
 
 elementTypeDyn :: Type a => a -> AnyType
@@ -397,7 +414,7 @@ instance (DynamicType t) => DynamicType (Pointer t) where
     toAnyType = mkAnyType . pointer . toAnyType . pointerElementType
 
 instance (DynamicType t) => DynamicType (Vector t) where
-    toAnyType = mkAnyType . flip vector 0 . toAnyType . vectorElementType
+    toAnyType = mkAnyType . flip vector 1 . toAnyType . vectorElementType
 
 --
 -- HasAnyType
@@ -490,10 +507,13 @@ instance (DynamicType t) => Params (Vector t) where
 instance Sequence AnyType AnyType where
     elementType = elementTypeDyn
 
-instance Type a => Sequence (Array a) a where
+instance Type t => Sequence (Array t) t where
     elementType = arrayElementType
 
-instance Type a => Sequence (Vector a) a where
+instance Type t => Sequence (Pointer t) t where
+    elementType = pointerElementType
+
+instance Type t => Sequence (Vector t) t where
     elementType = vectorElementType
 
 --
@@ -513,8 +533,8 @@ instance Show Int8 where show _ = "Int8"
 instance Show PPCFloat128 where show _ = "PPCFloat128"
 instance Show Void where show _ = "Void"
 instance Show X86Float80 where show _ = "X86Float80"
-instance (Show a) => Show (Array a) where show a = "Array " ++ show (arrayElementType a)
-instance (Show a) => Show (Pointer a) where show a = "Pointer " ++ show (pointerElementType a)
+instance (Show t, Type t) => Show (Array t) where show a = "Array " ++ show (arrayElementType a)
+instance (Show t, Type t) => Show (Pointer t) where show a = "Pointer " ++ show (pointerElementType a)
 instance (Show a) => Show (Vector a) where show a = "Vector " ++ show (vectorElementType a)
 instance (Show r, Show p, Params p) => Show (Function r p) where show a = "Function " ++ show (functionResult a) ++ " " ++ show (params a)
 instance (Show a, Show b) => Show (a :-> b) where show a = show (car a) ++ " :-> " ++ show (cdr a)
@@ -531,10 +551,59 @@ instance Type AnyType where
     typeRef (AnyType a) = typeRef a
     anyType = id
 
-instance Type a => Sequence (Pointer a) a where
-    elementType = pointerElementType
-
 instance Type (Function r p) where
     typeRef = typeRef . fromNewFunction
     anyType = fromNewFunction
 
+
+--
+-- TypeValue
+--
+
+--instance TypeValue AnyType where
+--    typeValue = const
+
+instance TypeValue Int1 where
+    typeValue = int1
+
+instance TypeValue Int8 where
+    typeValue = int8
+
+instance TypeValue Int16 where
+    typeValue = int16
+
+instance TypeValue Int32 where
+    typeValue = int32
+
+instance TypeValue Int64 where
+    typeValue = int64
+
+instance TypeValue Float where
+    typeValue = float
+
+instance TypeValue Double where
+    typeValue = double
+
+instance TypeValue Float128 where
+    typeValue = float128
+
+instance TypeValue PPCFloat128 where
+    typeValue = ppcFloat128
+
+instance TypeValue Void where
+    typeValue = void
+
+instance TypeValue X86Float80 where
+    typeValue = x86Float80
+
+instance (DynamicType r, Params p) => TypeValue (Function r p) where
+    typeValue _ = function undefined undefined
+
+instance (DynamicType t) => TypeValue (Array t) where
+    typeValue _ = array undefined 0
+
+instance (DynamicType t) => TypeValue (Pointer t) where
+    typeValue _ = pointer undefined
+
+instance (DynamicType t, Primitive t) => TypeValue (Vector t) where
+    typeValue _= vector undefined 1

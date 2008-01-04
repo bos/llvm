@@ -29,7 +29,7 @@ declareFunction mod name typ = do
   case maybeFunc of
     Nothing -> Core.addFunction mod name typ
     Just func -> return $ let t = V.typeOf func
-                          in if T.elementTypeDyn t /= T.toAnyType typ
+                          in if T.elementTypeDyn t /= T.anyType typ
                              then C.bitCast func (T.pointer typ)
                              else func
 

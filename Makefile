@@ -41,6 +41,8 @@ install: setup
 	./setup install
 
 clean:
+	-$(MAKE) -C examples clean
+	-$(MAKE) -C tests clean
 	-rm -f Setup.hi Setup.hi
 	-./setup clean
 
