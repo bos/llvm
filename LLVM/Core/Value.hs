@@ -1,6 +1,7 @@
 {-# LANGUAGE
     DeriveDataTypeable
   , ExistentialQuantification
+  , FlexibleContexts
   , FunctionalDependencies
   , MultiParamTypeClasses
   , UndecidableInstances
@@ -81,13 +82,6 @@ class (T.Type t, Value v) => TypedValue v t | v -> t where
 data AnyValue = forall a. Value a => AnyValue a
                 deriving (Typeable)
 
-instance DynamicValue AnyValue where
-    fromAnyValue = id
-
-instance Value FFI.ValueRef where
-    valueRef = id
-    anyValue = AnyValue
-
 mkAnyValue :: Value a => a -> AnyValue
 mkAnyValue = AnyValue
 
@@ -98,10 +92,6 @@ class Arithmetic a => Real a
 class Arithmetic a => Vector a
 class ConstValue a => GlobalValue a
 class GlobalValue a => GlobalVariable a
-
-instance Value AnyValue where
-    valueRef (AnyValue a) = valueRef a
-    anyValue = id
 
 instance ConstValue AnyValue
 instance GlobalValue AnyValue
@@ -140,9 +130,6 @@ fromAny _ _ = error "LLVM.Core.Value.fromAny: empty list"
 globalVarType :: GlobalVar t -> t
 globalVarType _ = undefined
 
-instance T.Type t => TypedValue (GlobalVar t) t where
-    typeOf = globalVarType
-
 data Function r p = Function {
       fromFunction :: AnyValue
     }
@@ -152,146 +139,17 @@ instance ConstValue (Function r p)
 instance GlobalValue (Function r p)
 instance GlobalVariable (Function r p)
 
-instance DynamicValue (Function r p) where
-    fromAnyValue = Function
-
-instance Value (Function r p) where
-    valueRef = valueRef . anyValue
-    anyValue = fromFunction
-
 newtype Argument t = Argument AnyValue
     deriving (DynamicValue, Typeable, Value)
-
-instance (T.DynamicType r, T.Params p) => TypedValue (Function r p) (T.Function r p) where
-    typeOf _ = T.function undefined undefined
-
-instance (Params b c) => Params (a :-> b) (Argument a :-> c) where
-    fromAnyList t (x:xs) = let (y,ys) = fromAnyList (T.cdr t) xs
-                           in (Argument x :-> y,ys)
-    fromAnyList _ _ = error "LLVM.Core.Value.fromAnyList(:->): empty list"
 
 newtype ConstInt t = ConstInt AnyValue
     deriving (Arithmetic, ConstValue, DynamicValue, Integer, Typeable, Value)
 
-instance TypedValue (ConstInt T.Int1) T.Int1 where
-    typeOf = T.int1
-
-instance TypedValue (Argument T.Int1) T.Int1 where
-    typeOf = T.int1
-
-instance TypedValue (Instruction T.Int1) T.Int1 where
-    typeOf = T.int1
-
-instance Params T.Int1 (Argument T.Int1) where
-    fromAnyList = fromAny
-
-instance TypedValue (ConstInt T.Int8) T.Int8 where
-    typeOf = T.int8
-
-instance TypedValue (Argument T.Int8) T.Int8 where
-    typeOf = T.int8
-
-instance TypedValue (Instruction T.Int8) T.Int8 where
-    typeOf = T.int8
-
-instance Params T.Int8 (Argument T.Int8) where
-    fromAnyList = fromAny
-
-instance TypedValue (ConstInt T.Int16) T.Int16 where
-    typeOf = T.int16
-
-instance TypedValue (Argument T.Int16) T.Int16 where
-    typeOf = T.int16
-
-instance Params T.Int16 (Argument T.Int16) where
-    fromAnyList = fromAny
-
-instance TypedValue (ConstInt T.Int32) T.Int32 where
-    typeOf = T.int32
-
-instance TypedValue (Argument T.Int32) T.Int32 where
-    typeOf = T.int32
-
-instance TypedValue (Instruction T.Int32) T.Int32 where
-    typeOf = T.int32
-
-instance Params T.Int32 (Argument T.Int32) where
-    fromAnyList = fromAny
-
-instance TypedValue (ConstInt T.Int64) T.Int64 where
-    typeOf = T.int64
-
-instance TypedValue (Argument T.Int64) T.Int64 where
-    typeOf = T.int64
-
-instance TypedValue (Instruction T.Int64) T.Int64 where
-    typeOf = T.int64
-
-instance Params T.Int64 (Argument T.Int64) where
-    fromAnyList = fromAny
-
 newtype ConstArray t = ConstArray AnyValue
     deriving (ConstValue, DynamicValue, Typeable, Value)
 
-instance (T.DynamicType a) => TypedValue (ConstArray a) (T.Array a) where
-    typeOf _ = T.array undefined 0
-
-instance (T.DynamicType t) => TypedValue (Instruction (T.Array t)) (T.Array t) where
-    typeOf _ = T.array undefined 0
-
-instance (T.DynamicType t) => TypedValue (Instruction (T.Pointer t)) (T.Pointer t) where
-    typeOf _ = T.pointer undefined
-
-instance (T.DynamicType t) => Params (T.Pointer t) (Instruction (T.Pointer t)) where
-    fromAnyList = fromAny
-
 newtype ConstReal t = ConstReal AnyValue
     deriving (Arithmetic, ConstValue, DynamicValue, Real, Typeable, Value)
-
-instance TypedValue (ConstReal T.Float) T.Float where
-    typeOf = T.float
-
-instance TypedValue (Argument T.Float) T.Float where
-    typeOf = T.float
-
-instance Params T.Float (Argument T.Float) where
-    fromAnyList = fromAny
-
-instance TypedValue (ConstReal T.Double) T.Double where
-    typeOf = T.double
-
-instance TypedValue (Argument T.Double) T.Double where
-    typeOf = T.double
-
-instance Params T.Double (Argument T.Double) where
-    fromAnyList = fromAny
-
-instance TypedValue (ConstReal T.X86Float80) T.X86Float80 where
-    typeOf = T.x86Float80
-
-instance TypedValue (Argument T.X86Float80) T.X86Float80 where
-    typeOf = T.x86Float80
-
-instance Params T.X86Float80 (Argument T.X86Float80) where
-    fromAnyList = fromAny
-
-instance TypedValue (ConstReal T.Float128) T.Float128 where
-    typeOf = T.float128
-
-instance TypedValue (Argument T.Float128) T.Float128 where
-    typeOf = T.float128
-
-instance Params T.Float128 (Argument T.Float128) where
-    fromAnyList = fromAny
-
-instance TypedValue (ConstReal T.PPCFloat128) T.PPCFloat128 where
-    typeOf = T.ppcFloat128
-
-instance TypedValue (Argument T.PPCFloat128) T.PPCFloat128 where
-    typeOf = T.ppcFloat128
-
-instance Params T.PPCFloat128 (Argument T.PPCFloat128) where
-    fromAnyList = fromAny
 
 countParams :: Function r p -> Int
 countParams = fromIntegral . FFI.countParams . valueRef
@@ -310,3 +168,103 @@ params f = case fromAnyList (T.params (typeOf f)) (listParams f) of
 
 typeOfDyn :: Value a => a -> T.AnyType
 typeOfDyn val = unsafePerformIO $ T.mkAnyType <$> FFI.typeOf (valueRef val)
+
+--
+--
+-- Handcrafted typeclass instances.
+--
+--
+
+--
+-- DynamicValue
+--
+
+instance DynamicValue AnyValue where
+    fromAnyValue = id
+
+instance DynamicValue (Function r p) where
+    fromAnyValue = Function
+
+--
+-- Params
+--
+
+instance (Params b c) => Params (a :-> b) (Argument a :-> c) where
+    fromAnyList t (x:xs) = let (y,ys) = fromAnyList (T.cdr t) xs
+                           in (Argument x :-> y,ys)
+    fromAnyList _ _ = error "LLVM.Core.Value.fromAnyList(:->): empty list"
+
+instance (T.DynamicType t) => Params (T.Pointer t) (Instruction (T.Pointer t)) where fromAnyList = fromAny
+instance (T.DynamicType t) => Params (T.Vector t) (Instruction (T.Vector t)) where fromAnyList = fromAny
+instance Params T.Double (Argument T.Double) where fromAnyList = fromAny
+instance Params T.Float (Argument T.Float) where fromAnyList = fromAny
+instance Params T.Float128 (Argument T.Float128) where fromAnyList = fromAny
+instance Params T.Int1 (Argument T.Int1) where fromAnyList = fromAny
+instance Params T.Int16 (Argument T.Int16) where fromAnyList = fromAny
+instance Params T.Int32 (Argument T.Int32) where fromAnyList = fromAny
+instance Params T.Int64 (Argument T.Int64) where fromAnyList = fromAny
+instance Params T.Int8 (Argument T.Int8) where fromAnyList = fromAny
+instance Params T.PPCFloat128 (Argument T.PPCFloat128) where fromAnyList = fromAny
+instance Params T.X86Float80 (Argument T.X86Float80) where fromAnyList = fromAny
+
+
+
+--
+-- TypedValue
+--
+
+instance TypedValue (Argument T.Float) T.Float where typeOf = T.float
+instance TypedValue (Argument T.Double) T.Double where typeOf = T.double
+instance TypedValue (Argument T.Float128) T.Float128 where typeOf = T.float128
+instance TypedValue (Argument T.PPCFloat128) T.PPCFloat128 where typeOf = T.ppcFloat128
+instance TypedValue (Argument T.X86Float80) T.X86Float80 where typeOf = T.x86Float80
+instance TypedValue (Argument T.Int1) T.Int1 where typeOf = T.int1
+instance TypedValue (Argument T.Int8) T.Int8 where typeOf = T.int8
+instance TypedValue (Argument T.Int16) T.Int16 where typeOf = T.int16
+instance TypedValue (Argument T.Int32) T.Int32 where typeOf = T.int32
+instance TypedValue (Argument T.Int64) T.Int64 where typeOf = T.int64
+instance TypedValue (ConstInt T.Int1) T.Int1 where typeOf = T.int1
+instance TypedValue (ConstInt T.Int8) T.Int8 where typeOf = T.int8
+instance TypedValue (ConstInt T.Int16) T.Int16 where typeOf = T.int16
+instance TypedValue (ConstInt T.Int32) T.Int32 where typeOf = T.int32
+instance TypedValue (ConstInt T.Int64) T.Int64 where typeOf = T.int64
+instance TypedValue (ConstReal T.Float) T.Float where typeOf = T.float
+instance TypedValue (ConstReal T.Double) T.Double where typeOf = T.double
+instance TypedValue (ConstReal T.Float128) T.Float128 where typeOf = T.float128
+instance TypedValue (ConstReal T.PPCFloat128) T.PPCFloat128 where typeOf = T.ppcFloat128
+instance TypedValue (ConstReal T.X86Float80) T.X86Float80 where typeOf = T.x86Float80
+instance TypedValue (Instruction T.Float) T.Float where typeOf = T.float
+instance TypedValue (Instruction T.Double) T.Double where typeOf = T.double
+instance TypedValue (Instruction T.Float128) T.Float128 where typeOf = T.float128
+instance TypedValue (Instruction T.PPCFloat128) T.PPCFloat128 where typeOf = T.ppcFloat128
+instance TypedValue (Instruction T.X86Float80) T.X86Float80 where typeOf = T.x86Float80
+instance TypedValue (Instruction T.Int1) T.Int1 where typeOf = T.int1
+instance TypedValue (Instruction T.Int8) T.Int8 where typeOf = T.int8
+instance TypedValue (Instruction T.Int16) T.Int16 where typeOf = T.int16
+instance TypedValue (Instruction T.Int32) T.Int32 where typeOf = T.int32
+instance TypedValue (Instruction T.Int64) T.Int64 where typeOf = T.int64
+
+
+instance (T.DynamicType r, T.Params p) => TypedValue (Function r p) (T.Function r p) where typeOf _ = T.function undefined undefined
+instance (T.DynamicType t) => TypedValue (ConstArray t) (T.Array t) where typeOf _ = T.array undefined 0
+instance (T.DynamicType t) => TypedValue (Instruction (T.Array t)) (T.Array t) where typeOf _ = T.array undefined 0
+instance (T.DynamicType t) => TypedValue (Instruction (T.Pointer t)) (T.Pointer t) where typeOf _ = T.pointer undefined
+instance (T.DynamicType t) => TypedValue (Instruction (T.Vector t)) (T.Vector t) where typeOf _ = T.vector undefined 1
+instance (T.Type t) => TypedValue (GlobalVar t) t where typeOf = globalVarType
+
+--
+-- Value
+--
+
+instance Value AnyValue where
+    valueRef (AnyValue a) = valueRef a
+    anyValue = id
+
+instance Value (Function r p) where
+    valueRef = valueRef . anyValue
+    anyValue = fromFunction
+
+instance Value FFI.ValueRef where
+    valueRef = id
+    anyValue = AnyValue
+

@@ -29,6 +29,10 @@ configure: configure.ac
 examples:
 	$(MAKE) -C examples
 
+.PHONY: tests
+tests:
+	$(MAKE) -C tests
+
 sdist: dist/setup-config
 	./setup sdist
 
