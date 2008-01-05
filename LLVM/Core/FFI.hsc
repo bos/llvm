@@ -8,6 +8,9 @@ module LLVM.Core.FFI
     , moduleCreateWithName
     , disposeModule
 
+    , getDataLayout
+    , setDataLayout
+
     -- * Module providers
     , ModuleProvider
     , ModuleProviderRef
@@ -218,6 +221,12 @@ foreign import ccall unsafe "LLVMModuleCreateWithName" moduleCreateWithName
 
 foreign import ccall unsafe "LLVMDisposeModule" disposeModule
     :: ModuleRef -> IO ()
+
+foreign import ccall unsafe "LLVMGetDataLayout" getDataLayout
+    :: ModuleRef -> IO CString
+
+foreign import ccall unsafe "LLVMSetDataLayout" setDataLayout
+    :: ModuleRef -> CString -> IO ()
 
 
 data ModuleProvider
