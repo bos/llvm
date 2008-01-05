@@ -43,6 +43,7 @@ module LLVM.Core.Value
 
     -- * ???
     , Linkage(..)
+    , Visibility(..)
 
     -- * Functions
     , params
@@ -195,6 +196,12 @@ data Linkage =
   | ExternalWeak -- ^ ExternalWeak linkage description
   | Ghost        -- ^ Stand-in functions for streaming fns from bitcode
     deriving (Eq, Ord, Enum, Show)
+
+data Visibility =
+      Default
+    | Hidden
+    | Protected
+      deriving (Eq, Ord, Enum, Show)
 
 getCallingConvention :: Function r p -> IO FFI.CallingConvention
 getCallingConvention func =
