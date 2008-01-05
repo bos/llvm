@@ -1,6 +1,6 @@
 ghc := ghc
 ghcflags := -O -Wall -Werror
-tools := IntrinsicMangler
+tools := FunctionMangler IntrinsicMangler
 
 all: $(tools)
 
