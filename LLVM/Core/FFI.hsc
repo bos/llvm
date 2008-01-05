@@ -84,11 +84,16 @@ module LLVM.Core.FFI
     , getParams
     , getParam
     , getIntrinsicID
-    , getFunctionCallConv
-    , setFunctionCallConv
     , getCollector
     , setCollector
       
+    -- ** Calling conventions
+    , CallingConvention(..)
+    , fromCallingConvention
+    , toCallingConvention
+    , getFunctionCallConv
+    , setFunctionCallConv
+
     -- * Constants
 
     -- ** Scalar constants
@@ -398,6 +403,29 @@ foreign import ccall unsafe "LLVMGetParams" getParams
 foreign import ccall unsafe "LLVMGetIntrinsicID" getIntrinsicID
     :: ValueRef                 -- ^ function
     -> CUInt
+
+data CallingConvention = C
+                       | Fast
+                       | Cold
+                       | X86StdCall
+                       | X86FastCall
+                         deriving (Eq, Show)
+
+fromCallingConvention :: CallingConvention -> CUInt
+fromCallingConvention C = (#const LLVMCCallConv)
+fromCallingConvention Fast = (#const LLVMFastCallConv)
+fromCallingConvention Cold = (#const LLVMColdCallConv)
+fromCallingConvention X86StdCall = (#const LLVMX86FastcallCallConv)
+fromCallingConvention X86FastCall = (#const LLVMX86StdcallCallConv)
+
+toCallingConvention :: CUInt -> CallingConvention
+toCallingConvention c | c == (#const LLVMCCallConv) = C
+toCallingConvention c | c == (#const LLVMFastCallConv) = Fast
+toCallingConvention c | c == (#const LLVMColdCallConv) = Cold
+toCallingConvention c | c == (#const LLVMX86StdcallCallConv) = X86StdCall
+toCallingConvention c | c == (#const LLVMX86FastcallCallConv) = X86FastCall
+toCallingConvention c = error $ "LLVM.Core.FFI.toCallingConvention: " ++
+                                "unsupported calling convention" ++ show c
 
 foreign import ccall unsafe "LLVMGetFunctionCallConv" getFunctionCallConv
     :: ValueRef                 -- ^ function

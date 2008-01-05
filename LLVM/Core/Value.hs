@@ -41,8 +41,15 @@ module LLVM.Core.Value
     , ConstReal(..)
     , ConstArray(..)
 
-    -- ** Useful functions
+    -- * Functions
     , params
+    , intrinsic
+    , getCallingConvention
+    , setCallingConvention
+    , getCollector
+    , setCollector
+
+    -- * Useful functions
     , getName
     , setName
     , dumpValue
@@ -60,6 +67,7 @@ import qualified LLVM.Core.FFI as FFI
 #ifndef __HADDOCK__
 import LLVM.Core.Type ((:->)(..))
 #endif
+import qualified LLVM.Core.Intrinsics as I
 import qualified LLVM.Core.Type as T
 
 -- import Debug.Trace
@@ -167,6 +175,25 @@ params :: (T.DynamicType r, T.Params p, Params p v) => Function r p -> v
 params f = case fromAnyList (T.params (typeOf f)) (listParams f) of
              (p, []) -> p
              _ -> error "LLVM.Core.Value.params: incompletely consumed params"
+
+intrinsic :: Function r p -> Maybe I.Intrinsic
+intrinsic func = case FFI.getIntrinsicID (valueRef func) of
+                   i | i == 0 -> Nothing
+                     | otherwise -> Just . toEnum . fromIntegral $ i
+
+getCallingConvention :: Function r p -> IO FFI.CallingConvention
+getCallingConvention func =
+    FFI.toCallingConvention <$> FFI.getFunctionCallConv (valueRef func)
+
+setCallingConvention :: Function r p -> FFI.CallingConvention -> IO ()
+setCallingConvention func cc =
+    FFI.setFunctionCallConv (valueRef func) (FFI.fromCallingConvention cc)
+
+getCollector :: Function r p -> IO String
+getCollector func = FFI.getCollector (valueRef func) >>= peekCString
+
+setCollector :: Function r p -> String -> IO ()
+setCollector func name = withCString name (FFI.setCollector (valueRef func))
 
 typeOfDyn :: Value a => a -> T.AnyType
 typeOfDyn val = unsafePerformIO $ T.mkAnyType <$> FFI.typeOf (valueRef val)
