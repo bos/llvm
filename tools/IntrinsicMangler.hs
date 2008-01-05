@@ -15,7 +15,8 @@ main = do
   input <- (catMaybes . map maybeName . C.lines) `fmap` C.getContents
 
   putStrLn "-- automatically generated file - do not edit!"
-  putStrLn "module LLVM.Core.Intrinsics (Intrinsic(..), toIntrinsic, fromIntrinsic) where"
+  putStrLn "module LLVM.Core.Intrinsics (Intrinsic(..)) where"
   putStrLn "data Intrinsic ="
+  putStrLn "      NotIntrinsic"
   forM_ input $ C.putStrLn . (C.append (C.pack "    | I_"))
   putStrLn "    deriving (Eq, Ord, Enum, Show)"

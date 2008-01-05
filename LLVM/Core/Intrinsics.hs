@@ -1,6 +1,7 @@
 -- automatically generated file - do not edit!
-module LLVM.Core.Intrinsics (Intrinsic(..), toIntrinsic, fromIntrinsic) where
+module LLVM.Core.Intrinsics (Intrinsic(..)) where
 data Intrinsic =
+      NotIntrinsic
     | I_annotation
     | I_arm_thread_pointer
     | I_bswap
