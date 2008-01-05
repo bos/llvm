@@ -83,7 +83,9 @@ module LLVM.Core.Type
     -- *** Type hackery
     , functionParams
     , Params(..)
+#ifndef __HADDOCK__
     , (:->)(..)
+#endif
     , car
     , cdr
 
@@ -236,13 +238,16 @@ functionParams _ = undefined
 functionResult :: Function r p -> r
 functionResult _ = undefined
 
+#ifndef __HADDOCK__
 data a :-> b = a :-> b
 infixr 6 :->
 
 car :: (a :-> b) -> a
+cdr :: (a :-> b) -> b
+#endif
+
 car _ = undefined
 
-cdr :: (a :-> b) -> b
 cdr _ = undefined
 
 int1 :: a -> Int1
@@ -480,11 +485,13 @@ instance Params AnyType where
     toAnyList a = [toAnyType a]
     fromAnyList = fromAny
 
+#ifndef __HADDOCK__
 instance (DynamicType a, HasAnyType a, Params b) => Params (a :-> b) where
     toAnyList a = toAnyType (car a) : toAnyList (cdr a)
     fromAnyList (x:xs) = let (y,ys) = fromAnyList xs
                          in (fromAnyType x :-> y,ys)
     fromAnyList _ = error "LLVM.Core.Type.fromAnyList(:->): empty list"
+#endif
 
 instance DynamicType p => Params (Function r p) where
     toAnyList a = [toAnyType (functionParams a)]
@@ -535,7 +542,9 @@ instance (Show t, Type t) => Show (Array t) where show a = "Array " ++ show (arr
 instance (Show t, Type t) => Show (Pointer t) where show a = "Pointer " ++ show (pointerElementType a)
 instance (Show a) => Show (Vector a) where show a = "Vector " ++ show (vectorElementType a)
 instance (Show r, Show p, Params p) => Show (Function r p) where show a = "Function " ++ show (functionResult a) ++ " " ++ show (params a)
+#ifndef __HADDOCK__
 instance (Show a, Show b) => Show (a :-> b) where show a = show (car a) ++ " :-> " ++ show (cdr a)
+#endif
 
 --
 -- Type

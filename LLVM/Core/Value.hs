@@ -57,7 +57,9 @@ import Prelude hiding (Integer, Real)
 import System.IO.Unsafe (unsafePerformIO)
 
 import qualified LLVM.Core.FFI as FFI
+#ifndef __HADDOCK__
 import LLVM.Core.Type ((:->)(..))
+#endif
 import qualified LLVM.Core.Type as T
 
 -- import Debug.Trace
@@ -200,10 +202,12 @@ instance Params T.Float128 (Argument T.Float128) where fromAnyList = fromAny
 instance Params T.PPCFloat128 (Argument T.PPCFloat128) where fromAnyList = fromAny
 instance Params T.X86Float80 (Argument T.X86Float80) where fromAnyList = fromAny
 
+#ifndef __HADDOCK__
 instance (Params b c) => Params (a :-> b) (Argument a :-> c) where
     fromAnyList t (x:xs) = let (y,ys) = fromAnyList (T.cdr t) xs
                            in (Argument x :-> y,ys)
     fromAnyList _ _ = error "LLVM.Core.Value.fromAnyList(:->): empty list"
+#endif
 
 instance (T.DynamicType t) => Params (T.Pointer t) (Instruction (T.Pointer t)) where fromAnyList = fromAny
 instance (T.DynamicType t, T.Primitive t) => Params (T.Vector t) (Instruction (T.Vector t)) where fromAnyList = fromAny
@@ -272,4 +276,3 @@ instance Value (Function r p) where
 instance Value FFI.ValueRef where
     valueRef = id
     anyValue = AnyValue
-

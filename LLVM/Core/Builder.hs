@@ -99,7 +99,9 @@ import qualified LLVM.Core.FFI as FFI
 import qualified LLVM.Core.Instruction as I
 import qualified LLVM.Core.Type as T
 import qualified LLVM.Core.Value as V
+#ifndef __HADDOCK__
 import LLVM.Core.Type ((:->)(..))
+#endif
 import LLVM.Core.Value (Instruction(..))
 
 
@@ -421,8 +423,10 @@ class Params t v | t -> v where
 listValue :: (V.TypedValue v t) => t -> v -> [V.AnyValue]
 listValue _ v = [V.anyValue v]
 
+#ifndef __HADDOCK__
 instance (V.TypedValue v a, Params b c) => Params (a :-> b) (v :-> c) where
     toAnyList t (a :-> b) = V.anyValue a : toAnyList (T.cdr t) b
+#endif
 
 instance (V.TypedValue v T.Int32) => Params T.Int32 v where
     toAnyList = listValue

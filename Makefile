@@ -33,6 +33,9 @@ examples:
 tests:
 	$(MAKE) -C tests
 
+doc haddock: dist/setup-config
+	./setup haddock
+
 sdist: dist/setup-config
 	./setup sdist
 
