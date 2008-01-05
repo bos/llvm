@@ -68,13 +68,22 @@ module LLVM.Core.FFI
     -- * Values
     , Value
     , ValueRef
-    , addGlobal
-    , deleteGlobal
-    , setInitializer
     , typeOf
     , getValueName
     , setValueName
     , dumpValue
+
+    -- ** Global variables
+    , addGlobal
+    , getNamedGlobal
+    , deleteGlobal
+    , hasInitializer
+    , getInitializer
+    , setInitializer
+    , isThreadLocal
+    , setThreadLocal
+    , isGlobalConstant
+    , setGlobalConstant
 
     -- ** Functions
     , addFunction
@@ -358,6 +367,27 @@ foreign import ccall unsafe "LLVMDeleteGlobal" deleteGlobal
 
 foreign import ccall unsafe "LLVMSetInitializer" setInitializer
     :: ValueRef -> ValueRef -> IO ()
+
+foreign import ccall unsafe "LLVMGetNamedGlobal" getNamedGlobal
+    :: ModuleRef -> CString -> IO ValueRef
+
+foreign import ccall unsafe "LLVMHasInitializer" hasInitializer
+    :: ValueRef -> IO CInt
+
+foreign import ccall unsafe "LLVMGetInitializer" getInitializer
+    :: ValueRef -> IO ValueRef
+
+foreign import ccall unsafe "LLVMIsThreadLocal" isThreadLocal
+    :: ValueRef -> IO CInt
+
+foreign import ccall unsafe "LLVMSetThreadLocal" setThreadLocal
+    :: ValueRef -> CInt -> IO ()
+
+foreign import ccall unsafe "LLVMIsGlobalConstant" isGlobalConstant
+    :: ValueRef -> IO CInt
+
+foreign import ccall unsafe "LLVMSetGlobalConstant" setGlobalConstant
+    :: ValueRef -> CInt -> IO ()
 
 foreign import ccall unsafe "LLVMTypeOf" typeOf
     :: ValueRef -> IO TypeRef
