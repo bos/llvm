@@ -23,6 +23,11 @@ extra-source-files:
     examples/HelloJIT.hs
     examples/HowToUseJIT.hs
     examples/Makefile
+    tests/Makefile
+    tests/TestType.hs
+    tests/TestValue.hs
+    tools/Makefile
+    tools/IntrinsicMangler.hs
     llvm.buildinfo.in
 
 extra-tmp-files:
@@ -61,6 +66,7 @@ library
       LLVM.Core.Builder
       LLVM.Core.Constant
       LLVM.Core.Instruction
+      LLVM.Core.Intrinsics
       LLVM.Core.Type
       LLVM.Core.Utils
       LLVM.Core.Value
