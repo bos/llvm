@@ -1,4 +1,4 @@
-module FunctionMangler (main) where
+--module FunctionMangler (main) where
 
 import Control.Monad (forM)
 import Data.Char (isSpace, toLower)
@@ -28,7 +28,7 @@ dropName s =
 
 rewrite :: String -> [[String]]
 rewrite s = do
-  let pat = "^([A-Za-z0-9_ ]+ ?\\*?)[ \t\n]+LLVM([A-Za-z0-9_]+)\\(([a-zA-Z0-9_*, \t\n]+)\\);"
+  let pat = "^([A-Za-z0-9_ ]+ ?\\*?)[ \t\n]*LLVM([A-Za-z0-9_]+)\\(([a-zA-Z0-9_*, \t\n]+)\\);"
   matches <- s =~~ pat
   forM matches $ \(_:ret:name:params:_) -> do
     let retType = "IO " ++ renameType ret
@@ -38,4 +38,4 @@ rewrite s = do
              "\n    :: " ++ intercalate " -> " (ps ++ [retType])
 
 main :: IO ()
-main = interact (concat . intercalate ["\n\n"] . rewrite)
+main = interact (intercalate "\n\n" . concat . rewrite) >> putStr "\n"

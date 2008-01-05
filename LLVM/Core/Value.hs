@@ -41,6 +41,9 @@ module LLVM.Core.Value
     , ConstReal(..)
     , ConstArray(..)
 
+    -- * ???
+    , Linkage(..)
+
     -- * Functions
     , params
     , intrinsic
@@ -180,6 +183,18 @@ intrinsic :: Function r p -> Maybe I.Intrinsic
 intrinsic func = case FFI.getIntrinsicID (valueRef func) of
                    i | i == 0 -> Nothing
                      | otherwise -> Just . toEnum . fromIntegral $ i
+
+data Linkage =
+    External     -- ^ Externally visible function
+  | LinkOnce     -- ^ Keep one copy of function when linking (inline)
+  | Weak         -- ^ Keep one copy of function when linking (weak)
+  | Appending    -- ^ Special purpose, only applies to global arrays
+  | Internal     -- ^ Rename collisions when linking (static functions)
+  | DLLImport    -- ^ Function to be imported from DLL
+  | DLLExport    -- ^ Function to be accessible from DLL
+  | ExternalWeak -- ^ ExternalWeak linkage description
+  | Ghost        -- ^ Stand-in functions for streaming fns from bitcode
+    deriving (Eq, Ord, Enum, Show)
 
 getCallingConvention :: Function r p -> IO FFI.CallingConvention
 getCallingConvention func =

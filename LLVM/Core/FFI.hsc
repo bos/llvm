@@ -73,6 +73,19 @@ module LLVM.Core.FFI
     , setValueName
     , dumpValue
 
+    -- ** Global variables, functions, and aliases (globals)
+    , Linkage
+    , Visibility
+    , isDeclaration
+    , getLinkage
+    , setLinkage
+    , getSection
+    , setSection
+    , getVisibility
+    , setVisibility
+    , getAlignment
+    , setAlignment
+      
     -- ** Global variables
     , addGlobal
     , getNamedGlobal
@@ -474,6 +487,37 @@ foreign import ccall unsafe "LLVMSetCollector" setCollector
     :: ValueRef                 -- ^ function
     -> CString
     -> IO ()
+
+foreign import ccall unsafe "LLVMIsDeclaration" isDeclaration
+    :: ValueRef -> IO CInt
+
+type Linkage = CUInt
+
+foreign import ccall unsafe "LLVMGetLinkage" getLinkage
+    :: ValueRef -> IO Linkage
+
+foreign import ccall unsafe "LLVMSetLinkage" setLinkage
+    :: ValueRef -> Linkage -> IO ()
+
+foreign import ccall unsafe "LLVMGetSection" getSection
+    :: ValueRef -> IO CString
+
+foreign import ccall unsafe "LLVMSetSection" setSection
+    :: ValueRef -> CString -> IO ()
+
+type Visibility = CUInt
+
+foreign import ccall unsafe "LLVMGetVisibility" getVisibility
+    :: ValueRef -> IO Visibility
+
+foreign import ccall unsafe "LLVMSetVisibility" setVisibility
+    :: ValueRef -> Visibility -> IO ()
+
+foreign import ccall unsafe "LLVMGetAlignment" getAlignment
+    :: ValueRef -> IO CUInt
+
+foreign import ccall unsafe "LLVMSetAlignment" setAlignment
+    :: ValueRef -> CUInt -> IO ()
 
 
 foreign import ccall unsafe "LLVMConstInt" constInt
