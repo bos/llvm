@@ -139,10 +139,15 @@ module LLVM.Core.FFI
     -- * Basic blocks
     , BasicBlock
     , BasicBlockRef
+    , basicBlockAsValue
+    , valueIsBasicBlock
+    , valueAsBasicBlock
+    , countBasicBlocks
+    , getBasicBlocks
+    , getEntryBasicBlock
     , appendBasicBlock
     , insertBasicBlock
     , deleteBasicBlock
-    , getEntryBasicBlock
 
     -- * Instruction building
     , Builder
@@ -533,17 +538,41 @@ foreign import ccall unsafe "LLVMConstShuffleVector" constShuffleVector
 type BasicBlock = Value
 type BasicBlockRef = Ptr BasicBlock
 
+foreign import ccall unsafe "LLVMBasicBlockAsValue" basicBlockAsValue
+    :: BasicBlockRef -> ValueRef
+
+foreign import ccall unsafe "LLVMValueIsBasicBlock" valueIsBasicBlock
+    :: ValueRef -> Bool
+
+foreign import ccall unsafe "LLVMValueAsBasicBlock" valueAsBasicBlock
+    :: ValueRef                 -- ^ basic block
+    -> BasicBlockRef
+
+foreign import ccall unsafe "LLVMCountBasicBlocks" countBasicBlocks
+    :: ValueRef                 -- ^ function
+    -> IO CUInt
+
+foreign import ccall unsafe "LLVMGetBasicBlocks" getBasicBlocks
+    :: ValueRef                 -- ^ function
+    -> Ptr BasicBlockRef        -- ^ array to fill out
+    -> IO ()
+
+foreign import ccall unsafe "LLVMGetEntryBasicBlock" getEntryBasicBlock
+    :: ValueRef                 -- ^ function
+    -> IO BasicBlockRef
+
 foreign import ccall unsafe "LLVMAppendBasicBlock" appendBasicBlock
-    :: ValueRef -> CString -> IO BasicBlockRef
+    :: ValueRef                 -- ^ function
+    -> CString                  -- ^ name for label
+    -> IO BasicBlockRef
 
 foreign import ccall unsafe "LLVMInsertBasicBlock" insertBasicBlock
-    :: BasicBlockRef -> CString -> IO BasicBlockRef
+    :: BasicBlockRef            -- ^ insert before this one
+    -> CString                  -- ^ name for label
+    -> IO BasicBlockRef
 
 foreign import ccall unsafe "LLVMDeleteBasicBlock" deleteBasicBlock
     :: BasicBlockRef -> IO ()
-
-foreign import ccall unsafe "LLVMGetEntryBasicBlock" getEntryBasicBlock
-    :: ValueRef -> IO BasicBlockRef
 
 data Builder
 type BuilderRef = Ptr Builder
