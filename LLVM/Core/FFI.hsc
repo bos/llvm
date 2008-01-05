@@ -67,11 +67,16 @@ module LLVM.Core.FFI
 
     -- ** Functions
     , addFunction
-    , deleteFunction
     , getNamedFunction
+    , deleteFunction
     , countParams
-    , getParam
     , getParams
+    , getParam
+    , getIntrinsicID
+    , getFunctionCallConv
+    , setFunctionCallConv
+    , getCollector
+    , setCollector
       
     -- * Constants
 
@@ -346,22 +351,56 @@ foreign import ccall unsafe "LLVMDumpValue" dumpValue
     :: ValueRef -> IO ()
 
 foreign import ccall unsafe "LLVMGetNamedFunction" getNamedFunction
-    :: ModuleRef -> CString -> IO ValueRef
+    :: ModuleRef                -- ^ module
+    -> CString                  -- ^ name
+    -> IO ValueRef              -- ^ function (@nullPtr@ if not found)
 
 foreign import ccall unsafe "LLVMAddFunction" addFunction
-    :: ModuleRef -> CString -> TypeRef -> IO ValueRef
+    :: ModuleRef                -- ^ module
+    -> CString                  -- ^ name
+    -> TypeRef                  -- ^ type
+    -> IO ValueRef
 
 foreign import ccall unsafe "LLVMDeleteFunction" deleteFunction
-    :: ValueRef -> IO ()
+    :: ValueRef                 -- ^ function
+    -> IO ()
 
 foreign import ccall unsafe "LLVMCountParams" countParams
-    :: ValueRef -> CUInt
+    :: ValueRef                 -- ^ function
+    -> CUInt
 
 foreign import ccall unsafe "LLVMGetParam" getParam
-    :: ValueRef -> CUInt -> ValueRef
+    :: ValueRef                 -- ^ function
+    -> CUInt                    -- ^ offset into array
+    -> ValueRef
 
 foreign import ccall unsafe "LLVMGetParams" getParams
-    :: ValueRef -> Ptr ValueRef -> IO ()
+    :: ValueRef                 -- ^ function
+    -> Ptr ValueRef             -- ^ array to fill out
+    -> IO ()
+
+foreign import ccall unsafe "LLVMGetIntrinsicID" getIntrinsicID
+    :: ValueRef                 -- ^ function
+    -> CUInt
+
+foreign import ccall unsafe "LLVMGetFunctionCallConv" getFunctionCallConv
+    :: ValueRef                 -- ^ function
+    -> IO CUInt
+
+foreign import ccall unsafe "LLVMSetFunctionCallConv" setFunctionCallConv
+    :: ValueRef                 -- ^ function
+    -> CUInt
+    -> IO ()
+
+foreign import ccall unsafe "LLVMGetCollector" getCollector
+    :: ValueRef                 -- ^ function
+    -> IO CString
+
+foreign import ccall unsafe "LLVMSetCollector" setCollector
+    :: ValueRef                 -- ^ function
+    -> CString
+    -> IO ()
+
 
 foreign import ccall unsafe "LLVMConstInt" constInt
     :: TypeRef -> CULLong -> CInt -> ValueRef
