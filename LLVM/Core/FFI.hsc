@@ -1,5 +1,16 @@
 {-# LANGUAGE EmptyDataDecls #-}
 
+-- |
+-- Module:      LLVM.Core.FFI
+-- Copyright:   Bryan O'Sullivan 2007, 2008
+-- License:     BSD-style (see the file LICENSE)
+--
+-- Maintainer:  bos@serpentine.com
+-- Stability:   experimental
+-- Portability: requires GHC 6.8, LLVM
+--
+-- This module provides direct access to the LLVM C bindings.
+
 module LLVM.Core.FFI
     (
       -- * Modules
