@@ -8,7 +8,7 @@ import System.Exit (exitFailure)
 import System.IO (hPutStrLn, stderr)
 import Text.Regex.Posix ((=~))
 
-import FunctionPattern (pattern)
+import FunctionMangulation (pattern)
 
 functionSet :: String -> String -> S.Set String
 functionSet pat s = foldl' go S.empty (s =~ pat)
