@@ -2,24 +2,25 @@ module DiffFFI (main) where
 
 import Control.Monad (forM_)
 import Data.List (foldl')
-import qualified Data.Set as S
+import qualified Data.Map as M
 import System.Environment (getArgs)
 import System.Exit (exitFailure)
 import System.IO (hPutStrLn, stderr)
 import Text.Regex.Posix ((=~))
 
-import FunctionMangulation (pattern)
+import FunctionMangulation (pattern, rewriteFunction)
 
-functionSet :: String -> String -> S.Set String
-functionSet pat s = foldl' go S.empty (s =~ pat)
-  where go set (_:_:name:_) = S.insert ("LLVM" ++ name) set
-        go set _ = set
+cFunctions :: String -> M.Map String String
+cFunctions s = foldl' go M.empty (s =~ pattern)
+  where go m (_:ret:name:params:_) =
+            M.insert ("LLVM" ++ name) (rewriteFunction ret name params) m
+        go m _ = m
 
-cFunctions :: String -> S.Set String
-cFunctions = functionSet pattern
-
-hsFunctions :: String -> S.Set String
-hsFunctions = functionSet "\"(LLVM)([a-zA-Z0-9_]+)(\")"
+hsFunctions :: String -> M.Map String String
+hsFunctions s = foldl' go M.empty (s =~ pat)
+    where pat = "\"([a-zA-Z0-9_]+)\"[ \t\n]+([a-zA-Z0-9_']+)"
+          go m (_:cname:hsname:_) = M.insert cname hsname m
+          go m _ = m
 
 main :: IO ()
 main = do
@@ -29,9 +30,10 @@ main = do
               c <- cFunctions `fmap` readFile cFile
               hs <- hsFunctions `fmap` readFile hsFile
               putStrLn "In C, not Haskell:"
-              forM_ (S.toAscList $ S.difference c hs) $ putStrLn . ("  "++)
+              forM_ (M.toAscList $ M.difference c hs) $ \(_, hsfunc) ->
+                    putStrLn hsfunc
               putStrLn "In Haskell, not C:"
-              forM_ (S.toAscList $ S.difference hs c) $ putStrLn . ("  "++)
+              forM_ (M.keys $ M.difference hs c) $ putStrLn . ("  "++)
     _ -> do
          hPutStrLn stderr "Usage: "
          exitFailure
