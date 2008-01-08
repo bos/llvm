@@ -73,6 +73,14 @@ module LLVM.Core.FFI
     , setValueName
     , dumpValue
 
+    -- ** Constants
+    , constNull
+    , constAllOnes
+    , getUndef
+    , isConstant
+    , isNull
+    , isUndef
+
     -- ** Global variables, functions, and aliases (globals)
     , Linkage
     , Visibility
@@ -123,7 +131,10 @@ module LLVM.Core.FFI
     , constReal
 
     -- ** Composite constants
+    , constArray
     , constString
+    , constStruct
+    , constVector
 
     -- ** Constant expressions
     , constNeg
@@ -414,6 +425,27 @@ foreign import ccall unsafe "LLVMSetValueName" setValueName
 foreign import ccall unsafe "LLVMDumpValue" dumpValue
     :: ValueRef -> IO ()
 
+foreign import ccall unsafe "LLVMConstAllOnes" constAllOnes
+    :: TypeRef -> IO ValueRef
+
+foreign import ccall unsafe "LLVMConstArray" constArray
+    :: TypeRef -> Ptr ValueRef -> CUInt -> IO ValueRef
+
+foreign import ccall unsafe "LLVMConstNull" constNull
+    :: TypeRef -> IO ValueRef
+
+foreign import ccall unsafe "LLVMIsConstant" isConstant
+    :: ValueRef -> IO CInt
+
+foreign import ccall unsafe "LLVMGetUndef" getUndef
+    :: TypeRef -> IO ValueRef
+
+foreign import ccall unsafe "LLVMIsNull" isNull
+    :: ValueRef -> IO CInt
+
+foreign import ccall unsafe "LLVMIsUndef" isUndef
+    :: ValueRef -> IO CInt
+
 foreign import ccall unsafe "LLVMGetNamedFunction" getNamedFunction
     :: ModuleRef                -- ^ module
     -> CString                  -- ^ name
@@ -528,6 +560,12 @@ foreign import ccall unsafe "LLVMConstReal" constReal
 
 foreign import ccall unsafe "LLVMConstString" constString
     :: CString -> CUInt -> CInt -> ValueRef
+
+foreign import ccall unsafe "LLVMConstStruct" constStruct
+    :: Ptr ValueRef -> CUInt -> CInt -> IO ValueRef
+
+foreign import ccall unsafe "LLVMConstVector" constVector
+    :: Ptr ValueRef -> CUInt -> IO ValueRef
 
 foreign import ccall unsafe "LLVMConstNeg" constNeg
     :: ValueRef -> ValueRef
