@@ -43,7 +43,7 @@ dropName :: String -> String
 dropName s =
     case s =~ "^((const )?[A-Za-z0-9_]+( \\*+)?) ?[A-Za-z0-9]*$" of
       ((_:typ:_):_) -> typ
-      _ -> error $ "dropName: " ++ show s
+      _ -> "{- oops! -} " ++ s
 
 rewriteFunction :: String -> String -> String -> String
 rewriteFunction cret cname cparams =
