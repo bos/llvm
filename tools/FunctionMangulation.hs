@@ -18,16 +18,18 @@ dropSpace :: String -> String
 dropSpace = dropWhile isSpace
 
 renameType :: String -> String
-renameType "int" = "CInt"
-renameType "unsigned" = "CUInt"
-renameType "void" = "()"
-renameType "const char *" = "CString"
-renameType s | "LLVM" `isPrefixOf` s = pointer $ drop 4 s
-             | "*" `isSuffixOf` s = pointer s
-             | otherwise = error $ "cannot handle " ++ show s
-    where pointer p = case reverse p of
-                        ('*':ps) -> "(Ptr " ++ pointer (reverse ps) ++ ")"
-                        _ -> dropSpace p
+renameType t | "LLVM" `isPrefixOf` t = rename' (drop 4 t)
+             | otherwise = rename' t
+  where rename' "int" = "CInt"
+        rename' "unsigned" = "CUInt"
+        rename' "void" = "()"
+        rename' "const char *" = "CString"
+        rename' "char *" = "CString"
+        rename' s | "*" `isSuffixOf` s = pointer s
+                  | otherwise = strip s
+        pointer p = case reverse p of
+                      ('*':ps) -> "(Ptr " ++ rename' (reverse ps) ++ ")"
+                      _ -> p
 
 split :: (a -> Bool) -> [a] -> [[a]]
 split p xs = case break p xs of
