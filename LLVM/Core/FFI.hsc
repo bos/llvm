@@ -22,6 +22,9 @@ module LLVM.Core.FFI
     , getDataLayout
     , setDataLayout
 
+    , getTarget
+    , setTarget
+
     -- * Module providers
     , ModuleProvider
     , ModuleProviderRef
@@ -33,7 +36,9 @@ module LLVM.Core.FFI
     , TypeRef
     , addTypeName
     , deleteTypeName
-    , getElementType
+
+    , getTypeKind
+    , refineAbstractType
 
     -- ** Integer types
     , int1Type
@@ -42,6 +47,7 @@ module LLVM.Core.FFI
     , int32Type
     , int64Type
     , integerType
+    , getIntTypeWidth
 
     -- ** Real types
     , floatType
@@ -64,6 +70,22 @@ module LLVM.Core.FFI
     , arrayType
     , pointerType
     , vectorType
+    , getElementType
+    , getArrayLength
+    , getPointerAddressSpace
+    , getVectorSize
+
+    -- ** Struct types
+    , structType
+    , countStructElementTypes
+    , getStructElementTypes
+    , isPackedStruct
+
+    -- * Type handles
+    , createTypeHandle
+    , refineType
+    , resolveTypeHandle
+    , disposeTypeHandle
 
     -- * Values
     , Value
@@ -117,12 +139,20 @@ module LLVM.Core.FFI
     , getCollector
     , setCollector
       
+    -- ** Phi nodes
+    , addIncoming
+    , countIncoming
+    , getIncomingValue
+    , getIncomingBlock
+
     -- ** Calling conventions
     , CallingConvention(..)
     , fromCallingConvention
     , toCallingConvention
     , getFunctionCallConv
     , setFunctionCallConv
+    , getInstructionCallConv
+    , setInstructionCallConv
 
     -- * Constants
 
@@ -137,6 +167,7 @@ module LLVM.Core.FFI
     , constVector
 
     -- ** Constant expressions
+    , sizeOf
     , constNeg
     , constNot
     , constAdd
@@ -263,7 +294,14 @@ module LLVM.Core.FFI
 
     -- ** Other helpers
     , addCase
-    , addIncoming
+
+    -- * Memory buffers
+    , createMemoryBufferWithContentsOfFile
+    , createMemoryBufferWithSTDIN
+    , disposeMemoryBuffer
+
+    -- * Error handling
+    , disposeMessage
     ) where
 
 import Foreign.C.String (CString)
@@ -852,5 +890,68 @@ foreign import ccall unsafe "LLVMBuildShuffleVector" buildShuffleVector
 foreign import ccall unsafe "LLVMAddCase" addCase
     :: ValueRef -> ValueRef -> BasicBlockRef -> IO ()
 
+foreign import ccall unsafe "LLVMCountIncoming" countIncoming
+    :: ValueRef -> IO CUInt
 foreign import ccall unsafe "LLVMAddIncoming" addIncoming
     :: ValueRef -> Ptr ValueRef -> Ptr ValueRef -> CUInt -> IO ()
+foreign import ccall unsafe "LLVMGetIncomingValue" getIncomingValue
+    :: ValueRef -> CUInt -> IO ValueRef
+foreign import ccall unsafe "LLVMGetIncomingBlock" getIncomingBlock
+    :: ValueRef -> CUInt -> IO BasicBlockRef
+       
+foreign import ccall unsafe "LLVMGetInstructionCallConv" getInstructionCallConv
+    :: ValueRef -> IO CUInt
+foreign import ccall unsafe "LLVMSetInstructionCallConv" setInstructionCallConv
+    :: ValueRef -> CUInt -> IO ()
+
+foreign import ccall unsafe "LLVMStructType" structType
+    :: (Ptr TypeRef) -> CUInt -> CInt -> IO TypeRef
+foreign import ccall unsafe "LLVMCountStructElementTypes"
+    countStructElementTypes :: TypeRef -> IO CUInt
+foreign import ccall unsafe "LLVMGetStructElementTypes" getStructElementTypes
+    :: TypeRef -> (Ptr TypeRef) -> IO ()
+foreign import ccall unsafe "LLVMIsPackedStruct" isPackedStruct
+    :: TypeRef -> IO CInt
+
+data MemoryBuffer
+type MemoryBufferRef = Ptr MemoryBuffer
+
+data TypeHandle
+type TypeHandleRef = Ptr TypeHandle
+
+type TypeKind = CUInt
+
+foreign import ccall unsafe "LLVMCreateMemoryBufferWithContentsOfFile" createMemoryBufferWithContentsOfFile
+    :: CString -> Ptr MemoryBufferRef -> Ptr CString -> IO CInt
+foreign import ccall unsafe "LLVMCreateMemoryBufferWithSTDIN" createMemoryBufferWithSTDIN
+    :: Ptr MemoryBufferRef -> Ptr CString -> IO CInt
+foreign import ccall unsafe "LLVMCreateTypeHandle" createTypeHandle
+    :: TypeRef -> IO TypeHandleRef
+foreign import ccall unsafe "LLVMDisposeMemoryBuffer" disposeMemoryBuffer
+    :: MemoryBufferRef -> IO ()
+foreign import ccall unsafe "LLVMDisposeMessage" disposeMessage
+    :: CString -> IO ()
+foreign import ccall unsafe "LLVMDisposeTypeHandle" disposeTypeHandle
+    :: TypeHandleRef -> IO ()
+foreign import ccall unsafe "LLVMGetArrayLength" getArrayLength
+    :: TypeRef -> IO CUInt
+foreign import ccall unsafe "LLVMGetIntTypeWidth" getIntTypeWidth
+    :: TypeRef -> IO CUInt
+foreign import ccall unsafe "LLVMGetPointerAddressSpace" getPointerAddressSpace
+    :: TypeRef -> IO CUInt
+foreign import ccall unsafe "LLVMGetTarget" getTarget
+    :: ModuleRef -> IO CString
+foreign import ccall unsafe "LLVMGetTypeKind" getTypeKind
+    :: TypeRef -> IO TypeKind
+foreign import ccall unsafe "LLVMGetVectorSize" getVectorSize
+    :: TypeRef -> IO CUInt
+foreign import ccall unsafe "LLVMRefineAbstractType" refineAbstractType
+    :: TypeRef -> TypeRef -> IO ()
+foreign import ccall unsafe "LLVMRefineType" refineType
+    :: TypeRef -> TypeRef -> IO ()
+foreign import ccall unsafe "LLVMResolveTypeHandle" resolveTypeHandle
+    :: TypeHandleRef -> IO TypeRef
+foreign import ccall unsafe "LLVMSetTarget" setTarget
+    :: ModuleRef -> CString -> IO ()
+foreign import ccall unsafe "LLVMSizeOf" sizeOf
+    :: TypeRef -> IO ValueRef
