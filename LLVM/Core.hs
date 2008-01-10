@@ -1,7 +1,7 @@
 {-# LANGUAGE ForeignFunctionInterface #-}
 module LLVM.Core(
     -- * Modules
-    Module, newModule, defineModule, destroyModule,
+    Module, newModule, newNamedModule, defineModule, destroyModule, createModule,
     ModuleProvider, createModuleProviderForExistingModule,
     -- * Instructions
     module LLVM.Core.Instructions,
@@ -14,14 +14,14 @@ module LLVM.Core(
     -- * Code generation
     CodeGenFunction, CodeGenModule,
     -- * Functions
-    Function,newFunction, defineFunction, createFunction,
+    Function, newFunction, newNamedFunction, defineFunction, createFunction,
     -- * Basic blocks
-    BasicBlock, newBasicBlock, defineBasicBlock, createBasicBlock,
+    BasicBlock, newBasicBlock, newNamedBasicBlock, defineBasicBlock, createBasicBlock,
     -- * Debugging
     dumpValue
     ) where
 import qualified LLVM.Core.FFI as FFI
-import LLVM.Core.Util hiding (Function, BasicBlock)
+import LLVM.Core.Util hiding (Function, BasicBlock, createModule)
 import LLVM.Core.CodeGen
 import LLVM.Core.CodeGenMonad(CodeGenFunction, CodeGenModule)
 import LLVM.Core.Data

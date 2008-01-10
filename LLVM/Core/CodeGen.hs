@@ -1,15 +1,15 @@
 {-# LANGUAGE ScopedTypeVariables, MultiParamTypeClasses, FunctionalDependencies, FlexibleInstances, TypeSynonymInstances, UndecidableInstances, FlexibleContexts #-}
 module LLVM.Core.CodeGen(
     -- * Module creation
-    newModule, defineModule,
+    newModule, newNamedModule, defineModule, createModule,
     -- * Function creation
-    Function, newFunction, defineFunction, createFunction,
+    Function, newFunction, newNamedFunction, defineFunction, createFunction,
     FunctionArgs,
     -- * Values
     Value(..), ConstValue(..),
     IsConst(..), valueOf,
     -- * Basic blocks
-    BasicBlock(..), newBasicBlock, defineBasicBlock, createBasicBlock,
+    BasicBlock(..), newBasicBlock, newNamedBasicBlock, defineBasicBlock, createBasicBlock,
     -- * Misc
     withCurrentBuilder
     ) where
@@ -25,11 +25,17 @@ import LLVM.Core.Data
 
 --------------------------------------
 
-newModule :: String -> IO U.Module
-newModule = U.createModule
+newModule :: IO U.Module
+newModule = newNamedModule "_module"  -- XXX should generate a name
+
+newNamedModule :: String -> IO U.Module
+newNamedModule = U.createModule
 
 defineModule :: U.Module -> CodeGenModule a -> IO a
 defineModule = runCodeGenModule
+
+createModule :: CodeGenModule a -> IO a
+createModule cgm = newModule >>= \ m -> defineModule m cgm
 
 --------------------------------------
 
@@ -79,9 +85,11 @@ createFunction body = do
     return f
 
 newFunction :: forall a . (IsFunction a) => CodeGenModule (Function a)
-newFunction = do
+newFunction = genMSym >>= newNamedFunction
+
+newNamedFunction :: forall a . (IsFunction a) => String -> CodeGenModule (Function a)
+newNamedFunction name = do
      m <- getModule
-     name <- genMSym
      let typ = typeRef (undefined :: a)
      liftIO $ liftM Value $ U.addFunction m name typ
 
@@ -143,10 +151,12 @@ createBasicBlock = do
     return b
 
 newBasicBlock :: CodeGenFunction r BasicBlock
-newBasicBlock = do
-    lbl <- genFSym
+newBasicBlock = genFSym >>= newNamedBasicBlock
+
+newNamedBasicBlock :: String -> CodeGenFunction r BasicBlock
+newNamedBasicBlock name = do
     fn <- getFunction
-    liftIO $ liftM BasicBlock $ U.appendBasicBlock fn lbl
+    liftIO $ liftM BasicBlock $ U.appendBasicBlock fn name
 
 defineBasicBlock :: BasicBlock -> CodeGenFunction r ()
 defineBasicBlock (BasicBlock l) = do

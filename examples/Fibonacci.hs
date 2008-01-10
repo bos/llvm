@@ -12,7 +12,7 @@ main = do
   args <- getArgs
   let args' = if null args then ["10"] else args
 
-  m <- newModule "fib"
+  m <- newNamedModule "fib"
   fns <- defineModule m buildMod
   dumpValue $ mfib fns
   dumpValue $ mplus fns
