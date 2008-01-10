@@ -1,10 +1,11 @@
 name: llvm
-version: 0.0.3
+version: 0.1
 license: BSD3
 license-file: LICENSE
 synopsis: Bindings to the LLVM compiler toolkit
 description: Bindings to the LLVM compiler toolkit
 author: Bryan O'Sullivan
+author: Lennart Augustsson
 maintainer: Bryan O'Sullivan <bos@serpentine.com>
 homepage: http://www.serpentine.com/blog/software/llvm/
 stability: experimental
@@ -48,27 +49,22 @@ library
     build-depends: base >= 2.0 && < 2.2
     cpp-options:   -DBYTESTRING_IN_BASE
   else
-    build-depends: base < 2.0 || >= 2.2, bytestring >= 0.9 
+    build-depends: base < 2.0 || >= 2.2, bytestring >= 0.9, mtl
 
-  extensions:
-      CPP
-      EmptyDataDecls
-      FlexibleInstances
-      ForeignFunctionInterface
-      GeneralizedNewtypeDeriving
-      TypeOperators
-      TypeSynonymInstances
   ghc-options: -Wall -Werror
 
   exposed-modules:
+      Data.TypeNumbers
       LLVM.Core
-      LLVM.Core.FFI
-      LLVM.Core.Builder
-      LLVM.Core.Constant
-      LLVM.Core.Instruction
-      LLVM.Core.Intrinsics
-      LLVM.Core.Type
-      LLVM.Core.Utils
-      LLVM.Core.Value
       LLVM.ExecutionEngine
+
+  other-modules:
+      LLVM.Core.CodeGen
+      LLVM.Core.CodeGenMonad
+      LLVM.Core.Data
+      LLVM.Core.FFI
+      LLVM.Core.Instructions
+      LLVM.Core.Type
+      LLVM.Core.Util
+      LLVM.ExecutionEngine.Engine
       LLVM.ExecutionEngine.FFI

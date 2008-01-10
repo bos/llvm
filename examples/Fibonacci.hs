@@ -1,61 +1,77 @@
-{-# LANGUAGE TypeOperators #-}
-
-module Fibonacci (main) where
-
-import Control.Monad (forM_)
-import Data.Int (Int32)
+module Fibonacci where
+import Prelude hiding (and, or)
 import System.Environment (getArgs)
+import Control.Monad(forM_)
+import Data.Word
 
-import qualified LLVM.Core as Core
-import qualified LLVM.Core.Builder as B
-import qualified LLVM.Core.Constant as C
-import qualified LLVM.Core.Instruction as I
-import qualified LLVM.Core.Type as T
-import qualified LLVM.Core.Value as V
-import qualified LLVM.Core.Utils as U
-import qualified LLVM.ExecutionEngine as EE
-
-buildFib :: T.Module -> IO (V.Function T.Int32 T.Int32)
-buildFib m = do
-  let one = C.const (1::Int32)
-      two = C.const (2::Int32)
-  (fib, entry) <- U.defineFunction m "fib" (T.function undefined undefined)
-  bld <- B.createBuilder
-  exit <- Core.appendBasicBlock fib "return"
-  recurse <- Core.appendBasicBlock fib "recurse"
-  let arg = V.params fib
-
-  B.positionAtEnd bld entry
-  test <- B.icmp bld "" I.IntSLE arg two
-  B.condBr bld test exit recurse
-
-  B.positionAtEnd bld exit
-  B.ret bld one
-
-  B.positionAtEnd bld recurse
-  x1 <- B.sub bld "" arg one
-  fibx1 <- B.call bld "" fib x1
-
-  x2 <- B.sub bld "" arg two
-  fibx2 <- B.call bld "" fib x2
-
-  B.add bld "" fibx1 fibx2 >>= B.ret bld
-  return fib
+import LLVM.Core
+import LLVM.ExecutionEngine
 
 main :: IO ()
 main = do
   args <- getArgs
   let args' = if null args then ["10"] else args
 
-  m <- Core.createModule "fib"
-  fib <- buildFib m
-  V.dumpValue fib
+  m <- newModule "fib"
+  fns <- defineModule m buildMod
+  dumpValue $ mfib fns
+  dumpValue $ mplus fns
 
-  prov <- Core.createModuleProviderForExistingModule m
-  ee <- EE.createExecutionEngine prov
+  prov <- createModuleProviderForExistingModule m
+  ee <- createExecutionEngine prov
   
+  let fib = unsafeGeneratePureFunction ee (mfib fns)
+
   forM_ args' $ \num -> do
-    putStr $ "fib " ++ num ++ " = "
-    parm <- EE.createGeneric (read num :: Int)
-    gv <- EE.runFunction ee fib [parm]
-    print (EE.fromGeneric gv :: Int)
+      putStrLn $ "fib " ++ num ++ " = " ++ show (fib (read num))
+  return ()
+
+data Mod = Mod {
+    mfib :: Function (Word32 -> Word32),
+    mplus :: Function (Word32 -> Word32 -> Word32)
+    }
+
+buildMod :: CodeGenModule Mod
+buildMod = do
+  -- Add two numbers in a cumbersome way.
+  plus <- createFunction $ \ x y -> do
+    l1 <- newBasicBlock
+    l2 <- newBasicBlock
+    l3 <- newBasicBlock
+
+    a <- and x (1 :: Word32)
+    c <- icmp IntEQ a (0 :: Word32)
+    condBr c l1 l2
+
+    defineBasicBlock l1
+    r1 <- add x y
+    br l3
+
+    defineBasicBlock l2
+    r2 <- add y x
+    br l3
+    defineBasicBlock l3
+
+    r <- phi [(r1, l1), (r2, l2)]
+    ret r
+
+  fib <- newFunction
+  defineFunction fib $ \ arg -> do
+    recurse <- newBasicBlock
+    exit <- newBasicBlock
+
+    test <- icmp IntUGT arg (2::Word32)
+    condBr test recurse exit
+
+    defineBasicBlock exit
+    ret (1::Word32)
+
+    defineBasicBlock recurse
+    x1 <- sub arg (1::Word32)
+    fibx1 <- call fib x1
+    x2 <- sub arg (2::Word32)
+    fibx2 <- call fib x2
+    r <- call plus fibx1 fibx2
+    ret r
+
+  return $ Mod fib plus

@@ -1,4 +1,4 @@
-{-# LANGUAGE EmptyDataDecls #-}
+{-# LANGUAGE ForeignFunctionInterface, EmptyDataDecls #-}
 
 module LLVM.ExecutionEngine.FFI
     (
@@ -35,8 +35,6 @@ import Foreign.C.Types (CDouble, CInt, CUInt, CULLong)
 import Foreign.Ptr (Ptr)
 
 import LLVM.Core.FFI (ModuleRef, ModuleProviderRef, TypeRef, ValueRef)
-
-#include <llvm-c/ExecutionEngine.h>
 
 data ExecutionEngine
 type ExecutionEngineRef = Ptr ExecutionEngine

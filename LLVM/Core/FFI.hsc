@@ -1,4 +1,4 @@
-{-# LANGUAGE EmptyDataDecls #-}
+{-# LANGUAGE ForeignFunctionInterface, EmptyDataDecls #-}
 
 -- |
 -- Module:      LLVM.Core.FFI

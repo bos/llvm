@@ -1,613 +1,233 @@
-{-# LANGUAGE
-    DeriveDataTypeable
-  , ExistentialQuantification
-  , FunctionalDependencies
-  , MultiParamTypeClasses
-  #-}
-
-module LLVM.Core.Type
-    (
-      Module(..)
-    , withModule
-    , ModuleProvider(..)
-    , withModuleProvider
-
-    -- * Types
-    , Type(..)
-    , TypeValue(..)
-    , AnyType
-    , HasAnyType(..)
-    , DynamicType(..)
-    , mkAnyType
-
-    -- ** Integer types
-    , Arithmetic
-    , FirstClass
-    , Primitive
-    , Integer
-    , integer
-    , Int1(..)
-    , int1
-    , Int8(..)
-    , int8
-    , Int16(..)
-    , int16
-    , Int32(..)
-    , int32
-    , Int64(..)
-    , int64
-    , IntWidth(..)
-
-    -- ** Real types
-    , Real
-    , Float(..)
-    , float
-    , Double(..)
-    , double
-
-    -- *** Machine-specific real types
-    , X86Float80(..)
-    , x86Float80
-    , Float128(..)
-    , float128
-    , PPCFloat128(..)
-    , ppcFloat128
-
-    -- ** Array, pointer, and vector types
-    , Sequence(..)
-    , elementTypeDyn
-    , Array(..)
-    , array
-    , arrayElementType
-    , Pointer(..)
-    , AddressSpace
-    , addressSpace
-    , fromAddressSpace
-    , genericAddressSpace
-    , pointerIn
-    , pointer
-    , pointerElementType
-    , Vector(..)
-    , vector
-    , vectorElementType
-
-    -- ** Function-related types
-    , Function(..)
-    , function
-    , params
-    , functionVarArg
-    , isFunctionVarArg
-    , getReturnType
-    , getParamTypes
-
-    -- *** Type hackery
-    , functionParams
-    , Params(..)
-#ifndef __HADDOCK__
-    , (:->)(..)
-#endif
-    , car
-    , cdr
-
-    -- ** Other types
-    , Void(..)
+{-# LANGUAGE ScopedTypeVariables, EmptyDataDecls #-}
+-- |The LLVM type system is captured with a number of Haskell type classes.
+-- In general, an LLVM type @T@ is represented as @Value T@, where @T@ is some Haskell type.
+-- The various types @T@ are classified by various type classes, e.g., 'IsFirstClass' for
+-- those types that are LLVM first class types (passable as arguments etc).
+-- All valid LLVM types belong to the 'IsType' class.
+module LLVM.Core.Type(
+    -- * Type classifier
+    IsType(..),
+    -- ** Special type classifiers
+    IsArithmetic,
+    IsInteger,
+    IsFloating,
+    IsPrimitive,
+    IsFirstClass,
+    IsSized,
+    IsFunction,
+    IsFunctionRet,
+    IsSequence
     ) where
-
-import Control.Applicative ((<$>))
-import Data.Typeable (Typeable)
-import Foreign.ForeignPtr (ForeignPtr, withForeignPtr)
-import Foreign.Marshal.Array (allocaArray, peekArray, withArrayLen)
-import Foreign.Marshal.Utils (fromBool, toBool)
-import Prelude hiding (Double, Float, Integer, Real, mod)
-import System.IO.Unsafe (unsafePerformIO)
-
+import Data.Int
+import Data.Word
+import Data.TypeNumbers
+import LLVM.Core.Util(functionType)
+import LLVM.Core.Data
 import qualified LLVM.Core.FFI as FFI
 
--- import Debug.Trace
+-- TODO:
+-- Move IntN, WordN to a special module that implements those types
+--   properly in Haskell.
+-- Also more Array and Vector to a Haskell module to implement them.
+-- Add Float128.
+-- Add Label.
+-- Add structures (using tuples, maybe nested).
+
+-- |The 'IsType' class classifies all types that have an LLVM representation.
+class IsType a where
+    typeRef :: a -> FFI.TypeRef  -- ^The argument is never evaluated
+
+-- |Arithmetic types, i.e., integral and floating types.
+class IsType a => IsArithmetic a
+
+-- |Integral types.
+class IsArithmetic a => IsInteger a
+
+-- |Floating types.
+class IsArithmetic a => IsFloating a
+
+-- |Primitive types.
+class IsType a => IsPrimitive a
+
+-- |First class types, i.e., the types that can be passed as arguments, etc.
+class IsType a => IsFirstClass a
+
+-- XXX use kind annotation
+-- |Sequence types, i.e., vectors and arrays
+class IsSequence c where dummy__ :: c a -> a; dummy__ = undefined
+
+-- |Types with a fixed size.
+class (IsType a) => IsSized a
+
+-- |Function type.
+class (IsType a) => IsFunction a
+
+-- Only make instances for types that make sense in Haskell
+-- (i.e., some floating types are excluded).
+
+-- Floating point types.
+instance IsType Float  where typeRef _ = FFI.floatType
+instance IsType Double where typeRef _ = FFI.doubleType
+instance IsType FP128  where typeRef _ = FFI.fp128Type
+
+-- Void type
+instance IsType ()     where typeRef _ = FFI.voidType
+
+-- Label type
+--data Label
+--instance IsType Label  where typeRef _ = FFI.labelType
+
+-- Variable size integer types
+instance (IsTypeNumber n) => IsType (IntN n)
+    where typeRef _ = FFI.integerType (typeNumber (undefined :: n))
+
+instance (IsTypeNumber n) => IsType (WordN n)
+    where typeRef _ = FFI.integerType (typeNumber (undefined :: n))
+
+-- Fixed size integer types.
+instance IsType Bool   where typeRef _ = FFI.int1Type
+instance IsType Word8  where typeRef _ = FFI.int8Type
+instance IsType Word16 where typeRef _ = FFI.int16Type
+instance IsType Word32 where typeRef _ = FFI.int32Type
+instance IsType Word64 where typeRef _ = FFI.int64Type
+instance IsType Int8   where typeRef _ = FFI.int8Type
+instance IsType Int16  where typeRef _ = FFI.int16Type
+instance IsType Int32  where typeRef _ = FFI.int32Type
+instance IsType Int64  where typeRef _ = FFI.int64Type
+
+-- Sequence types
+instance (IsTypeNumber n, IsSized a) => IsType (Array n a)
+    where typeRef _ = FFI.arrayType (typeRef (undefined :: a))
+    	  	      		    (typeNumber (undefined :: n))
+
+instance (IsTypeNumber n, IsPrimitive a) => IsType (Vector n a)
+    where typeRef _ = FFI.arrayType (typeRef (undefined :: a))
+    	  	      		    (typeNumber (undefined :: n))
+
+instance (IsType a) => IsType (Ptr a) where
+    typeRef a = FFI.pointerType (typeRef a) 0
+
+-- Functions.
+instance (IsFirstClass a, IsFunctionRet b) => IsType (a->b) where
+    typeRef = funcType []
+
+--- Instances to classify types
+instance IsArithmetic Float
+instance IsArithmetic Double
+instance IsArithmetic FP128
+instance (IsTypeNumber n) => IsArithmetic (IntN n)
+instance (IsTypeNumber n) => IsArithmetic (WordN n)
+instance IsArithmetic Bool
+instance IsArithmetic Int8
+instance IsArithmetic Int16
+instance IsArithmetic Int32
+instance IsArithmetic Int64
+instance IsArithmetic Word8
+instance IsArithmetic Word16
+instance IsArithmetic Word32
+instance IsArithmetic Word64
+
+instance IsFloating Float
+instance IsFloating Double
+instance IsFloating FP128
+
+instance (IsTypeNumber n) => IsInteger (IntN n)
+instance (IsTypeNumber n) => IsInteger (WordN n)
+instance IsInteger Bool
+instance IsInteger Int8
+instance IsInteger Int16
+instance IsInteger Int32
+instance IsInteger Int64
+instance IsInteger Word8
+instance IsInteger Word16
+instance IsInteger Word32
+instance IsInteger Word64
+
+instance IsFirstClass Float
+instance IsFirstClass Double
+instance IsFirstClass FP128
+instance (IsTypeNumber n) => IsFirstClass (IntN n)
+instance (IsTypeNumber n) => IsFirstClass (WordN n)
+instance IsFirstClass Bool
+instance IsFirstClass Int8
+instance IsFirstClass Int16
+instance IsFirstClass Int32
+instance IsFirstClass Int64
+instance IsFirstClass Word8
+instance IsFirstClass Word16
+instance IsFirstClass Word32
+instance IsFirstClass Word64
+instance (IsTypeNumber n, IsPrimitive a) => IsFirstClass (Vector n a)
+instance (IsType a) => IsFirstClass (Ptr a)
+
+instance (IsTypeNumber n) => IsSequence (Array n)
+--instance (IsTypeNumber n, IsPrimitive a) => IsSequence (Vector n) a
+
+instance IsSized Float
+instance IsSized Double
+instance IsSized FP128
+instance (IsTypeNumber n) => IsSized (IntN n)
+instance (IsTypeNumber n) => IsSized (WordN n)
+instance IsSized Bool
+instance IsSized Int8
+instance IsSized Int16
+instance IsSized Int32
+instance IsSized Int64
+instance IsSized Word8
+instance IsSized Word16
+instance IsSized Word32
+instance IsSized Word64
+instance (IsTypeNumber n, IsSized a) => IsSized (Array n a)
+instance (IsTypeNumber n, IsPrimitive a) => IsSized (Vector n a)
+instance (IsType a) => IsSized (Ptr a)
+
+instance IsPrimitive Float
+instance IsPrimitive Double
+instance IsPrimitive FP128
+instance (IsTypeNumber n) => IsPrimitive (IntN n)
+instance (IsTypeNumber n) => IsPrimitive (WordN n)
+instance IsPrimitive Bool
+instance IsPrimitive Int8
+instance IsPrimitive Int16
+instance IsPrimitive Int32
+instance IsPrimitive Int64
+instance IsPrimitive Word8
+instance IsPrimitive Word16
+instance IsPrimitive Word32
+instance IsPrimitive Word64
+--instance IsPrimitive Label
+instance IsPrimitive ()
+
+-- Functions.
+instance (IsFirstClass a, IsFunctionRet b) => IsFunction (a->b)
+
+-- Handle function types including the base case where there is no arrow.
+class (IsType a) => IsFunctionRet a where
+    funcType :: [FFI.TypeRef] -> a -> FFI.TypeRef
+    funcType ts x = functionType False (typeRef x) ts
+
+instance (IsFirstClass a, IsFunctionRet b) => IsFunctionRet (a -> b) where
+    funcType ts _ = funcType (typeRef (undefined :: a) : ts) (undefined :: b)
+
+-- The return types are almost the first class types, but also ().
+instance IsFunctionRet Float
+instance IsFunctionRet Double
+instance IsFunctionRet FP128
+instance (IsTypeNumber n) => IsFunctionRet (IntN n)
+instance (IsTypeNumber n) => IsFunctionRet (WordN n)
+instance IsFunctionRet Bool
+instance IsFunctionRet Int8
+instance IsFunctionRet Int16
+instance IsFunctionRet Int32
+instance IsFunctionRet Int64
+instance IsFunctionRet Word8
+instance IsFunctionRet Word16
+instance IsFunctionRet Word32
+instance IsFunctionRet Word64
+instance (IsTypeNumber n, IsPrimitive a) => IsFunctionRet (Vector n a) -- XXX are vectors returnable?
+instance (IsType a) => IsFunctionRet (Ptr a)
+instance IsFunctionRet ()
+
+
+-- XXX Structures not implemented.  Tuples is probably an easy way.
 
-
-newtype Module = Module {
-      fromModule :: ForeignPtr FFI.Module
-    }
-    deriving (Typeable)
-
-withModule :: Module -> (FFI.ModuleRef -> IO a) -> IO a
-withModule mod = withForeignPtr (fromModule mod)
-
-newtype ModuleProvider = ModuleProvider {
-      fromModuleProvider :: ForeignPtr FFI.ModuleProvider
-    }
-    deriving (Typeable)
-
-withModuleProvider :: ModuleProvider -> (FFI.ModuleProviderRef -> IO a)
-                   -> IO a
-withModuleProvider prov = withForeignPtr (fromModuleProvider prov)
-
-class Type t where
-    typeRef :: t -> FFI.TypeRef
-
-class Type t => TypeValue t where
-    typeValue :: a -> t
-
-class Type t => Arithmetic t
-class Arithmetic t => Integer t
-class Arithmetic t => Real t
-class Type t => Primitive t
-
-class FirstClass t
-instance FirstClass AnyType
-
-class HasAnyType t where
-    fromAnyType :: AnyType -> t
-
-data AnyType = forall t. Type t => AnyType t
-               deriving (Typeable)
-
-mkAnyType :: Type t => t -> AnyType
-mkAnyType = AnyType
-
-class Params a where
-    toAnyList :: a -> [AnyType]
-    fromAnyList :: [AnyType] -> (a, [AnyType])
-
-instance Integer AnyType
-instance Primitive AnyType
-
-newtype Int1 = Int1 AnyType
-    deriving (Arithmetic, FirstClass, HasAnyType, Integer, Primitive, Type,
-              Typeable)
-
-newtype Int8 = Int8 AnyType
-    deriving (Arithmetic, FirstClass, HasAnyType, Integer, Primitive, Type,
-              Typeable)
-
-newtype Int16 = Int16 AnyType
-    deriving (Arithmetic, FirstClass, HasAnyType, Integer, Primitive, Type,
-              Typeable)
-
-newtype Int32 = Int32 AnyType
-    deriving (Arithmetic, FirstClass, HasAnyType, Integer, Primitive, Type,
-              Typeable)
-
-newtype Int64 = Int64 AnyType
-    deriving (Arithmetic, FirstClass, HasAnyType, Integer, Primitive, Type,
-              Typeable)
-
-newtype IntWidth a = IntWidth AnyType
-    deriving (Arithmetic, FirstClass, HasAnyType, Integer, Type, Typeable)
-
-instance Real AnyType
-instance Arithmetic AnyType
-
-newtype Float = Float AnyType
-    deriving (Arithmetic, FirstClass, HasAnyType, Primitive, Real, Type,
-              Typeable)
-
-newtype Double = Double AnyType
-    deriving (Arithmetic, FirstClass, HasAnyType, Primitive, Real, Type,
-              Typeable)
-
-newtype X86Float80 = X86Float80 AnyType
-    deriving (Arithmetic, FirstClass, HasAnyType, Primitive, Real, Type,
-              Typeable)
-
-newtype Float128 = Float128 AnyType
-    deriving (Arithmetic, FirstClass, HasAnyType, Primitive, Real, Type,
-              Typeable)
-
-newtype PPCFloat128 = PPCFloat128 AnyType
-    deriving (Arithmetic, FirstClass, HasAnyType, Primitive, Real, Type,
-              Typeable)
-
-class (Type a, Type t) => Sequence a t | a -> t where
-    elementType :: a -> t
-
-newtype Array a = Array AnyType
-    deriving (HasAnyType, Type, Typeable)
-
-arrayElementType :: Type t => Array t -> t
-arrayElementType _ = undefined
-
-newtype Pointer a = Pointer AnyType
-    deriving (FirstClass, HasAnyType, Type, Typeable)
-
-pointerElementType :: Pointer a -> a
-pointerElementType _ = undefined
-
-newtype Vector a = Vector AnyType
-    deriving (Arithmetic, FirstClass, HasAnyType, Type, Typeable)
-
-vectorElementType :: Vector t -> t
-vectorElementType _ = undefined
-
-newtype Void = Void AnyType
-    deriving (HasAnyType, Type, Typeable)
-
-class Type t => DynamicType t where
-    toAnyType :: t              -- ^ not inspected
-              -> AnyType
-
-data Function r p = Function {
-      fromFunction :: AnyType
-    }
-    deriving (Typeable)
-
-functionParams :: Function r p -> p
-functionParams _ = undefined
-
-functionResult :: Function r p -> r
-functionResult _ = undefined
-
-#ifndef __HADDOCK__
-data a :-> b = a :-> b
-infixr 6 :->
-
-car :: (a :-> b) -> a
-cdr :: (a :-> b) -> b
-#endif
-
-car _ = undefined
-
-cdr _ = undefined
-
-int1 :: a -> Int1
-int1 _ = Int1 $ mkAnyType FFI.int1Type
-
-fromAny :: HasAnyType a => [AnyType] -> (a, [AnyType])
-fromAny (x:xs) = (fromAnyType x,xs)
-fromAny _ = error "LLVM.Core.Type.fromAny: empty list"
-
-int8 :: a -> Int8
-int8 _ = Int8 $ mkAnyType FFI.int8Type
-
-int16 :: a -> Int16
-int16 _ = Int16 $ mkAnyType FFI.int16Type
-
-int32 :: a -> Int32
-int32 _ = Int32 $ mkAnyType FFI.int32Type
-
-int64 :: a -> Int64
-int64 _ = Int64 $ mkAnyType FFI.int64Type
-
-integer :: Int -> b -> IntWidth a
-integer width _ = IntWidth . mkAnyType . FFI.integerType $ fromIntegral width
-
--- Not possible:
---
--- instance Params (IntWidth a) where
---     toAnyList a = [toAnyType a]
---
--- instance DynamicType (IntWidth a) where
---     toAnyType _ = mkAnyType integerType
-
-float :: a -> Float
-float _ = Float $ mkAnyType FFI.floatType
-
-double :: a -> Double
-double _ = Double $ mkAnyType FFI.doubleType
-
-x86Float80 :: a -> X86Float80
-x86Float80 _ = X86Float80 $ mkAnyType FFI.x86FP80Type
-
-float128 :: a -> Float128
-float128 _ = Float128 $ mkAnyType FFI.fp128Type
-
-ppcFloat128 :: a -> PPCFloat128
-ppcFloat128 _ = PPCFloat128 $ mkAnyType FFI.ppcFP128Type
-
-void :: a -> Void
-void _ = Void $ mkAnyType FFI.voidType
-
-functionType :: Bool -> AnyType -> [AnyType] -> AnyType
-functionType varargs retType paramTypes = unsafePerformIO $
-    withArrayLen (map typeRef paramTypes) $ \len ptr ->
-        return . mkAnyType $ FFI.functionType (typeRef retType) ptr
-                                        (fromIntegral len) (fromBool varargs)
-
-params :: Params p => Function r p -> p
-params f = case fromAnyList . toAnyList . functionParams $ f of
-             (p, []) -> p
-             _ -> error "LLVM.Core.Type.newParams: incompletely consumed params"
-
-function :: (DynamicType r, Params p) => r -> p -> Function r p
-function r p = Function . functionType False (toAnyType r) $ toAnyList p
-    
-functionVarArg :: (DynamicType r, Params p) => r -> p -> Function r p
-functionVarArg r p = Function . functionType True (toAnyType r) $ toAnyList p
-    
-isFunctionVarArg :: Function r p -> Bool
-isFunctionVarArg = toBool . FFI.isFunctionVarArg . typeRef
-
-getReturnType :: (Params p) => Function r p -> AnyType
-getReturnType = mkAnyType . FFI.getReturnType . typeRef
-
-getParamTypes :: (Params p) => Function r p -> [AnyType]
-getParamTypes typ = unsafePerformIO $ do
-    let typ' = typeRef typ
-        count = FFI.countParamTypes typ'
-        len = fromIntegral count
-    allocaArray len $ \ptr -> do
-      FFI.getParamTypes typ' ptr
-      map mkAnyType <$> peekArray len ptr
-
-array :: (DynamicType t) => t -> Int -> Array t
-array typ len = Array . mkAnyType $ FFI.arrayType (typeRef (toAnyType typ)) (fromIntegral len)
-
-newtype AddressSpace = AddressSpace {
-      fromAddressSpace :: Int
-    }
-    deriving (Eq, Ord, Show, Read)
-
-addressSpace :: Int -> AddressSpace
-addressSpace = AddressSpace
-
-genericAddressSpace :: AddressSpace
-genericAddressSpace = addressSpace 0
-
-pointerIn :: (DynamicType t) => t -> AddressSpace -> Pointer t
-pointerIn typ space = Pointer . mkAnyType $ FFI.pointerType (typeRef (toAnyType typ)) (fromIntegral . fromAddressSpace $ space)
-
-pointer :: (DynamicType t) => t -> Pointer t
-pointer typ = pointerIn typ genericAddressSpace
-
-vector :: (DynamicType t, Primitive t) => t -> Int -> Vector t
-vector typ len = Vector . mkAnyType $ FFI.vectorType (typeRef (toAnyType typ)) (fromIntegral len)
-
-elementTypeDyn :: Type a => a -> AnyType
-elementTypeDyn = mkAnyType . FFI.getElementType . typeRef
-
---
---
--- Handcrafted typeclass instances.
---
---
-
-instance Eq AnyType where
-    a == b = typeRef a == typeRef b
-
---
--- DynamicType
---
-
-instance DynamicType AnyType where
-    toAnyType = id
-
-instance DynamicType Int1 where
-    toAnyType = mkAnyType . int1
-
-instance DynamicType Int8 where
-    toAnyType = mkAnyType . int8
-
-instance DynamicType Int16 where
-    toAnyType = mkAnyType . int16
-
-instance DynamicType Int32 where
-    toAnyType = mkAnyType . int32
-
-instance DynamicType Int64 where
-    toAnyType = mkAnyType . int64
-
-instance DynamicType Float where
-    toAnyType = mkAnyType . float
-
-instance DynamicType Double where
-    toAnyType = mkAnyType . double
-
-instance DynamicType Float128 where
-    toAnyType = mkAnyType . float128
-
-instance DynamicType PPCFloat128 where
-    toAnyType = mkAnyType . ppcFloat128
-
-instance DynamicType Void where
-    toAnyType = mkAnyType . void
-
-instance DynamicType X86Float80 where
-    toAnyType = mkAnyType . x86Float80
-
-instance (DynamicType r, Params p) => DynamicType (Function r p) where
-    toAnyType f = let parms = toAnyList . functionParams $ f
-                      ret = toAnyType . functionResult $ f
-                  in functionType False ret parms
-
-instance (DynamicType t) => DynamicType (Array t) where
-    toAnyType = mkAnyType . flip array 0 . toAnyType . arrayElementType
-
-instance (DynamicType t) => DynamicType (Pointer t) where
-    toAnyType = mkAnyType . pointer . toAnyType . pointerElementType
-
-instance (DynamicType t) => DynamicType (Vector t) where
-    toAnyType = mkAnyType . flip vector 1 . toAnyType . vectorElementType
-
---
--- HasAnyType
---
-
-instance HasAnyType AnyType where
-    fromAnyType = id
-
-instance HasAnyType (Function r p) where
-    fromAnyType = Function
-
---
--- Params
---
-
-instance Params () where
-    toAnyList _ = []
-    fromAnyList xs = ((), xs)
-
-instance Params Int1 where
-    toAnyList a = [toAnyType a]
-    fromAnyList = fromAny
-
-instance Params Int8 where
-    toAnyList a = [toAnyType a]
-    fromAnyList = fromAny
-
-instance Params Int16 where
-    toAnyList a = [toAnyType a]
-    fromAnyList = fromAny
-
-instance Params Int32 where
-    toAnyList a = [toAnyType a]
-    fromAnyList = fromAny
-
-instance Params Int64 where
-    toAnyList a = [toAnyType a]
-    fromAnyList = fromAny
-
-instance Params Float where
-    toAnyList a = [toAnyType a]
-    fromAnyList = fromAny
-
-instance Params Double where
-    toAnyList a = [toAnyType a]
-    fromAnyList = fromAny
-
-instance Params X86Float80 where
-    toAnyList a = [toAnyType a]
-    fromAnyList = fromAny
-
-instance Params Float128 where
-    toAnyList a = [toAnyType a]
-    fromAnyList = fromAny
-
-instance Params PPCFloat128 where
-    toAnyList a = [toAnyType a]
-    fromAnyList  = fromAny
-
-instance Params Void where
-    toAnyList a = [toAnyType a]
-    fromAnyList = fromAny
-
-instance Params AnyType where
-    toAnyList a = [toAnyType a]
-    fromAnyList = fromAny
-
-#ifndef __HADDOCK__
-instance (DynamicType a, HasAnyType a, Params b) => Params (a :-> b) where
-    toAnyList a = toAnyType (car a) : toAnyList (cdr a)
-    fromAnyList (x:xs) = let (y,ys) = fromAnyList xs
-                         in (fromAnyType x :-> y,ys)
-    fromAnyList _ = error "LLVM.Core.Type.fromAnyList(:->): empty list"
-#endif
-
-instance DynamicType p => Params (Function r p) where
-    toAnyList a = [toAnyType (functionParams a)]
-    fromAnyList = fromAny
-
-instance (DynamicType t) => Params (Pointer t) where
-    toAnyList a = [toAnyType a]
-    fromAnyList = fromAny
-
-instance (DynamicType t) => Params (Vector t) where
-    toAnyList a = [toAnyType a]
-    fromAnyList = fromAny
-
---
--- Sequence
---
-
-instance Sequence AnyType AnyType where
-    elementType = elementTypeDyn
-
-instance Type t => Sequence (Array t) t where
-    elementType = arrayElementType
-
-instance Type t => Sequence (Pointer t) t where
-    elementType = pointerElementType
-
-instance Type t => Sequence (Vector t) t where
-    elementType = vectorElementType
-
---
--- Show
---
-
-instance Show (IntWidth a) where show _ = "IntWidth"
-instance Show AnyType where show a = "AnyType " ++ show (typeRef a)
-instance Show Double where show _ = "Double"
-instance Show Float where show _ = "Float"
-instance Show Float128 where show _ = "Float128"
-instance Show Int1 where show _ = "Int1"
-instance Show Int16 where show _ = "Int16"
-instance Show Int32 where show _ = "Int32"
-instance Show Int64 where show _ = "Int64"
-instance Show Int8 where show _ = "Int8"
-instance Show PPCFloat128 where show _ = "PPCFloat128"
-instance Show Void where show _ = "Void"
-instance Show X86Float80 where show _ = "X86Float80"
-instance (Show t, Type t) => Show (Array t) where show a = "Array " ++ show (arrayElementType a)
-instance (Show t, Type t) => Show (Pointer t) where show a = "Pointer " ++ show (pointerElementType a)
-instance (Show a) => Show (Vector a) where show a = "Vector " ++ show (vectorElementType a)
-instance (Show r, Show p, Params p) => Show (Function r p) where show a = "Function " ++ show (functionResult a) ++ " " ++ show (params a)
-#ifndef __HADDOCK__
-instance (Show a, Show b) => Show (a :-> b) where show a = show (car a) ++ " :-> " ++ show (cdr a)
-#endif
-
---
--- Type
---
-
-instance Type FFI.TypeRef where
-    typeRef = id
-
-instance Type AnyType where
-    typeRef (AnyType a) = typeRef a
-
-instance Type (Function r p) where
-    typeRef = typeRef . fromFunction
-
-
---
--- TypeValue
---
-
---instance TypeValue AnyType where
---    typeValue = const
-
-instance TypeValue Int1 where
-    typeValue = int1
-
-instance TypeValue Int8 where
-    typeValue = int8
-
-instance TypeValue Int16 where
-    typeValue = int16
-
-instance TypeValue Int32 where
-    typeValue = int32
-
-instance TypeValue Int64 where
-    typeValue = int64
-
-instance TypeValue Float where
-    typeValue = float
-
-instance TypeValue Double where
-    typeValue = double
-
-instance TypeValue Float128 where
-    typeValue = float128
-
-instance TypeValue PPCFloat128 where
-    typeValue = ppcFloat128
-
-instance TypeValue Void where
-    typeValue = void
-
-instance TypeValue X86Float80 where
-    typeValue = x86Float80
-
-instance (DynamicType r, Params p) => TypeValue (Function r p) where
-    typeValue _ = function undefined undefined
-
-instance (DynamicType t) => TypeValue (Array t) where
-    typeValue _ = array undefined 0
-
-instance (DynamicType t) => TypeValue (Pointer t) where
-    typeValue _ = pointer undefined
-
-instance (DynamicType t, Primitive t) => TypeValue (Vector t) where
-    typeValue _= vector undefined 1

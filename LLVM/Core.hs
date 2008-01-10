@@ -1,117 +1,33 @@
-{-# LANGUAGE FunctionalDependencies, MultiParamTypeClasses #-}
-
-module LLVM.Core
-    (
+{-# LANGUAGE ForeignFunctionInterface #-}
+module LLVM.Core(
     -- * Modules
-      createModule
-
-    -- * Module providers
-    , createModuleProviderForExistingModule
-
-    -- * Types
-    , addTypeName
-    , deleteTypeName
-
+    Module, newModule, defineModule, destroyModule,
+    ModuleProvider, createModuleProviderForExistingModule,
+    -- * Instructions
+    module LLVM.Core.Instructions,
+    -- * Types classification
+    module LLVM.Core.Type,
+    -- * Extra types
+    module LLVM.Core.Data,
     -- * Values
-    , addGlobal
-    , setInitializer
-
-    -- ** Operations on functions
-    , addFunction
-    , deleteFunction
-    , getNamedFunction
-
+    Value, ConstValue, valueOf, constOf,
+    -- * Code generation
+    CodeGenFunction, CodeGenModule,
+    -- * Functions
+    Function,newFunction, defineFunction, createFunction,
     -- * Basic blocks
-    , appendBasicBlock
-    , insertBasicBlock
-    , deleteBasicBlock
+    BasicBlock, newBasicBlock, defineBasicBlock, createBasicBlock,
+    -- * Debugging
+    dumpValue
     ) where
-
-import Control.Applicative ((<$>))
-import Foreign.C.String (withCString)
-import Foreign.Marshal.Utils (toBool)
-import Foreign.ForeignPtr (FinalizerPtr, newForeignPtr)
-import Foreign.Ptr (Ptr, nullPtr)
-import Prelude hiding (mod)
-
 import qualified LLVM.Core.FFI as FFI
-import qualified LLVM.Core.Builder as B
-import qualified LLVM.Core.Type as T
-import qualified LLVM.Core.Value as V
+import LLVM.Core.Util hiding (Function, BasicBlock)
+import LLVM.Core.CodeGen
+import LLVM.Core.CodeGenMonad(CodeGenFunction, CodeGenModule)
+import LLVM.Core.Data
+import LLVM.Core.Instructions
+import LLVM.Core.Type hiding (IsType)
+import LLVM.Core.Type(IsType)
 
-
-createModule :: String -> IO T.Module
-createModule name =
-    withCString name $ \namePtr -> do
-      ptr <- FFI.moduleCreateWithName namePtr
-      final <- h2c_module FFI.disposeModule
-      T.Module <$> newForeignPtr final ptr
-
-foreign import ccall "wrapper" h2c_module
-    :: (FFI.ModuleRef -> IO ()) -> IO (FinalizerPtr a)
-
-
-createModuleProviderForExistingModule :: T.Module -> IO T.ModuleProvider
-createModuleProviderForExistingModule mod =
-    T.withModule mod $ \modPtr -> do
-        ptr <- FFI.createModuleProviderForExistingModule modPtr
-        final <- h2c_moduleProvider FFI.disposeModuleProvider
-        T.ModuleProvider <$> newForeignPtr final ptr
-
-foreign import ccall "wrapper" h2c_moduleProvider
-    :: (FFI.ModuleProviderRef -> IO ()) -> IO (FinalizerPtr a)
-
-
-addTypeName :: (T.Type t) => T.Module -> t -> String -> IO Bool
-addTypeName mod typ name =
-    T.withModule mod $ \modPtr ->
-      withCString name $ \namePtr ->
-        toBool <$> FFI.addTypeName modPtr namePtr (T.typeRef typ)
-                 
-deleteTypeName :: T.Module -> String -> IO ()
-deleteTypeName mod name =
-    T.withModule mod $ \modPtr ->
-      withCString name $ FFI.deleteTypeName modPtr
-
-addGlobal :: (T.Type t) => T.Module -> t -> String -> IO (V.GlobalVar t)
-addGlobal mod typ name =
-    T.withModule mod $ \modPtr ->
-      withCString name $ \namePtr ->
-        V.GlobalVar . V.mkAnyValue <$> FFI.addGlobal modPtr (T.typeRef typ) namePtr
-
-setInitializer :: V.ConstValue t => V.GlobalVar a -> t -> IO ()
-setInitializer global cnst =
-    FFI.setInitializer (V.valueRef global) (V.valueRef cnst)
-
-addFunction :: (T.Params p) => T.Module -> String -> T.Function r p
-            -> IO (V.Function r p)
-addFunction mod name typ =
-    T.withModule mod $ \modPtr ->
-      withCString name $ \namePtr ->
-        V.Function . V.mkAnyValue <$> FFI.addFunction modPtr namePtr (T.typeRef typ)
-
-deleteFunction :: V.Function r p -> IO ()
-deleteFunction = FFI.deleteFunction . V.valueRef
-
-maybePtr :: (Ptr a -> b) -> Ptr a -> Maybe b
-maybePtr f ptr | ptr /= nullPtr = Just (f ptr)
-               | otherwise = Nothing
-
-getNamedFunction :: T.Module -> String -> IO (Maybe (V.Function r p))
-getNamedFunction mod name =
-    T.withModule mod $ \modPtr ->
-      withCString name $ \namePtr ->
-        maybePtr (V.Function . V.mkAnyValue) <$> FFI.getNamedFunction modPtr namePtr
-
-appendBasicBlock :: V.Function r p -> String -> IO B.BasicBlock
-appendBasicBlock func name =
-    withCString name $ \namePtr ->
-      B.BasicBlock . V.mkAnyValue <$> FFI.appendBasicBlock (V.valueRef func) namePtr
-
-insertBasicBlock :: B.BasicBlock -> String -> IO B.BasicBlock
-insertBasicBlock before name =
-    withCString name $ \namePtr ->
-      B.BasicBlock . V.mkAnyValue <$> FFI.insertBasicBlock (V.valueRef before) namePtr
-
-deleteBasicBlock :: B.BasicBlock -> IO ()
-deleteBasicBlock = FFI.deleteBasicBlock . V.valueRef
+dumpValue :: Value a -> IO ()
+dumpValue (Value v) = FFI.dumpValue v
