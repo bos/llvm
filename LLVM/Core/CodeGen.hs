@@ -2,6 +2,8 @@
 module LLVM.Core.CodeGen(
     -- * Module creation
     newModule, newNamedModule, defineModule, createModule,
+    -- * Globals
+    Linkage(..),
     -- * Function creation
     Function, newFunction, newNamedFunction, defineFunction, createFunction,
     FunctionArgs,
@@ -175,3 +177,59 @@ withCurrentBuilder body = do
 -- Mark all block terminating instructions.  Not used yet.
 --data Terminate = Terminate
 
+--------------------------------------
+
+type AnySize = End
+type Global a = Value (Ptr a)
+
+-- XXX what's the right type?
+newNamedGlobal :: forall a . (IsType a) => Linkage -> String -> TGlobal a
+newNamedGlobal linkage name = do
+    modul <- getModule
+    let typ = typeRef (undefined :: a)
+    liftIO $ liftM Value $ U.addGlobal modul (fromIntegral $ fromEnum linkage) name typ
+
+newGlobal :: forall a . (IsType a) => Linkage -> TGlobal a
+newGlobal linkage = genMSym "glb" >>= newNamedGlobal linkage
+
+defineGlobal :: Global a -> ConstValue a -> CodeGenModule ()
+defineGlobal (Value g) (ConstValue v) =
+    liftIO $ FFI.setInitializer g v
+
+createGlobal :: (IsType a) => Linkage -> ConstValue a -> TGlobal a
+createGlobal linkage con = do
+    g <- newGlobal linkage
+    defineGlobal g con
+    return g
+
+type TFunction a = CodeGenModule (Function a)
+type TGlobal a = CodeGenModule (Global a)
+
+externFunction :: forall f . (IsFunction f) => String -> TFunction f
+externFunction name = do
+    m <- getModule
+    liftM Value $ liftIO $ U.getExternFunction m name (typeRef (undefined :: f))
+
+--------------------------------------
+
+-- |An enumeration for the kinds of linkage for global values.
+data Linkage
+    = ExternalLinkage     -- ^Externally visible function
+    | LinkOnceLinkage     -- ^Keep one copy of function when linking (inline)
+    | WeakLinkage         -- ^Keep one copy of named function when linking (weak)
+    | AppendingLinkage    -- ^Special purpose, only applies to global arrays
+    | InternalLinkage     -- ^Rename collisions when linking (static functions)
+    | DLLImportLinkage    -- ^Function to be imported from DLL
+    | DLLExportLinkage    -- ^Function to be accessible from DLL
+    | ExternalWeakLinkage -- ^ExternalWeak linkage description
+    | GhostLinkage        -- ^Stand-in functions for streaming fns from BC files    
+    deriving (Show, Eq, Ord, Enum)
+
+{-
+-- |An enumeration for the kinds of visibility of global values.
+data VisibilityTypes
+    = DefaultVisibility   -- ^The GV is visible
+    | HiddenVisibility    -- ^The GV is hidden
+    | ProtectedVisibility -- ^The GV is protected
+    deriving (Show, Eq, Ord, Enum)
+-}
