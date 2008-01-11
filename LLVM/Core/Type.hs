@@ -29,8 +29,7 @@ import qualified LLVM.Core.FFI as FFI
 -- Move IntN, WordN to a special module that implements those types
 --   properly in Haskell.
 -- Also more Array and Vector to a Haskell module to implement them.
--- Add Float128.
--- Add Label.
+-- Add Label?
 -- Add structures (using tuples, maybe nested).
 
 -- |The 'IsType' class classifies all types that have an LLVM representation.
