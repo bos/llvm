@@ -102,21 +102,14 @@ type FunctionRef = FFI.ValueRef
 -- |A function is simply a pointer to the function.
 type Function a = Value (Ptr a)
 
-createFunction :: (IsFunction f, FunctionArgs f g (CodeGenFunction r ())) =>
-                  g -> CodeGenModule (Function f)
-createFunction body = do
-    f <- newFunction
-    defineFunction f body
-    return f
+newNamedFunction :: forall a . (IsFunction a) => Linkage -> String -> CodeGenModule (Function a)
+newNamedFunction linkage name = do
+    modul <- getModule
+    let typ = typeRef (undefined :: a)
+    liftIO $ liftM Value $ U.addFunction modul (fromIntegral $ fromEnum linkage) name typ
 
-newFunction :: forall a . (IsFunction a) => CodeGenModule (Function a)
-newFunction = genMSym >>= newNamedFunction
-
-newNamedFunction :: forall a . (IsFunction a) => String -> CodeGenModule (Function a)
-newNamedFunction name = do
-     m <- getModule
-     let typ = typeRef (undefined :: a)
-     liftIO $ liftM Value $ U.addFunction m name typ
+newFunction :: forall a . (IsFunction a) => Linkage -> CodeGenModule (Function a)
+newFunction linkage = genMSym "fun" >>= newNamedFunction linkage
 
 defineFunction :: forall f g r . (FunctionArgs f g (CodeGenFunction r ())) =>
                   Function f -> g -> CodeGenModule ()
@@ -128,6 +121,13 @@ defineFunction (Value fn) body = do
 	    applyArgs fn body :: CodeGenFunction r ()
     runCodeGenFunction bld fn body'
     return ()
+
+createFunction :: (IsFunction f, FunctionArgs f g (CodeGenFunction r ())) =>
+                  Linkage -> g -> CodeGenModule (Function f)
+createFunction linkage body = do
+    f <- newFunction linkage
+    defineFunction f body
+    return f
 
 -- XXX This is ugly, it must be possible to make it simpler
 -- Convert a function of type f = t1->t2->...->r to

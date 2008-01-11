@@ -20,12 +20,12 @@ data CGMState = CGMState {
 newtype CodeGenModule a = CGM (StateT CGMState IO a)
     deriving (Monad, MonadState CGMState, MonadIO)
 
-genMSym :: CodeGenModule String
-genMSym = do
+genMSym :: String -> CodeGenModule String
+genMSym prefix = do
     s <- get
     let n = cgm_next s
     put (s { cgm_next = n + 1 })
-    return $ "fun" ++ show n
+    return $ "_" ++ prefix ++ show n
 
 getModule :: CodeGenModule Module
 getModule = gets cgm_module
@@ -50,7 +50,7 @@ genFSym = do
     s <- get
     let n = cgf_next s
     put (s { cgf_next = n + 1 })
-    return $ "L" ++ show n
+    return $ "_L" ++ show n
 
 getFunction :: CodeGenFunction a Function
 getFunction = gets cgf_function
