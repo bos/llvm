@@ -34,7 +34,7 @@ data Mod = Mod {
 buildMod :: CodeGenModule Mod
 buildMod = do
   -- Add two numbers in a cumbersome way.
-  plus <- createFunction $ \ x y -> do
+  plus <- createFunction InternalLinkage $ \ x y -> do
     l1 <- newBasicBlock
     l2 <- newBasicBlock
     l3 <- newBasicBlock
@@ -55,7 +55,7 @@ buildMod = do
     r <- phi [(r1, l1), (r2, l2)]
     ret r
 
-  fib <- newFunction
+  fib <- newNamedFunction ExternalLinkage "fib"
   defineFunction fib $ \ arg -> do
     recurse <- newBasicBlock
     exit <- newBasicBlock
