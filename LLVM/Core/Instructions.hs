@@ -432,6 +432,6 @@ getElementPtr :: (IsInteger i) =>
 getElementPtr (Value ptr) ixs =
     liftM Value $
     withCurrentBuilder $ \ bldPtr ->
-      U.withArrayLen [ v | Value v <- ixs ] $ \idxLen idxPtr ->
+      U.withArrayLen [ v | Value v <- ixs ] $ \ idxLen idxPtr ->
         U.withEmptyCString $
           FFI.buildGEP bldPtr ptr idxPtr (fromIntegral idxLen)
