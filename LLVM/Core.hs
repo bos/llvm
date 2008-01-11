@@ -40,9 +40,10 @@ module LLVM.Core(
     CodeGenFunction, CodeGenModule,
     -- * Functions
     Function, newFunction, newNamedFunction, defineFunction, createFunction,
+    TFunction,
     -- * Global variable creation
-    Global, newGlobal, newNamedGlobal, defineGlobal, createGlobal, TGlobal,
-    externFunction, TFunction,
+    Global, newGlobal, newNamedGlobal, defineGlobal, createGlobal,
+    TGlobal,
     -- * Globals
     Linkage(..),
     -- * Basic blocks
