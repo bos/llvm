@@ -426,8 +426,9 @@ store (Value v) (Value p) =
     withCurrentBuilder $ \ bldPtr ->
       FFI.buildStore bldPtr v p
 
-getElementPtr :: (IsSequence s, IsInteger i) =>
-                 Value (s a) -> [Value i] -> CodeGenFunction r (Value (Ptr a))
+-- XXX type is wrong
+getElementPtr :: (IsInteger i) =>
+                 Value (Ptr a) -> [Value i] -> CodeGenFunction r (Value (Ptr b))
 getElementPtr (Value ptr) ixs =
     liftM Value $
     withCurrentBuilder $ \ bldPtr ->
