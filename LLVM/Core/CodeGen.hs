@@ -52,8 +52,8 @@ newtype ConstValue a = ConstValue FFI.ValueRef
 class (IsType a) => IsConst a where
     constOf :: a -> ConstValue a
 
-instance IsConst Bool   where
-  constOf i = ConstValue $ FFI.constInt (typeRef i) (fromIntegral $ fromEnum i) 0
+instance IsConst Bool   where constOf = constEnum (typeRef True)
+--instance IsConst Char   where constOf = constEnum (typeRef (0::Word8)) -- XXX Unicode
 instance IsConst Word8  where constOf = constI False
 instance IsConst Word16 where constOf = constI False
 instance IsConst Word32 where constOf = constI False
@@ -65,6 +65,16 @@ instance IsConst Int64  where constOf = constI True
 instance IsConst Float  where constOf = constF
 instance IsConst Double where constOf = constF
 --instance IsConst FP128  where constOf = constF
+
+{-
+instance IsConst (Array n a) where
+    constOf (Array xs) = 
+      withArrayLen xs $ \ len ptr ->
+        constArray (typeRef (undefined :: a)) ??? len
+-}
+
+constEnum :: (Enum a) => FFI.TypeRef -> a -> ConstValue a
+constEnum t i = ConstValue $ FFI.constInt t (fromIntegral $ fromEnum i) 0
 
 constI :: (IsType a, Integral a) => Bool -> a -> ConstValue a
 constI signed i = ConstValue $ FFI.constInt (typeRef i) (fromIntegral i)
