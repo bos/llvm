@@ -11,7 +11,7 @@ module LLVM.Core.Util(
     appendBasicBlock,
     -- * Functions
     Function,
-    addFunction, getParam, getExternFunction,
+    addFunction, getParam,
     -- * Globals
     addGlobal,
     constString, constStringNul,
@@ -24,7 +24,6 @@ module LLVM.Core.Util(
     ) where
 import Control.Monad(liftM)
 import Foreign.C.String (withCString, withCStringLen, CString)
-import Foreign.Ptr(nullPtr)
 import Foreign.ForeignPtr (ForeignPtr, FinalizerPtr, newForeignPtr, withForeignPtr)
 import Foreign.Marshal.Array (withArrayLen, withArray)
 import Foreign.Marshal.Utils (fromBool)
@@ -206,3 +205,4 @@ buildPhi bldPtr typ incoming = do
 
 withEmptyCString :: (CString -> IO a) -> IO a
 withEmptyCString = withCString "" 
+

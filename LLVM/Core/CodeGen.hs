@@ -7,9 +7,9 @@ module LLVM.Core.CodeGen(
     -- * Function creation
     Function, newFunction, newNamedFunction, defineFunction, createFunction,
     FunctionArgs,
+    TFunction,
     -- * Global variable creation
     Global, newGlobal, newNamedGlobal, defineGlobal, createGlobal, TGlobal,
-    externFunction, TFunction,
     -- * Values
     Value(..), ConstValue(..),
     IsConst(..), valueOf, value,
@@ -227,11 +227,6 @@ createGlobal linkage con = do
 
 type TFunction a = CodeGenModule (Function a)
 type TGlobal a = CodeGenModule (Global a)
-
-externFunction :: forall f . (IsFunction f) => String -> TFunction f
-externFunction name = do
-    m <- getModule
-    liftM Value $ liftIO $ U.getExternFunction m name (typeRef (undefined :: f))
 
 --------------------------------------
 
