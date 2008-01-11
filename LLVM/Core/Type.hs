@@ -104,7 +104,7 @@ instance (IsTypeNumber n, IsPrimitive a) => IsType (Vector n a)
     	  	      		    (typeNumber (undefined :: n))
 
 instance (IsType a) => IsType (Ptr a) where
-    typeRef a = FFI.pointerType (typeRef a) 0
+    typeRef ~(Ptr a) = FFI.pointerType (typeRef a) 0
 
 -- Functions.
 instance (IsFirstClass a, IsFunctionRet b) => IsType (a->b) where
