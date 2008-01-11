@@ -11,7 +11,10 @@ module LLVM.Core.Util(
     appendBasicBlock,
     -- * Functions
     Function,
-    addFunction, getParam,
+    addFunction, getParam, getExternFunction,
+    -- * Globals
+    addGlobal,
+    constString, constStringNul,
     -- * Instructions
     makeCall, makeInvoke,
     -- * Misc
@@ -20,7 +23,8 @@ module LLVM.Core.Util(
     functionType, buildPhi,
     ) where
 import Control.Monad(liftM)
-import Foreign.C.String (withCString, CString)
+import Foreign.C.String (withCString, withCStringLen, CString)
+import Foreign.Ptr(nullPtr)
 import Foreign.ForeignPtr (ForeignPtr, FinalizerPtr, newForeignPtr, withForeignPtr)
 import Foreign.Marshal.Array (withArrayLen, withArray)
 import Foreign.Marshal.Utils (fromBool)
@@ -138,14 +142,38 @@ appendBasicBlock func name =
 
 type Function = FFI.ValueRef
 
-addFunction :: Module -> String -> Type -> IO Function
-addFunction modul name typ =
+addFunction :: Module -> FFI.Linkage -> String -> Type -> IO Function
+addFunction modul linkage name typ =
     withModule modul $ \ modulPtr ->
-      withCString name $ \ namePtr ->
-        FFI.addFunction modulPtr namePtr typ
+      withCString name $ \ namePtr -> do
+        f <- FFI.addFunction modulPtr namePtr typ
+        FFI.setLinkage f linkage
+        return f
 
 getParam :: Function -> Int -> Value
 getParam f n = FFI.getParam f (fromIntegral n)
+
+--------------------------------------
+
+addGlobal :: Module -> FFI.Linkage -> String -> Type -> IO Value
+addGlobal modul linkage name typ =
+    withModule modul $ \ modulPtr ->
+      withCString name $ \ namePtr -> do
+        v <- FFI.addGlobal modulPtr typ namePtr
+        FFI.setLinkage v linkage
+        return v
+
+-- unsafePerformIO is safe because it's only used for the withCStringLen conversion
+constStringInternal :: Bool -> String -> Value
+constStringInternal nulTerm s = unsafePerformIO $
+    withCStringLen s $ \(sPtr, sLen) ->
+      return $ FFI.constString sPtr (fromIntegral sLen) (fromBool (not nulTerm))
+
+constString :: String -> Value
+constString = constStringInternal False
+
+constStringNul :: String -> Value
+constStringNul = constStringInternal True
 
 --------------------------------------
 

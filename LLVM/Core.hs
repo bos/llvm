@@ -33,19 +33,25 @@ module LLVM.Core(
     module LLVM.Core.Type,
     -- * Extra types
     module LLVM.Core.Data,
-    -- * Values
-    Value, ConstValue, valueOf, constOf,
+    -- * Values and constants
+    Value, ConstValue, valueOf, constOf, value,
+    constString, constStringNul,
     -- * Code generation
     CodeGenFunction, CodeGenModule,
     -- * Functions
     Function, newFunction, newNamedFunction, defineFunction, createFunction,
+    -- * Global variable creation
+    Global, newGlobal, newNamedGlobal, defineGlobal, createGlobal, TGlobal,
+    externFunction, TFunction,
+    -- * Globals
+    Linkage(..),
     -- * Basic blocks
     BasicBlock, newBasicBlock, newNamedBasicBlock, defineBasicBlock, createBasicBlock,
     -- * Debugging
     dumpValue
     ) where
 import qualified LLVM.Core.FFI as FFI
-import LLVM.Core.Util hiding (Function, BasicBlock, createModule)
+import LLVM.Core.Util hiding (Function, BasicBlock, createModule, constString, constStringNul)
 import LLVM.Core.CodeGen
 import LLVM.Core.CodeGenMonad(CodeGenFunction, CodeGenModule)
 import LLVM.Core.Data
@@ -55,3 +61,12 @@ import LLVM.Core.Type(IsType)
 
 dumpValue :: Value a -> IO ()
 dumpValue (Value v) = FFI.dumpValue v
+
+{-
+dumpType :: forall a . (IsType a) => Value a -> IO ()
+dumpType _ = FFI.dumpValue (typeRef (undefined :: a))
+-}
+
+-- TODO
+--  Add API for defining global variables
+--  Add API for importing globals

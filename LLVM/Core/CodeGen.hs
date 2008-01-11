@@ -7,9 +7,13 @@ module LLVM.Core.CodeGen(
     -- * Function creation
     Function, newFunction, newNamedFunction, defineFunction, createFunction,
     FunctionArgs,
+    -- * Global variable creation
+    Global, newGlobal, newNamedGlobal, defineGlobal, createGlobal, TGlobal,
+    externFunction, TFunction,
     -- * Values
     Value(..), ConstValue(..),
-    IsConst(..), valueOf,
+    IsConst(..), valueOf, value,
+    constString, constStringNul,
     -- * Basic blocks
     BasicBlock(..), newBasicBlock, newNamedBasicBlock, defineBasicBlock, createBasicBlock,
     -- * Misc
@@ -70,7 +74,16 @@ constF :: (IsType a, Real a) => a -> ConstValue a
 constF i = ConstValue $ FFI.constReal (typeRef i) (realToFrac i)
 
 valueOf :: (IsConst a) => a -> Value a
-valueOf a = Value v where ConstValue v = constOf a
+valueOf = value . constOf
+
+value :: ConstValue a -> Value a
+value (ConstValue a) = Value a
+
+constString :: String -> ConstValue (Array AnySize Word8)
+constString = ConstValue . U.constString
+
+constStringNul :: String -> ConstValue (Array AnySize Word8)
+constStringNul = ConstValue . U.constStringNul
 
 --------------------------------------
 
