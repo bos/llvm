@@ -144,26 +144,27 @@ instance (FunctionArgs b b' r) => FunctionArgs (a -> b) (Value a -> b') r where
 -- XXX instances for all IsFirstClass functions,
 -- because Haskell can't deal with the context and the FD
 type FA a = CodeGenFunction a ()
-instance FunctionArgs Float        (FA Float)        (FA Float)        where apArgs _ _ g = g
-instance FunctionArgs Double       (FA Double)       (FA Double)       where apArgs _ _ g = g
-instance FunctionArgs FP128        (FA FP128)        (FA FP128)        where apArgs _ _ g = g
+instance FunctionArgs (IO Float)        (FA Float)        (FA Float)        where apArgs _ _ g = g
+instance FunctionArgs (IO Double)       (FA Double)       (FA Double)       where apArgs _ _ g = g
+instance FunctionArgs (IO FP128)        (FA FP128)        (FA FP128)        where apArgs _ _ g = g
 instance (IsTypeNumber n) => 
-         FunctionArgs (IntN n)     (FA (IntN n))     (FA (IntN n))     where apArgs _ _ g = g
+         FunctionArgs (IO (IntN n))     (FA (IntN n))     (FA (IntN n))     where apArgs _ _ g = g
 instance (IsTypeNumber n) =>
-         FunctionArgs (WordN n)    (FA (WordN n))    (FA (WordN n))    where apArgs _ _ g = g
-instance FunctionArgs Bool         (FA Bool)         (FA Bool)         where apArgs _ _ g = g
-instance FunctionArgs Int8         (FA Int8)         (FA Int8)         where apArgs _ _ g = g
-instance FunctionArgs Int16        (FA Int16)        (FA Int16)        where apArgs _ _ g = g
-instance FunctionArgs Int32        (FA Int32)        (FA Int32)        where apArgs _ _ g = g
-instance FunctionArgs Int64        (FA Int64)        (FA Int64)        where apArgs _ _ g = g
-instance FunctionArgs Word8        (FA Word8)        (FA Word8)        where apArgs _ _ g = g
-instance FunctionArgs Word16       (FA Word16)       (FA Word16)       where apArgs _ _ g = g
-instance FunctionArgs Word32       (FA Word32)       (FA Word32)       where apArgs _ _ g = g
-instance FunctionArgs Word64       (FA Word64)       (FA Word64)       where apArgs _ _ g = g
+         FunctionArgs (IO (WordN n))    (FA (WordN n))    (FA (WordN n))    where apArgs _ _ g = g
+instance FunctionArgs (IO Bool)         (FA Bool)         (FA Bool)         where apArgs _ _ g = g
+instance FunctionArgs (IO Int8)         (FA Int8)         (FA Int8)         where apArgs _ _ g = g
+instance FunctionArgs (IO Int16)        (FA Int16)        (FA Int16)        where apArgs _ _ g = g
+instance FunctionArgs (IO Int32)        (FA Int32)        (FA Int32)        where apArgs _ _ g = g
+instance FunctionArgs (IO Int64)        (FA Int64)        (FA Int64)        where apArgs _ _ g = g
+instance FunctionArgs (IO Word8)        (FA Word8)        (FA Word8)        where apArgs _ _ g = g
+instance FunctionArgs (IO Word16)       (FA Word16)       (FA Word16)       where apArgs _ _ g = g
+instance FunctionArgs (IO Word32)       (FA Word32)       (FA Word32)       where apArgs _ _ g = g
+instance FunctionArgs (IO Word64)       (FA Word64)       (FA Word64)       where apArgs _ _ g = g
+instance FunctionArgs (IO ())           (FA ())           (FA ())           where apArgs _ _ g = g
 instance (IsTypeNumber n, IsPrimitive a) =>
-         FunctionArgs (Vector n a) (FA (Vector n a)) (FA (Vector n a)) where apArgs _ _ g = g
+         FunctionArgs (IO (Vector n a)) (FA (Vector n a)) (FA (Vector n a)) where apArgs _ _ g = g
 instance (IsType a) => 
-         FunctionArgs (Ptr a)      (FA (Ptr a))      (FA (Ptr a))      where apArgs _ _ g = g
+         FunctionArgs (IO (Ptr a))      (FA (Ptr a))      (FA (Ptr a))      where apArgs _ _ g = g
 
 --------------------------------------
 

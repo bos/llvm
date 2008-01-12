@@ -85,6 +85,10 @@ class Generic a where
     toGeneric :: a -> GenericValue
     fromGeneric :: GenericValue -> a
 
+instance Generic () where
+    toGeneric _ = error "toGeneric ()"
+    fromGeneric _ = ()
+
 toGenericInt :: (Integral a, IsFirstClass a) => Bool -> a -> GenericValue
 toGenericInt signed val = unsafePerformIO $ createGenericValueWith $
     FFI.createGenericValueOfInt (typeRef val) (fromIntegral val) (fromBool signed)

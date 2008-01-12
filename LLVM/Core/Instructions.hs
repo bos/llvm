@@ -1,4 +1,4 @@
-{-# LANGUAGE MultiParamTypeClasses, FunctionalDependencies, FlexibleInstances, UndecidableInstances, TypeSynonymInstances, ScopedTypeVariables #-}
+{-# LANGUAGE MultiParamTypeClasses, FunctionalDependencies, FlexibleInstances, UndecidableInstances, TypeSynonymInstances, ScopedTypeVariables, OverlappingInstances #-}
 module LLVM.Core.Instructions(
     -- * Terminator instructions
     ret,
@@ -44,9 +44,9 @@ module LLVM.Core.Instructions(
     ) where
 import Prelude hiding (and, or)
 import Control.Monad(liftM)
-import Data.Int
+--import Data.Int
 import Data.Word
-import Data.TypeNumbers
+--import Data.TypeNumbers
 import qualified LLVM.Core.FFI as FFI
 import LLVM.Core.Data
 import LLVM.Core.Type
@@ -321,6 +321,8 @@ class CallArgs f g | f -> g, g -> f where
 instance (CallArgs b b') => CallArgs (a -> b) (Value a -> b') where
     doCall mkCall args = \ (Value arg) -> doCall mkCall (arg : args)
 
+instance CallArgs (IO a) (CodeGenFunction r (Value a)) where doCall = doCallDef
+{-
 instance CallArgs Float        (CodeGenFunction r (Value Float))        where doCall = doCallDef
 instance CallArgs Double       (CodeGenFunction r (Value Double))       where doCall = doCallDef
 instance CallArgs FP128        (CodeGenFunction r (Value FP128))        where doCall = doCallDef
@@ -341,6 +343,7 @@ instance (IsTypeNumber n, IsPrimitive a) =>
          CallArgs (Vector n a) (CodeGenFunction r (Value (Vector n a))) where doCall = doCallDef
 instance (IsType a) =>
          CallArgs (Ptr a)      (CodeGenFunction r (Value (Ptr a)))      where doCall = doCallDef
+-}
 
 doCallDef :: Caller -> [FFI.ValueRef] -> CodeGenFunction r (Value a)
 doCallDef mkCall args =

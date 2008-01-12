@@ -1,4 +1,4 @@
-{-# LANGUAGE ScopedTypeVariables, EmptyDataDecls #-}
+{-# LANGUAGE ScopedTypeVariables, EmptyDataDecls, FlexibleInstances, IncoherentInstances #-}
 -- |The LLVM type system is captured with a number of Haskell type classes.
 -- In general, an LLVM type @T@ is represented as @Value T@, where @T@ is some Haskell type.
 -- The various types @T@ are classified by various type classes, e.g., 'IsFirstClass' for
@@ -15,7 +15,7 @@ module LLVM.Core.Type(
     IsFirstClass,
     IsSized,
     IsFunction,
-    IsFunctionRet,
+--    IsFunctionRet,
     IsSequence
     ) where
 import Data.Int
@@ -59,7 +59,8 @@ class IsSequence c where dummy__ :: c a -> a; dummy__ = undefined
 class (IsType a) => IsSized a
 
 -- |Function type.
-class (IsType a) => IsFunction a
+class (IsType a) => IsFunction a where
+    funcType :: [FFI.TypeRef] -> a -> FFI.TypeRef
 
 -- Only make instances for types that make sense in Haskell
 -- (i.e., some floating types are excluded).
@@ -107,7 +108,10 @@ instance (IsType a) => IsType (Ptr a) where
     typeRef ~(Ptr a) = FFI.pointerType (typeRef a) 0
 
 -- Functions.
-instance (IsFirstClass a, IsFunctionRet b) => IsType (a->b) where
+instance (IsFirstClass a, IsFunction b) => IsType (a->b) where
+    typeRef = funcType []
+
+instance (IsFirstClass a) => IsType (IO a) where
     typeRef = funcType []
 
 --- Instances to classify types
@@ -158,6 +162,7 @@ instance IsFirstClass Word32
 instance IsFirstClass Word64
 instance (IsTypeNumber n, IsPrimitive a) => IsFirstClass (Vector n a)
 instance (IsType a) => IsFirstClass (Ptr a)
+instance IsFirstClass () -- XXX This isn't right, but () can be returned
 
 instance (IsTypeNumber n) => IsSequence (Array n)
 --instance (IsTypeNumber n, IsPrimitive a) => IsSequence (Vector n) a
@@ -198,17 +203,23 @@ instance IsPrimitive Word64
 instance IsPrimitive ()
 
 -- Functions.
+instance (IsFirstClass a, IsFunction b) => IsFunction (a->b) where
+    funcType ts _ = funcType (typeRef (undefined :: a) : ts) (undefined :: b)
+instance (IsFirstClass a) => IsFunction (IO a) where
+    funcType ts _ = functionType False (typeRef (undefined :: a)) ts
+{-
 instance (IsFirstClass a, IsFunctionRet b) => IsFunction (a->b)
+instance IsFunction (IO a)
 
 -- Handle function types including the base case where there is no arrow.
-class (IsType a) => IsFunctionRet a where
+class {- (IsType a) => -} IsFunctionRet a where
     funcType :: [FFI.TypeRef] -> a -> FFI.TypeRef
-    funcType ts x = functionType False (typeRef x) ts
 
 instance (IsFirstClass a, IsFunctionRet b) => IsFunctionRet (a -> b) where
     funcType ts _ = funcType (typeRef (undefined :: a) : ts) (undefined :: b)
 
 -- The return types are almost the first class types, but also ().
+{-
 instance IsFunctionRet Float
 instance IsFunctionRet Double
 instance IsFunctionRet FP128
@@ -225,8 +236,11 @@ instance IsFunctionRet Word32
 instance IsFunctionRet Word64
 instance (IsTypeNumber n, IsPrimitive a) => IsFunctionRet (Vector n a) -- XXX are vectors returnable?
 instance (IsType a) => IsFunctionRet (Ptr a)
-instance IsFunctionRet ()
-
+-}
+instance (IsFirstClass a) => IsFunctionRet (IO a) where
+    funcType ts _ = functionType False (typeRef (undefined :: a)) ts
+--instance IsFunctionRet (IO ())
+-}
 
 -- XXX Structures not implemented.  Tuples is probably an easy way.
 

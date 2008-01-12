@@ -20,15 +20,15 @@ main = do
   prov <- createModuleProviderForExistingModule m
   ee <- createExecutionEngine prov
   
-  let fib = unsafeGeneratePureFunction ee (mfib fns)
+  let fib = unsafePurify $ generateFunction ee $ mfib fns
 
   forM_ args' $ \num -> do
       putStrLn $ "fib " ++ num ++ " = " ++ show (fib (read num))
   return ()
 
 data Mod = Mod {
-    mfib :: Function (Word32 -> Word32),
-    mplus :: Function (Word32 -> Word32 -> Word32)
+    mfib :: Function (Word32 -> IO Word32),
+    mplus :: Function (Word32 -> Word32 -> IO Word32)
     }
 
 buildMod :: CodeGenModule Mod
