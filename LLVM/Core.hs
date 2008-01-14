@@ -71,3 +71,8 @@ dumpType _ = FFI.dumpValue (typeRef (undefined :: a))
 -- TODO
 --  Add API for defining global variables
 --  Add API for importing globals
+
+-- Enforce free is only called on malloc memory.  (Enforce only one free?)
+-- Enforce phi nodes a accessor of variables outside the bb
+-- Enforce bb terminator
+-- Enforce phi first
