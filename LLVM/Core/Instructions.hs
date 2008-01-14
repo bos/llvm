@@ -380,15 +380,15 @@ select (Value cnd) (Value thn) (Value els) =
 --------------------------------------
 
 -- XXX What's the type returned by malloc
-malloc :: forall a n r . (IsSized a) => CodeGenFunction r (Value (Array n a))
+malloc :: forall a r . (IsSized a) => CodeGenFunction r (Value (Ptr a))
 malloc =
     liftM Value $
     withCurrentBuilder $ \ bldPtr ->
       U.withEmptyCString $ FFI.buildMalloc bldPtr (typeRef (undefined :: a))
 
 -- XXX What's the type returned by arrayMalloc?
-arrayMalloc :: forall a n r . (IsSized a) =>
-               Value (Word32) -> CodeGenFunction r (Value (Array n a))
+arrayMalloc :: forall a r . (IsSized a) =>
+               Value (Word32) -> CodeGenFunction r (Value (Ptr a)) -- XXX
 arrayMalloc (Value n) =
     liftM Value $
     withCurrentBuilder $ \ bldPtr ->
@@ -396,7 +396,7 @@ arrayMalloc (Value n) =
         FFI.buildArrayMalloc bldPtr (typeRef (undefined :: a)) n
 
 -- XXX What's the type returned by malloc
-alloca :: forall a n r . (IsSized a) => CodeGenFunction r (Value (Array n a))
+alloca :: forall a n r . (IsSized a) => CodeGenFunction r (Value (Ptr a))
 alloca =
     liftM Value $
     withCurrentBuilder $ \ bldPtr ->
@@ -404,7 +404,7 @@ alloca =
 
 -- XXX What's the type returned by arrayAlloca?
 arrayAlloca :: forall a n r . (IsSized a) =>
-               Value (Word32) -> CodeGenFunction r (Value (Array n a))
+               Value (Word32) -> CodeGenFunction r (Value (Ptr a))
 arrayAlloca (Value n) =
     liftM Value $
     withCurrentBuilder $ \ bldPtr ->
