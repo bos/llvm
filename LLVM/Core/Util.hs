@@ -20,7 +20,7 @@ module LLVM.Core.Util(
     -- * Misc
     CString, withArrayLen,
     withEmptyCString,
-    functionType, buildPhi,
+    functionType, buildEmptyPhi, addPhiIns
     ) where
 import Control.Monad(liftM)
 import Foreign.C.String (withCString, withCStringLen, CString)
@@ -67,6 +67,7 @@ foreign import ccall "wrapper" h2c_module
 -- a module provider changes ownership of the module to the provider,
 -- and we don't want to free it by mistake.
 
+-- | Type of top level modules.
 newtype Module = Module {
       fromModule :: FFI.ModuleRef
     }
@@ -85,6 +86,7 @@ destroyModule = FFI.disposeModule . fromModule
 --------------------------------------
 -- Handle module providers
 
+-- | A module provider is used by the code generator to get access to a module.
 newtype ModuleProvider = ModuleProvider {
       fromModuleProvider :: ForeignPtr FFI.ModuleProvider
     }
@@ -93,6 +95,7 @@ withModuleProvider :: ModuleProvider -> (FFI.ModuleProviderRef -> IO a)
                    -> IO a
 withModuleProvider prov = withForeignPtr (fromModuleProvider prov)
 
+-- | Turn a module into a module provider.
 createModuleProviderForExistingModule :: Module -> IO ModuleProvider
 createModuleProviderForExistingModule modul =
     withModule modul $ \modulPtr -> do
@@ -200,15 +203,16 @@ makeInvoke norm expt func bldPtr args =
 
 --------------------------------------
 
-buildPhi :: FFI.BuilderRef -> Type -> [(Value, BasicBlock)] -> IO Value
-buildPhi bldPtr typ incoming = do
-    inst <- withEmptyCString $ FFI.buildPhi bldPtr typ
-    let (vals, bblks) = unzip incoming
-    withArrayLen vals $ \ count valPtr ->
-      withArray bblks $ \ bblkPtr ->
-        FFI.addIncoming inst valPtr bblkPtr (fromIntegral count)
-    return inst
+buildEmptyPhi :: FFI.BuilderRef -> Type -> IO Value
+buildEmptyPhi bldPtr typ = do
+    withEmptyCString $ FFI.buildPhi bldPtr typ
 
 withEmptyCString :: (CString -> IO a) -> IO a
 withEmptyCString = withCString "" 
 
+addPhiIns :: Value -> [(Value, BasicBlock)] -> IO ()
+addPhiIns inst incoming = do
+    let (vals, bblks) = unzip incoming
+    withArrayLen vals $ \ count valPtr ->
+      withArray bblks $ \ bblkPtr ->
+        FFI.addIncoming inst valPtr bblkPtr (fromIntegral count)

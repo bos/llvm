@@ -34,7 +34,7 @@ module LLVM.Core.Instructions(
     -- * Other
     IntPredicate(..), RealPredicate(..),
     icmp, fcmp,
-    phi,
+    phi, addPhiInputs,
     select,
     call,
     -- va_arg
@@ -67,7 +67,7 @@ terminate = ()
 --------------------------------------
 
 class Ret a r where
-    ret :: a -> CodeGenFunction r Terminate
+    ret :: a -> CodeGenFunction r Terminate  -- ^ Return from the current function with the given value.  Use () as the return value for what would be a void function is C.
 
 instance (IsFirstClass a, IsConst a) => Ret a a where
     ret a = ret (valueOf a)
@@ -84,22 +84,32 @@ instance Ret () () where
 
 --------------------------------------
 
-condBr :: Value Bool -> BasicBlock -> BasicBlock -> CodeGenFunction r Terminate
+-- | Branch to the first basic block if the boolean is true, otherwise to the second basic block.
+condBr :: Value Bool -- ^ Boolean to branch upon.
+       -> BasicBlock -- ^ Target for true.
+       -> BasicBlock -- ^ Target for false.
+       -> CodeGenFunction r Terminate
 condBr (Value b) (BasicBlock t1) (BasicBlock t2) = do
     withCurrentBuilder $ \ bldPtr -> FFI.buildCondBr bldPtr b t1 t2
     return terminate
 
 --------------------------------------
 
-br :: BasicBlock -> CodeGenFunction r Terminate
+-- | Unconditionally branch to the given basic block.
+br :: BasicBlock  -- ^ Branch target.
+   -> CodeGenFunction r Terminate
 br (BasicBlock t) = do
     withCurrentBuilder $ \ bldPtr -> FFI.buildBr bldPtr t
     return terminate
 
 --------------------------------------
 
-switch :: (IsInteger a) =>
-          Value a -> BasicBlock -> [(ConstValue a, BasicBlock)] -> CodeGenFunction r Terminate
+-- | Branch table instruction.
+switch :: (IsInteger a)
+       => Value a                        -- ^ Value to branch upon.
+       -> BasicBlock                     -- ^ Default branch target.
+       -> [(ConstValue a, BasicBlock)]   -- ^ Labels and corresponding branch targets.
+       -> CodeGenFunction r Terminate
 switch (Value val) (BasicBlock dflt) arms = do
     withCurrentBuilder $ \ bldPtr -> do
         inst <- FFI.buildSwitch bldPtr val dflt (fromIntegral $ length arms)
@@ -128,17 +138,20 @@ type FFIConstBinOp = FFI.ValueRef -> FFI.ValueRef -> FFI.ValueRef
 class ABinOp a b c | a b -> c where
     abinop :: FFIConstBinOp -> FFIBinOp -> a -> b -> CodeGenFunction r c
 
+-- | Arithmetic operations with the normal semantics.
 add, sub, mul :: (IsArithmetic c, ABinOp a b (v c)) => a -> b -> CodeGenFunction r (v c)
 add = abinop FFI.constAdd FFI.buildAdd
 sub = abinop FFI.constSub FFI.buildSub
 mul = abinop FFI.constMul FFI.buildMul
 
+-- | The u instractions are unsigned, the s instrctions are signed.
 udiv, sdiv, urem, srem :: (IsInteger c, ABinOp a b (v c)) => a -> b -> CodeGenFunction r (v c)
 udiv = abinop FFI.constUDiv FFI.buildUDiv
 sdiv = abinop FFI.constSDiv FFI.buildSDiv
 urem = abinop FFI.constURem FFI.buildURem
 srem = abinop FFI.constSRem FFI.buildSRem
 
+-- | Floating point division and remainder.
 fdiv, frem :: (IsFloating c, ABinOp a b (v c)) => a -> b -> CodeGenFunction r (v c)
 fdiv = abinop FFI.constFDiv FFI.buildFDiv
 frem = abinop FFI.constFRem FFI.buildFRem
@@ -182,21 +195,30 @@ buildBinOp op a1 a2 =
 
 --------------------------------------
 
-extractelement :: Value (Vector n a) -> Value Word32 -> CodeGenFunction r (Value a)
+-- | Get a value from a vector.
+extractelement :: Value (Vector n a)               -- ^ Vector
+               -> Value Word32                     -- ^ Index into the vector
+               -> CodeGenFunction r (Value a)
 extractelement (Value vec) (Value i) =
     liftM Value $
     withCurrentBuilder $ \ bldPtr ->
       U.withEmptyCString $ FFI.buildExtractElement bldPtr vec i
 
-insertelement :: Value (Vector n a) -> Value a -> Value Word32 ->
-                 CodeGenFunction r (Value (Vector n a))
+-- | Insert a value into a vector, nondescructive.
+insertelement :: Value (Vector n a)                -- ^ Vector
+              -> Value a                           -- ^ Value to insert
+              -> Value Word32                      -- ^ Index into the vector
+              -> CodeGenFunction r (Value (Vector n a))
 insertelement (Value vec) (Value e) (Value i) =
     liftM Value $
     withCurrentBuilder $ \ bldPtr ->
       U.withEmptyCString $ FFI.buildInsertElement bldPtr vec e i
 
-shufflevector :: Value (Vector n a) -> Value (Vector n a) ->
-                 ConstValue (Vector n Word32) -> CodeGenFunction r (Value (Vector n a))
+-- | Permute vector.
+shufflevector :: Value (Vector n a)
+              -> Value (Vector n a)
+              -> ConstValue (Vector n Word32)
+              -> CodeGenFunction r (Value (Vector n a))
 shufflevector (Value a) (Value b) (ConstValue mask) =
     liftM Value $
     withCurrentBuilder $ \ bldPtr ->
@@ -208,44 +230,56 @@ shufflevector (Value a) (Value b) (ConstValue mask) =
 -- XXX should allows constants
 
 -- XXX size a > size b not enforced
+-- | Truncate a value to a shorter bit width.
 trunc :: (IsInteger a, IsInteger b) => Value a -> CodeGenFunction r (Value b)
 trunc = convert FFI.buildTrunc
 
 -- XXX size a < size b not enforced
+-- | Zero extend a value to a wider width.
 zext :: (IsInteger a, IsInteger b) => Value a -> CodeGenFunction r (Value b)
 zext = convert FFI.buildZExt
 
 -- XXX size a < size b not enforced
+-- | Sign extend a value to wider width.
 sext :: (IsInteger a, IsInteger b) => Value a -> CodeGenFunction r (Value b)
 sext = convert FFI.buildSExt
 
 -- XXX size a > size b not enforced
+-- | Truncate a floating point value.
 fptrunc :: (IsFloating a, IsFloating b) => Value a -> CodeGenFunction r (Value b)
 fptrunc = convert FFI.buildFPTrunc
 
 -- XXX size a < size b not enforced
+-- | Extend a floating point value.
 fpext :: (IsFloating a, IsFloating b) => Value a -> CodeGenFunction r (Value b)
 fpext = convert FFI.buildFPExt
 
+-- | Convert a floating point value to an unsigned integer.
 fptoui :: (IsFloating a, IsInteger b) => Value a -> CodeGenFunction r (Value b)
 fptoui = convert FFI.buildFPToUI
 
+-- | Convert a floating point value to a signed integer.
 fptosi :: (IsFloating a, IsInteger b) => Value a -> CodeGenFunction r (Value b)
 fptosi = convert FFI.buildFPToSI
 
+-- | Convert an unsigned integer to a floating point value.
 uitofp :: (IsInteger a, IsFloating b) => Value a -> CodeGenFunction r (Value b)
 uitofp = convert FFI.buildUIToFP
 
+-- | Convert a signed integer to a floating point value.
 sitofp :: (IsInteger a, IsFloating b) => Value a -> CodeGenFunction r (Value b)
 sitofp = convert FFI.buildSIToFP
 
+-- | Convert a pointer to an integer.
 ptrtoint :: (IsInteger b) => Value (Ptr a) -> CodeGenFunction r (Value b)
 ptrtoint = convert FFI.buildPtrToInt
 
+-- | Convert an integer to a pointer.
 inttoptr :: (IsInteger a, IsType b) => Value (Ptr a) -> CodeGenFunction r (Value (Ptr b))
 inttoptr = convert FFI.buildIntToPtr
 
 -- XXX a and b must use the same space, and there are also pointer restrictions
+-- | Convert between to values of the same size by just copying the bit pattern.
 bitcast :: (IsFirstClass a, IsFirstClass b) => Value a -> CodeGenFunction r (Value b)
 bitcast = convert FFI.buildBitCast
 
@@ -303,10 +337,12 @@ instance (IsConst a) => CmpOp a (Value a) a where
 instance (IsConst a) => CmpOp (Value a) a a where
     cmpop op a1 a2 = cmpop op a1 (valueOf a2)
 
+-- | Compare integers.
 icmp :: (IsInteger c, CmpOp a b c) =>
         IntPredicate -> a -> b -> CodeGenFunction r (Value Bool)
 icmp p = cmpop (flip FFI.buildICmp (fromIntegral (fromEnum p + 32)))
 
+-- | Compare floating point values.
 fcmp :: (IsFloating c, CmpOp a b c) =>
         RealPredicate -> a -> b -> CodeGenFunction r (Value Bool)
 fcmp p = cmpop (flip FFI.buildFCmp (fromIntegral (fromEnum p)))
@@ -322,37 +358,17 @@ instance (CallArgs b b') => CallArgs (a -> b) (Value a -> b') where
     doCall mkCall args = \ (Value arg) -> doCall mkCall (arg : args)
 
 instance CallArgs (IO a) (CodeGenFunction r (Value a)) where doCall = doCallDef
-{-
-instance CallArgs Float        (CodeGenFunction r (Value Float))        where doCall = doCallDef
-instance CallArgs Double       (CodeGenFunction r (Value Double))       where doCall = doCallDef
-instance CallArgs FP128        (CodeGenFunction r (Value FP128))        where doCall = doCallDef
-instance (IsTypeNumber n) =>
-         CallArgs (IntN n)     (CodeGenFunction r (Value (IntN n)))     where doCall = doCallDef
-instance (IsTypeNumber n) =>
-         CallArgs (WordN n)    (CodeGenFunction r (Value (WordN n)))    where doCall = doCallDef
-instance CallArgs Bool         (CodeGenFunction r (Value Bool))         where doCall = doCallDef
-instance CallArgs Int8         (CodeGenFunction r (Value Int8))         where doCall = doCallDef
-instance CallArgs Int16        (CodeGenFunction r (Value Int16))        where doCall = doCallDef
-instance CallArgs Int32        (CodeGenFunction r (Value Int32))        where doCall = doCallDef
-instance CallArgs Int64        (CodeGenFunction r (Value Int64))        where doCall = doCallDef
-instance CallArgs Word8        (CodeGenFunction r (Value Word8))        where doCall = doCallDef
-instance CallArgs Word16       (CodeGenFunction r (Value Word16))       where doCall = doCallDef
-instance CallArgs Word32       (CodeGenFunction r (Value Word32))       where doCall = doCallDef
-instance CallArgs Word64       (CodeGenFunction r (Value Word64))       where doCall = doCallDef
-instance (IsTypeNumber n, IsPrimitive a) =>
-         CallArgs (Vector n a) (CodeGenFunction r (Value (Vector n a))) where doCall = doCallDef
-instance (IsType a) =>
-         CallArgs (Ptr a)      (CodeGenFunction r (Value (Ptr a)))      where doCall = doCallDef
--}
 
 doCallDef :: Caller -> [FFI.ValueRef] -> CodeGenFunction r (Value a)
 doCallDef mkCall args =
     withCurrentBuilder $ \ bld -> 
       liftM Value $ mkCall bld (reverse args)
 
+-- | Call a function with the given arguments.
 call :: (CallArgs f g) => Function f -> g
 call (Value f) = doCall (U.makeCall f) []
 
+-- | Call a function with exception handling.
 invoke :: (CallArgs f g) => BasicBlock -> BasicBlock -> Function f -> g
 invoke (BasicBlock norm) (BasicBlock expt) (Value f) =
     doCall (U.makeInvoke norm expt f) []
@@ -363,13 +379,20 @@ invoke (BasicBlock norm) (BasicBlock expt) (Value f) =
 phi :: forall a r . (IsFirstClass a) => [(Value a, BasicBlock)] -> CodeGenFunction r (Value a)
 phi incoming = 
     liftM Value $
-      withCurrentBuilder $ \ bldPtr ->
-        U.buildPhi bldPtr (typeRef (undefined :: a))
-                   [ (v, b) | (Value v, BasicBlock b) <- incoming ]
+      withCurrentBuilder $ \ bldPtr -> do
+        inst <- U.buildEmptyPhi bldPtr (typeRef (undefined :: a))
+        U.addPhiIns inst [ (v, b) | (Value v, BasicBlock b) <- incoming ]
+        return inst
+
+addPhiInputs :: forall a r . (IsFirstClass a) => (Value a) -> [(Value a, BasicBlock)] -> CodeGenFunction r ()
+addPhiInputs (Value inst) incoming =
+    liftIO $ U.addPhiIns inst [ (v, b) | (Value v, BasicBlock b) <- incoming ]
+    
 
 --------------------------------------
 
 -- XXX could do const song and dance
+-- | Select between two values depending on a boolean.
 select :: (IsFirstClass a) => Value Bool -> Value a -> Value a -> CodeGenFunction r (Value a)
 select (Value cnd) (Value thn) (Value els) =
     liftM Value $
@@ -380,6 +403,7 @@ select (Value cnd) (Value thn) (Value els) =
 --------------------------------------
 
 -- XXX What's the type returned by malloc
+-- | Allocate heap memory.
 malloc :: forall a r . (IsSized a) => CodeGenFunction r (Value (Ptr a))
 malloc =
     liftM Value $
@@ -387,6 +411,7 @@ malloc =
       U.withEmptyCString $ FFI.buildMalloc bldPtr (typeRef (undefined :: a))
 
 -- XXX What's the type returned by arrayMalloc?
+-- | Allocate heap (array) memory.
 arrayMalloc :: forall a r . (IsSized a) =>
                Value (Word32) -> CodeGenFunction r (Value (Ptr a)) -- XXX
 arrayMalloc (Value n) =
@@ -396,14 +421,16 @@ arrayMalloc (Value n) =
         FFI.buildArrayMalloc bldPtr (typeRef (undefined :: a)) n
 
 -- XXX What's the type returned by malloc
-alloca :: forall a n r . (IsSized a) => CodeGenFunction r (Value (Ptr a))
+-- | Allocate stack memory.
+alloca :: forall a r . (IsSized a) => CodeGenFunction r (Value (Ptr a))
 alloca =
     liftM Value $
     withCurrentBuilder $ \ bldPtr ->
       U.withEmptyCString $ FFI.buildAlloca bldPtr (typeRef (undefined :: a))
 
 -- XXX What's the type returned by arrayAlloca?
-arrayAlloca :: forall a n r . (IsSized a) =>
+-- | Allocate stack (array) memory.
+arrayAlloca :: forall a r . (IsSized a) =>
                Value (Word32) -> CodeGenFunction r (Value (Ptr a))
 arrayAlloca (Value n) =
     liftM Value $
@@ -412,24 +439,32 @@ arrayAlloca (Value n) =
         FFI.buildArrayAlloca bldPtr (typeRef (undefined :: a)) n
 
 -- XXX What's the type of free?
+-- | Free heap memory.
 free :: Value (Ptr a) -> CodeGenFunction r (Value ())
 free (Value a) =
     liftM Value $
     withCurrentBuilder $ \ bldPtr -> FFI.buildFree bldPtr a
 
-load :: Value (Ptr a) -> CodeGenFunction r (Value a)
+-- | Load a value from memory.
+load :: Value (Ptr a)                   -- ^ Address to load from.
+     -> CodeGenFunction r (Value a)
 load (Value p) =
     liftM Value $
     withCurrentBuilder $ \ bldPtr ->
       U.withEmptyCString $ FFI.buildLoad bldPtr p
 
-store :: Value (Ptr a) -> Value a -> CodeGenFunction r (Value ())
+-- | Store a value in memory
+store :: Value a                        -- ^ Value to store.
+      -> Value (Ptr a)                  -- ^ Address to store to.
+      -> CodeGenFunction r (Value ())
 store (Value v) (Value p) =
     liftM Value $
     withCurrentBuilder $ \ bldPtr ->
       FFI.buildStore bldPtr v p
 
 -- XXX type is wrong
+-- | Address arithmetic.  See LLVM description.
+-- (The type isn't as accurate as it should be.)
 getElementPtr :: (IsInteger i) =>
                  Value (Ptr a) -> [Value i] -> CodeGenFunction r (Value (Ptr b))
 getElementPtr (Value ptr) ixs =

@@ -31,16 +31,24 @@ import LLVM.Core.Data
 
 --------------------------------------
 
+-- | Create a new module.
 newModule :: IO U.Module
 newModule = newNamedModule "_module"  -- XXX should generate a name
 
-newNamedModule :: String -> IO U.Module
+-- | Create a new explicitely named module.
+newNamedModule :: String              -- ^ module name
+               -> IO U.Module
 newNamedModule = U.createModule
 
-defineModule :: U.Module -> CodeGenModule a -> IO a
+-- | Give the body for a module.
+defineModule :: U.Module              -- ^ module that is defined
+             -> CodeGenModule a       -- ^ module body
+             -> IO a
 defineModule = runCodeGenModule
 
-createModule :: CodeGenModule a -> IO a
+-- | Create a new module with the given body.
+createModule :: CodeGenModule a       -- ^ module body
+             -> IO a
 createModule cgm = newModule >>= \ m -> defineModule m cgm
 
 --------------------------------------
@@ -102,17 +110,28 @@ type FunctionRef = FFI.ValueRef
 -- |A function is simply a pointer to the function.
 type Function a = Value (Ptr a)
 
-newNamedFunction :: forall a . (IsFunction a) => Linkage -> String -> CodeGenModule (Function a)
+-- | Create a new named function.
+newNamedFunction :: forall a . (IsFunction a)
+                 => Linkage
+                 -> String   -- ^ Function name
+                 -> CodeGenModule (Function a)
 newNamedFunction linkage name = do
     modul <- getModule
     let typ = typeRef (undefined :: a)
     liftIO $ liftM Value $ U.addFunction modul (fromIntegral $ fromEnum linkage) name typ
 
-newFunction :: forall a . (IsFunction a) => Linkage -> CodeGenModule (Function a)
+-- | Create a new function.  Use 'newNamedFunction' to create a function with external linkage, since
+-- it needs a known name.
+newFunction :: forall a . (IsFunction a)
+            => Linkage
+            -> CodeGenModule (Function a)
 newFunction linkage = genMSym "fun" >>= newNamedFunction linkage
 
-defineFunction :: forall f g r . (FunctionArgs f g (CodeGenFunction r ())) =>
-                  Function f -> g -> CodeGenModule ()
+-- | Define a function body.  The basic block returned by the function is the function entry point.
+defineFunction :: forall f g r . (FunctionArgs f g (CodeGenFunction r ()))
+               => Function f       -- ^ Function to define (created by 'newFunction').
+               -> g                -- ^ Function body.
+               -> CodeGenModule ()
 defineFunction (Value fn) body = do
     bld <- liftIO $ U.createBuilder
     let body' = do
@@ -122,15 +141,18 @@ defineFunction (Value fn) body = do
     runCodeGenFunction bld fn body'
     return ()
 
-createFunction :: (IsFunction f, FunctionArgs f g (CodeGenFunction r ())) =>
-                  Linkage -> g -> CodeGenModule (Function f)
+-- | Create a new function with the given body.
+createFunction :: (IsFunction f, FunctionArgs f g (CodeGenFunction r ()))
+               => Linkage
+               -> g  -- ^ Function body.
+               -> CodeGenModule (Function f)
 createFunction linkage body = do
     f <- newFunction linkage
     defineFunction f body
     return f
 
 -- XXX This is ugly, it must be possible to make it simpler
--- Convert a function of type f = t1->t2->...->r to
+-- Convert a function of type f = t1->t2->...-> IO r to
 -- g = Value t1 -> Value t2 -> ... CodeGenFunction r ()
 class FunctionArgs f g r | f -> g r, g r -> f where
     apArgs :: Int -> FunctionRef -> g -> r
@@ -168,6 +190,7 @@ instance (IsType a) =>
 
 --------------------------------------
 
+-- |A basic block is a sequence of non-branching instructions, terminated by a control flow instruction.
 newtype BasicBlock = BasicBlock FFI.BasicBlockRef
 
 createBasicBlock :: CodeGenFunction r BasicBlock
@@ -207,19 +230,23 @@ type AnySize = End
 type Global a = Value (Ptr a)
 
 -- XXX what's the right type?
+-- | Create a new named global variable.
 newNamedGlobal :: forall a . (IsType a) => Linkage -> String -> TGlobal a
 newNamedGlobal linkage name = do
     modul <- getModule
     let typ = typeRef (undefined :: a)
     liftIO $ liftM Value $ U.addGlobal modul (fromIntegral $ fromEnum linkage) name typ
 
+-- | Create a new global variable.
 newGlobal :: forall a . (IsType a) => Linkage -> TGlobal a
 newGlobal linkage = genMSym "glb" >>= newNamedGlobal linkage
 
+-- | Give a global variable a (constant) value.
 defineGlobal :: Global a -> ConstValue a -> CodeGenModule ()
 defineGlobal (Value g) (ConstValue v) =
     liftIO $ FFI.setInitializer g v
 
+-- | Create and define a global variable.
 createGlobal :: (IsType a) => Linkage -> ConstValue a -> TGlobal a
 createGlobal linkage con = do
     g <- newGlobal linkage
