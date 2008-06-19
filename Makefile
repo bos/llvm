@@ -1,8 +1,9 @@
 ghc := ghc
 ghcflags := -Wall -Werror
 
-llvm_prefix ?= $(HOME)
-prefix ?= $(HOME)
+LLVMLIB=/usr/local
+llvm_prefix ?= $(LLVMLIB)
+prefix ?= $(LLVMLIB)
 _lib := $(shell test -d /usr/lib64 && echo lib64 || echo lib)
 
 ifeq ($(prefix),$(HOME))
