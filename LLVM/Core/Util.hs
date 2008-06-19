@@ -179,7 +179,13 @@ constStringNul = constStringInternal True
 type Value = FFI.ValueRef
 
 makeCall :: Function -> FFI.BuilderRef -> [Value] -> IO Value
-makeCall func bldPtr args =
+makeCall func bldPtr args = do
+{-
+      print "makeCall"
+      FFI.dumpValue func
+      mapM_ FFI.dumpValue args
+      print "----------------------"
+-}
       withArrayLen args $ \ argLen argPtr ->
         withEmptyCString $ 
           FFI.buildCall bldPtr func argPtr
