@@ -16,7 +16,7 @@ import System.IO.Unsafe (unsafePerformIO)
 
 import LLVM.ExecutionEngine.Engine
 import LLVM.Core.FFI(ValueRef)
-import LLVM.Core.Data(Ptr)
+--import LLVM.Core.Data(Ptr)
 import LLVM.Core.CodeGen(Value(..))
 import LLVM.Core
 
