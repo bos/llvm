@@ -65,6 +65,8 @@ module LLVM.Core.FFI
 
     -- ** Other types
     , voidType
+    , labelType
+    , opaqueType
 
     -- ** Array, pointer, and vector types
     , arrayType
@@ -127,6 +129,11 @@ module LLVM.Core.FFI
     , setThreadLocal
     , isGlobalConstant
     , setGlobalConstant
+    , getFirstGlobal
+    , getNextGlobal
+    , getPreviousGlobal
+    , getLastGlobal
+    , getGlobalParent
 
     -- ** Functions
     , addFunction
@@ -138,7 +145,16 @@ module LLVM.Core.FFI
     , getIntrinsicID
     , getCollector
     , setCollector
-      
+    , getFirstFunction
+    , getNextFunction
+    , getPreviousFunction
+    , getLastFunction
+    , getFirstParam
+    , getNextParam
+    , getPreviousParam
+    , getLastParam
+    , getParamParent
+
     -- ** Phi nodes
     , addIncoming
     , countIncoming
@@ -204,6 +220,7 @@ module LLVM.Core.FFI
     , constExtractElement
     , constInsertElement
     , constShuffleVector
+    , constRealOfString
 
     -- * Basic blocks
     , BasicBlock
@@ -217,14 +234,26 @@ module LLVM.Core.FFI
     , appendBasicBlock
     , insertBasicBlock
     , deleteBasicBlock
+    , getFirstBasicBlock
+    , getNextBasicBlock
+    , getPreviousBasicBlock
+    , getLastBasicBlock
+    , getInsertBlock
+    , getBasicBlockParent
 
     -- * Instruction building
     , Builder
     , BuilderRef
     , createBuilder
     , disposeBuilder
+    , positionBuilder
     , positionBefore
     , positionAtEnd
+    , getFirstInstruction
+    , getNextInstruction
+    , getPreviousInstruction
+    , getLastInstruction
+    , getInstructionParent
 
     -- ** Terminators
     , buildRetVoid
@@ -302,6 +331,25 @@ module LLVM.Core.FFI
 
     -- * Error handling
     , disposeMessage
+
+    -- * Parameter passing
+    , addInstrParamAttr
+    , addParamAttr
+    , removeInstrParamAttr
+    , removeParamAttr
+    , setInstrParamAlignment
+    , setParamAlignment
+
+    -- * Pass manager
+    , createFunctionPassManager
+    , createPassManager
+    , disposePassManager
+    , finalizeFunctionPassManager
+    , initializeFunctionPassManager
+    , runFunctionPassManager
+    , runPassManager
+
+    , dumpModule
     ) where
 
 import Foreign.C.String (CString)
@@ -955,3 +1003,110 @@ foreign import ccall unsafe "LLVMSetTarget" setTarget
     :: ModuleRef -> CString -> IO ()
 foreign import ccall unsafe "LLVMSizeOf" sizeOf
     :: TypeRef -> IO ValueRef
+
+{-
+typedef enum {
+    LLVMZExtParamAttr       = 1<<0,
+    LLVMSExtParamAttr       = 1<<1,
+    LLVMNoReturnParamAttr   = 1<<2,
+    LLVMInRegParamAttr      = 1<<3,
+    LLVMStructRetParamAttr  = 1<<4,
+    LLVMNoUnwindParamAttr   = 1<<5,
+    LLVMNoAliasParamAttr    = 1<<6,
+    LLVMByValParamAttr      = 1<<7,
+    LLVMNestParamAttr       = 1<<8,
+    LLVMReadNoneParamAttr   = 1<<9,
+    LLVMReadOnlyParamAttr   = 1<<10
+} LLVMParamAttr;
+-}
+type ParamAttr = CInt
+
+data PassManager
+type PassManagerRef = Ptr PassManager
+
+foreign import ccall unsafe "LLVMAddInstrParamAttr" addInstrParamAttr
+    :: ValueRef -> CUInt -> ParamAttr -> IO ()
+foreign import ccall unsafe "LLVMAddParamAttr" addParamAttr
+    :: ValueRef -> ParamAttr -> IO ()
+foreign import ccall unsafe "LLVMConstRealOfString" constRealOfString
+    :: TypeRef -> CString -> IO ValueRef
+foreign import ccall unsafe "LLVMCreateFunctionPassManager" createFunctionPassManager
+    :: ModuleProviderRef -> IO PassManagerRef
+foreign import ccall unsafe "LLVMCreatePassManager" createPassManager
+    :: IO PassManagerRef
+foreign import ccall unsafe "LLVMDisposePassManager" disposePassManager
+    :: PassManagerRef -> IO ()
+foreign import ccall unsafe "LLVMDumpModule" dumpModule
+    :: ModuleRef -> IO ()
+foreign import ccall unsafe "LLVMFinalizeFunctionPassManager" finalizeFunctionPassManager
+    :: PassManagerRef -> IO CInt
+foreign import ccall unsafe "LLVMGetBasicBlockParent" getBasicBlockParent
+    :: BasicBlockRef -> IO ValueRef
+foreign import ccall unsafe "LLVMGetFirstBasicBlock" getFirstBasicBlock
+    :: ValueRef -> IO BasicBlockRef
+foreign import ccall unsafe "LLVMGetFirstFunction" getFirstFunction
+    :: ModuleRef -> IO ValueRef
+foreign import ccall unsafe "LLVMGetFirstGlobal" getFirstGlobal
+    :: ModuleRef -> IO ValueRef
+foreign import ccall unsafe "LLVMGetFirstInstruction" getFirstInstruction
+    :: BasicBlockRef -> IO ValueRef
+foreign import ccall unsafe "LLVMGetFirstParam" getFirstParam
+    :: ValueRef -> IO ValueRef
+foreign import ccall unsafe "LLVMGetGlobalParent" getGlobalParent
+    :: ValueRef -> IO ModuleRef
+foreign import ccall unsafe "LLVMGetInsertBlock" getInsertBlock
+    :: BuilderRef -> IO BasicBlockRef
+foreign import ccall unsafe "LLVMGetInstructionParent" getInstructionParent
+    :: ValueRef -> IO BasicBlockRef
+foreign import ccall unsafe "LLVMGetLastBasicBlock" getLastBasicBlock
+    :: ValueRef -> IO BasicBlockRef
+foreign import ccall unsafe "LLVMGetLastFunction" getLastFunction
+    :: ModuleRef -> IO ValueRef
+foreign import ccall unsafe "LLVMGetLastGlobal" getLastGlobal
+    :: ModuleRef -> IO ValueRef
+foreign import ccall unsafe "LLVMGetLastInstruction" getLastInstruction
+    :: BasicBlockRef -> IO ValueRef
+foreign import ccall unsafe "LLVMGetLastParam" getLastParam
+    :: ValueRef -> IO ValueRef
+foreign import ccall unsafe "LLVMGetNextBasicBlock" getNextBasicBlock
+    :: BasicBlockRef -> IO BasicBlockRef
+foreign import ccall unsafe "LLVMGetNextFunction" getNextFunction
+    :: ValueRef -> IO ValueRef
+foreign import ccall unsafe "LLVMGetNextGlobal" getNextGlobal
+    :: ValueRef -> IO ValueRef
+foreign import ccall unsafe "LLVMGetNextInstruction" getNextInstruction
+    :: ValueRef -> IO ValueRef
+foreign import ccall unsafe "LLVMGetNextParam" getNextParam
+    :: ValueRef -> IO ValueRef
+foreign import ccall unsafe "LLVMGetParamParent" getParamParent
+    :: ValueRef -> IO ValueRef
+foreign import ccall unsafe "LLVMGetPreviousBasicBlock" getPreviousBasicBlock
+    :: BasicBlockRef -> IO BasicBlockRef
+foreign import ccall unsafe "LLVMGetPreviousFunction" getPreviousFunction
+    :: ValueRef -> IO ValueRef
+foreign import ccall unsafe "LLVMGetPreviousGlobal" getPreviousGlobal
+    :: ValueRef -> IO ValueRef
+foreign import ccall unsafe "LLVMGetPreviousInstruction" getPreviousInstruction
+    :: ValueRef -> IO ValueRef
+foreign import ccall unsafe "LLVMGetPreviousParam" getPreviousParam
+    :: ValueRef -> IO ValueRef
+foreign import ccall unsafe "LLVMInitializeFunctionPassManager" initializeFunctionPassManager
+    :: PassManagerRef -> IO CInt
+foreign import ccall unsafe "LLVMLabelType" labelType
+    :: IO TypeRef
+foreign import ccall unsafe "LLVMOpaqueType" opaqueType
+    :: IO TypeRef
+foreign import ccall unsafe "LLVMPositionBuilder" positionBuilder
+    :: BuilderRef -> BasicBlockRef -> ValueRef -> IO ()
+foreign import ccall unsafe "LLVMRemoveInstrParamAttr" removeInstrParamAttr
+    :: ValueRef -> CUInt -> ParamAttr -> IO ()
+foreign import ccall unsafe "LLVMRemoveParamAttr" removeParamAttr
+    :: ValueRef -> ParamAttr -> IO ()
+foreign import ccall unsafe "LLVMRunFunctionPassManager" runFunctionPassManager
+    :: PassManagerRef -> ValueRef -> IO CInt
+foreign import ccall unsafe "LLVMRunPassManager" runPassManager
+    :: PassManagerRef -> ModuleRef -> IO CInt
+foreign import ccall unsafe "LLVMSetInstrParamAlignment" setInstrParamAlignment
+    :: ValueRef -> CUInt -> CUInt -> IO ()
+foreign import ccall unsafe "LLVMSetParamAlignment" setParamAlignment
+    :: ValueRef -> CUInt -> IO ()
