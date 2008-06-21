@@ -8,7 +8,9 @@ module LLVM.ExecutionEngine(
     -- * Translation
     Translatable, Generic,
     generateFunction,
-    unsafePurify
+    unsafePurify,
+    simpleFunction,
+    unsafeGenerateFunction
     ) where
 import System.IO.Unsafe (unsafePerformIO)
 
@@ -16,6 +18,7 @@ import LLVM.ExecutionEngine.Engine
 import LLVM.Core.FFI(ValueRef)
 import LLVM.Core.Data(Ptr)
 import LLVM.Core.CodeGen(Value(..))
+import LLVM.Core
 
 class Translatable f where
     translate :: ExecutionEngine -> [GenericValue] -> ValueRef -> f
@@ -40,3 +43,19 @@ instance (Unsafe b b') => Unsafe (a->b) (a->b') where
 
 instance Unsafe (IO a) a where
     unsafePurify = unsafePerformIO
+
+-- |Translate a function to Haskell code.
+simpleFunction :: (Translatable f) => CodeGenModule (Function f) -> IO f
+simpleFunction bld = do
+    m <- newModule
+    func <- defineModule m bld
+    prov <- createModuleProviderForExistingModule m
+    ee <- createExecutionEngine prov
+    return $ generateFunction ee func
+
+unsafeGenerateFunction :: (Unsafe t a, Translatable t) =>
+                          CodeGenModule (Function t) -> a
+unsafeGenerateFunction bld = unsafePerformIO $ do
+    fun <- simpleFunction bld
+    return $ unsafePurify fun
+
