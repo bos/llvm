@@ -1,5 +1,10 @@
 {-# LANGUAGE ForeignFunctionInterface, FlexibleInstances, UndecidableInstances, OverlappingInstances #-}
-module LLVM.ExecutionEngine.Engine where
+module LLVM.ExecutionEngine.Engine(
+       ExecutionEngine,
+       createExecutionEngine, runStaticConstructors, runStaticDestructors,
+       runFunction,
+       GenericValue, Generic(..)
+       ) where
 import Control.Monad
 import Data.Int
 import Data.Word
