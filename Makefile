@@ -49,7 +49,7 @@ clean:
 	-$(MAKE) -C tests clean
 	-rm -f Setup.hi Setup.o
 	-./setup clean
-	-rm setip
+	-rm setup
 
 distclean: clean
 	-rm -f setup configure

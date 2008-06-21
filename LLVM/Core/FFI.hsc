@@ -341,6 +341,8 @@ module LLVM.Core.FFI
     , setParamAlignment
 
     -- * Pass manager
+    , PassManager
+    , PassManagerRef
     , createFunctionPassManager
     , createPassManager
     , disposePassManager
