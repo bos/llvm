@@ -60,6 +60,7 @@ import LLVM.Core.Instructions
 import LLVM.Core.Type hiding (IsType)
 import LLVM.Core.Type(IsType)
 
+-- |Print a value.
 dumpValue :: Value a -> IO ()
 dumpValue (Value v) = FFI.dumpValue v
 
@@ -67,10 +68,6 @@ dumpValue (Value v) = FFI.dumpValue v
 dumpType :: forall a . (IsType a) => Value a -> IO ()
 dumpType _ = FFI.dumpValue (typeRef (undefined :: a))
 -}
-
--- TODO
---  Add API for defining global variables
---  Add API for importing globals
 
 -- Enforce free is only called on malloc memory.  (Enforce only one free?)
 -- Enforce phi nodes a accessor of variables outside the bb
