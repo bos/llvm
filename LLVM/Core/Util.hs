@@ -34,8 +34,8 @@ import Foreign.Marshal.Array (withArrayLen, withArray)
 import Foreign.Marshal.Utils (fromBool)
 import System.IO.Unsafe (unsafePerformIO)
 
-import qualified LLVM.Core.FFI as FFI
-import qualified LLVM.Transforms.ScalarFFI as FFI
+import qualified LLVM.FFI.Core as FFI
+import qualified LLVM.FFI.Transforms.Scalar as FFI
 
 type Type = FFI.TypeRef
 

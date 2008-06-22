@@ -57,16 +57,16 @@ library
       Data.TypeNumbers
       LLVM.Core
       LLVM.ExecutionEngine
+      LLVM.FFI.Core
+      LLVM.FFI.ExecutionEngine
+      LLVM.FFI.Target
+      LLVM.FFI.Transforms.Scalar
 
   other-modules:
       LLVM.Core.CodeGen
       LLVM.Core.CodeGenMonad
       LLVM.Core.Data
-      LLVM.Core.FFI
       LLVM.Core.Instructions
       LLVM.Core.Type
       LLVM.Core.Util
       LLVM.ExecutionEngine.Engine
-      LLVM.ExecutionEngine.FFI
-      LLVM.Transforms.ScalarFFI
-      LLVM.Target.TargetFFI

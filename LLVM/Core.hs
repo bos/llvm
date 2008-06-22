@@ -55,7 +55,7 @@ module LLVM.Core(
     addCFGSimplificationPass, addConstantPropagationPass, addDemoteMemoryToRegisterPass,
     addGVNPass, addInstructionCombiningPass, addPromoteMemoryToRegisterPass, addReassociatePass
     ) where
-import qualified LLVM.Core.FFI as FFI
+import qualified LLVM.FFI.Core as FFI
 import LLVM.Core.Util hiding (Function, BasicBlock, createModule, constString, constStringNul)
 import LLVM.Core.CodeGen
 import LLVM.Core.CodeGenMonad(CodeGenFunction, CodeGenModule)

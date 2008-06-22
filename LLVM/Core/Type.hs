@@ -23,7 +23,7 @@ import Data.Word
 import Data.TypeNumbers
 import LLVM.Core.Util(functionType)
 import LLVM.Core.Data
-import qualified LLVM.Core.FFI as FFI
+import qualified LLVM.FFI.Core as FFI
 
 -- TODO:
 -- Move IntN, WordN to a special module that implements those types

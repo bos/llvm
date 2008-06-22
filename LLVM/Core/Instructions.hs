@@ -47,7 +47,7 @@ import Control.Monad(liftM)
 --import Data.Int
 import Data.Word
 --import Data.TypeNumbers
-import qualified LLVM.Core.FFI as FFI
+import qualified LLVM.FFI.Core as FFI
 import LLVM.Core.Data
 import LLVM.Core.Type
 import LLVM.Core.CodeGenMonad

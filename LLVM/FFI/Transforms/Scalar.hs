@@ -1,6 +1,6 @@
 {-# LANGUAGE ForeignFunctionInterface, EmptyDataDecls #-}
 
-module LLVM.Transforms.ScalarFFI(
+module LLVM.FFI.Transforms.Scalar(
        addCFGSimplificationPass
      , addConstantPropagationPass
      , addDemoteMemoryToRegisterPass
@@ -10,7 +10,7 @@ module LLVM.Transforms.ScalarFFI(
      , addReassociatePass
      ) where
 
-import LLVM.Core.FFI
+import LLVM.FFI.Core
 
 foreign import ccall unsafe "LLVMAddCFGSimplificationPass" addCFGSimplificationPass
     :: PassManagerRef -> IO ()

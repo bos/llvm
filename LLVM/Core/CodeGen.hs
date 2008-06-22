@@ -24,7 +24,7 @@ import Data.Int
 import Data.Word
 import Data.TypeNumbers
 import LLVM.Core.CodeGenMonad
-import qualified LLVM.Core.FFI as FFI
+import qualified LLVM.FFI.Core as FFI
 import qualified LLVM.Core.Util as U
 import LLVM.Core.Type
 import LLVM.Core.Data

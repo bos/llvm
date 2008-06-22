@@ -1,6 +1,6 @@
 {-# LANGUAGE ForeignFunctionInterface, EmptyDataDecls #-}
 
-module LLVM.ExecutionEngine.FFI
+module LLVM.FFI.ExecutionEngine
     (
     -- * Execution engines
       ExecutionEngine
@@ -35,8 +35,8 @@ import Foreign.C.String (CString)
 import Foreign.C.Types (CDouble, CInt, CUInt, CULLong)
 import Foreign.Ptr (Ptr)
 
-import LLVM.Core.FFI (ModuleRef, ModuleProviderRef, TypeRef, ValueRef)
-import LLVM.Target.TargetFFI(TargetDataRef)
+import LLVM.FFI.Core (ModuleRef, ModuleProviderRef, TypeRef, ValueRef)
+import LLVM.FFI.Target(TargetDataRef)
 
 data ExecutionEngine
 type ExecutionEngineRef = Ptr ExecutionEngine

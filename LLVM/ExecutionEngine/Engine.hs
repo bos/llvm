@@ -19,7 +19,7 @@ import Foreign.Storable (peek)
 import System.IO.Unsafe (unsafePerformIO)
 
 import LLVM.Core.Util(ModuleProvider, withModuleProvider)
-import qualified LLVM.ExecutionEngine.FFI as FFI
+import qualified LLVM.FFI.ExecutionEngine as FFI
 import LLVM.Core.Util(Function)
 import LLVM.Core.Type(IsFirstClass, IsType(..))
 

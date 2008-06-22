@@ -1,11 +1,11 @@
 {-# LANGUAGE ForeignFunctionInterface, EmptyDataDecls #-}
 
-module LLVM.Target.TargetFFI where
+module LLVM.FFI.Target where
 import Foreign.C.String (CString)
 import Foreign.C.Types (CInt, CUInt, CULLong)
 import Foreign.Ptr (Ptr)
 
-import LLVM.Core.FFI
+import LLVM.FFI.Core
 
 -- enum { LLVMBigEndian, LLVMLittleEndian };
 type ByteOrdering = CInt;

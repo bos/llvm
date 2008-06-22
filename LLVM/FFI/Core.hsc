@@ -1,7 +1,7 @@
 {-# LANGUAGE ForeignFunctionInterface, EmptyDataDecls #-}
 
 -- |
--- Module:      LLVM.Core.FFI
+-- Module:      LLVM.FFI.Core
 -- Copyright:   Bryan O'Sullivan 2007, 2008
 -- License:     BSD-style (see the file LICENSE)
 --
@@ -11,7 +11,7 @@
 --
 -- This module provides direct access to the LLVM C bindings.
 
-module LLVM.Core.FFI
+module LLVM.FFI.Core
     (
       -- * Modules
       Module
