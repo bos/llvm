@@ -69,3 +69,4 @@ library
       LLVM.ExecutionEngine.Engine
       LLVM.ExecutionEngine.FFI
       LLVM.Transforms.ScalarFFI
+      LLVM.Target.TargetFFI

@@ -16,6 +16,7 @@ module LLVM.ExecutionEngine.FFI
     , runStaticDestructors
     , runFunction
     , runFunctionAsMain
+    , getExecutionEngineTargetData
 
     -- * Generic values
     , GenericValue
@@ -35,6 +36,7 @@ import Foreign.C.Types (CDouble, CInt, CUInt, CULLong)
 import Foreign.Ptr (Ptr)
 
 import LLVM.Core.FFI (ModuleRef, ModuleProviderRef, TypeRef, ValueRef)
+import LLVM.Target.TargetFFI(TargetDataRef)
 
 data ExecutionEngine
 type ExecutionEngineRef = Ptr ExecutionEngine
@@ -100,3 +102,6 @@ foreign import ccall unsafe "LLVMRunFunctionAsMain" runFunctionAsMain
     -> Ptr CString              -- ^ argv
     -> Ptr CString              -- ^ envp
     -> IO CInt
+
+foreign import ccall unsafe "LLVMGetExecutionEngineTargetData" getExecutionEngineTargetData
+    :: ExecutionEngineRef -> IO TargetDataRef
