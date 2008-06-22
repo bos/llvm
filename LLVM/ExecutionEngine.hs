@@ -51,6 +51,14 @@ simpleFunction bld = do
     func <- defineModule m bld
     prov <- createModuleProviderForExistingModule m
     ee <- createExecutionEngine prov
+
+    pm <- createFunctionPassManager prov
+    -- TargetData.add (ExecutionEngine.target_data ee) pm;
+    addInstructionCombiningPass pm
+    addReassociatePass pm
+    addGVNPass pm
+    addCFGSimplificationPass pm
+
     return $ generateFunction ee func
 
 unsafeGenerateFunction :: (Unsafe t a, Translatable t) =>
@@ -58,4 +66,3 @@ unsafeGenerateFunction :: (Unsafe t a, Translatable t) =>
 unsafeGenerateFunction bld = unsafePerformIO $ do
     fun <- simpleFunction bld
     return $ unsafePurify fun
-

@@ -27,6 +27,7 @@ module LLVM.Core(
     -- * Modules
     Module, newModule, newNamedModule, defineModule, destroyModule, createModule,
     ModuleProvider, createModuleProviderForExistingModule,
+    PassManager, createPassManager, createFunctionPassManager,
     -- * Instructions
     module LLVM.Core.Instructions,
     -- * Types classification
@@ -49,7 +50,10 @@ module LLVM.Core(
     -- * Basic blocks
     BasicBlock, newBasicBlock, newNamedBasicBlock, defineBasicBlock, createBasicBlock,
     -- * Debugging
-    dumpValue
+    dumpValue,
+    -- * Transformations
+    addCFGSimplificationPass, addConstantPropagationPass, addDemoteMemoryToRegisterPass,
+    addGVNPass, addInstructionCombiningPass, addPromoteMemoryToRegisterPass, addReassociatePass
     ) where
 import qualified LLVM.Core.FFI as FFI
 import LLVM.Core.Util hiding (Function, BasicBlock, createModule, constString, constStringNul)

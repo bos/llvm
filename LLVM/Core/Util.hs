@@ -4,6 +4,8 @@ module LLVM.Core.Util(
     Module(..), withModule, createModule, destroyModule,
     -- * Module provider handling
     ModuleProvider(..), withModuleProvider, createModuleProviderForExistingModule,
+    -- * Pass manager handling
+    PassManager(..), withPassManager, createPassManager, createFunctionPassManager,
     -- * Instruction builder
     Builder(..), withBuilder, createBuilder, positionAtEnd,
     -- * Basic blocks
@@ -20,7 +22,10 @@ module LLVM.Core.Util(
     -- * Misc
     CString, withArrayLen,
     withEmptyCString,
-    functionType, buildEmptyPhi, addPhiIns
+    functionType, buildEmptyPhi, addPhiIns,
+    -- * Transformation passes
+    addCFGSimplificationPass, addConstantPropagationPass, addDemoteMemoryToRegisterPass,
+    addGVNPass, addInstructionCombiningPass, addPromoteMemoryToRegisterPass, addReassociatePass
     ) where
 import Control.Monad(liftM)
 import Foreign.C.String (withCString, withCStringLen, CString)
@@ -30,6 +35,7 @@ import Foreign.Marshal.Utils (fromBool)
 import System.IO.Unsafe (unsafePerformIO)
 
 import qualified LLVM.Core.FFI as FFI
+import qualified LLVM.Transforms.ScalarFFI as FFI
 
 type Type = FFI.TypeRef
 
@@ -216,3 +222,50 @@ addPhiIns inst incoming = do
     withArrayLen vals $ \ count valPtr ->
       withArray bblks $ \ bblkPtr ->
         FFI.addIncoming inst valPtr bblkPtr (fromIntegral count)
+
+--------------------------------------
+
+newtype PassManager = PassManager {
+      fromPassManager :: ForeignPtr FFI.PassManager
+    }
+
+withPassManager :: PassManager -> (FFI.PassManagerRef -> IO a)
+                   -> IO a
+withPassManager prov = withForeignPtr (fromPassManager prov)
+
+createPassManager :: IO PassManager
+createPassManager = do
+    ptr <- FFI.createPassManager
+    final <- h2c_passManager FFI.disposePassManager
+    liftM PassManager $ newForeignPtr final ptr
+
+createFunctionPassManager :: ModuleProvider -> IO PassManager
+createFunctionPassManager modul =
+    withModuleProvider modul $ \modulPtr -> do
+        ptr <- FFI.createFunctionPassManager modulPtr
+        final <- h2c_passManager FFI.disposePassManager
+        liftM PassManager $ newForeignPtr final ptr
+
+foreign import ccall "wrapper" h2c_passManager
+    :: (FFI.PassManagerRef -> IO ()) -> IO (FinalizerPtr a)
+
+addCFGSimplificationPass :: PassManager -> IO ()
+addCFGSimplificationPass pm = withPassManager pm FFI.addCFGSimplificationPass
+
+addConstantPropagationPass :: PassManager -> IO ()
+addConstantPropagationPass pm = withPassManager pm FFI.addConstantPropagationPass
+
+addDemoteMemoryToRegisterPass :: PassManager -> IO ()
+addDemoteMemoryToRegisterPass pm = withPassManager pm FFI.addDemoteMemoryToRegisterPass
+
+addGVNPass :: PassManager -> IO ()
+addGVNPass pm = withPassManager pm FFI.addGVNPass
+
+addInstructionCombiningPass :: PassManager -> IO ()
+addInstructionCombiningPass pm = withPassManager pm FFI.addInstructionCombiningPass
+
+addPromoteMemoryToRegisterPass :: PassManager -> IO ()
+addPromoteMemoryToRegisterPass pm = withPassManager pm FFI.addPromoteMemoryToRegisterPass
+
+addReassociatePass :: PassManager -> IO ()
+addReassociatePass pm = withPassManager pm FFI.addReassociatePass
