@@ -57,6 +57,9 @@ library
       Data.TypeNumbers
       LLVM.Core
       LLVM.ExecutionEngine
+      LLVM.FFI.Analysis
+      LLVM.FFI.BitReader
+      LLVM.FFI.BitWriter
       LLVM.FFI.Core
       LLVM.FFI.ExecutionEngine
       LLVM.FFI.Target

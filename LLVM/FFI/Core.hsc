@@ -325,6 +325,8 @@ module LLVM.FFI.Core
     , addCase
 
     -- * Memory buffers
+    , MemoryBuffer
+    , MemoryBufferRef
     , createMemoryBufferWithContentsOfFile
     , createMemoryBufferWithSTDIN
     , disposeMemoryBuffer
