@@ -22,6 +22,8 @@ renameType t | "LLVM" `isPrefixOf` t = rename' (drop 4 t)
              | otherwise = rename' t
   where rename' "int" = "CInt"
         rename' "unsigned" = "CUInt"
+        rename' "long long" = "CLLong"
+        rename' "unsigned long long" = "CULLong"
         rename' "void" = "()"
         rename' "const char *" = "CString"
         rename' "char *" = "CString"
@@ -49,9 +51,10 @@ rewriteFunction :: String -> String -> String -> String
 rewriteFunction cret cname cparams =
     let ret = "IO " ++ renameType (strip cret)
         params = map renameParam . split (==',') $ cparams
+	params' = if params == ["()"] then [] else params
         name = let (n:ame) = cname in toLower n : ame
     in foreign ++ "\"LLVM" ++ cname ++ "\" " ++ name ++
-           "\n    :: " ++ intercalate " -> " (params ++ [ret])
+           "\n    :: " ++ intercalate " -> " (params' ++ [ret])
   where renameParam = renameType . dropName . strip
         foreign = "foreign import ccall unsafe "
     
