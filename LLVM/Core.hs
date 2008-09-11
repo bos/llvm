@@ -53,7 +53,8 @@ module LLVM.Core(
     dumpValue,
     -- * Transformations
     addCFGSimplificationPass, addConstantPropagationPass, addDemoteMemoryToRegisterPass,
-    addGVNPass, addInstructionCombiningPass, addPromoteMemoryToRegisterPass, addReassociatePass
+    addGVNPass, addInstructionCombiningPass, addPromoteMemoryToRegisterPass, addReassociatePass,
+    addTargetData
     ) where
 import qualified LLVM.FFI.Core as FFI
 import LLVM.Core.Util hiding (Function, BasicBlock, createModule, constString, constStringNul)

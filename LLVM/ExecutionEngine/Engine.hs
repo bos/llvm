@@ -2,6 +2,7 @@
 module LLVM.ExecutionEngine.Engine(
        ExecutionEngine,
        createExecutionEngine, runStaticConstructors, runStaticDestructors,
+       getExecutionEngineTargetData,
        runFunction,
        GenericValue, Generic(..)
        ) where
@@ -20,6 +21,7 @@ import System.IO.Unsafe (unsafePerformIO)
 
 import LLVM.Core.Util(ModuleProvider, withModuleProvider)
 import qualified LLVM.FFI.ExecutionEngine as FFI
+import qualified LLVM.FFI.Target as FFI
 import LLVM.Core.Util(Function)
 import LLVM.Core.Type(IsFirstClass, IsType(..))
 
@@ -54,6 +56,9 @@ runStaticConstructors ee = withExecutionEngine ee FFI.runStaticConstructors
 
 runStaticDestructors :: ExecutionEngine -> IO ()
 runStaticDestructors ee = withExecutionEngine ee FFI.runStaticDestructors
+
+getExecutionEngineTargetData :: ExecutionEngine -> IO FFI.TargetDataRef
+getExecutionEngineTargetData ee = withExecutionEngine ee FFI.getExecutionEngineTargetData
 
 --------------------------------------
 

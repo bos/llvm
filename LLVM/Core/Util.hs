@@ -6,6 +6,7 @@ module LLVM.Core.Util(
     ModuleProvider(..), withModuleProvider, createModuleProviderForExistingModule,
     -- * Pass manager handling
     PassManager(..), withPassManager, createPassManager, createFunctionPassManager,
+    runFunctionPassManager, initializeFunctionPassManager, finalizeFunctionPassManager,
     -- * Instruction builder
     Builder(..), withBuilder, createBuilder, positionAtEnd,
     -- * Basic blocks
@@ -25,7 +26,8 @@ module LLVM.Core.Util(
     functionType, buildEmptyPhi, addPhiIns,
     -- * Transformation passes
     addCFGSimplificationPass, addConstantPropagationPass, addDemoteMemoryToRegisterPass,
-    addGVNPass, addInstructionCombiningPass, addPromoteMemoryToRegisterPass, addReassociatePass
+    addGVNPass, addInstructionCombiningPass, addPromoteMemoryToRegisterPass, addReassociatePass,
+    addTargetData
     ) where
 import Control.Monad(liftM)
 import Foreign.C.String (withCString, withCStringLen, CString)
@@ -35,6 +37,7 @@ import Foreign.Marshal.Utils (fromBool)
 import System.IO.Unsafe (unsafePerformIO)
 
 import qualified LLVM.FFI.Core as FFI
+import qualified LLVM.FFI.Target as FFI
 import qualified LLVM.FFI.Transforms.Scalar as FFI
 
 type Type = FFI.TypeRef
@@ -269,3 +272,15 @@ addPromoteMemoryToRegisterPass pm = withPassManager pm FFI.addPromoteMemoryToReg
 
 addReassociatePass :: PassManager -> IO ()
 addReassociatePass pm = withPassManager pm FFI.addReassociatePass
+
+addTargetData :: FFI.TargetDataRef -> PassManager -> IO ()
+addTargetData td pm = withPassManager pm $ FFI.addTargetData td
+
+runFunctionPassManager :: PassManager -> Function -> IO Int
+runFunctionPassManager pm fcn = liftM fromIntegral $ withPassManager pm $ \ pmref -> FFI.runFunctionPassManager pmref fcn
+
+initializeFunctionPassManager :: PassManager -> IO Int
+initializeFunctionPassManager pm = liftM fromIntegral $ withPassManager pm FFI.initializeFunctionPassManager
+
+finalizeFunctionPassManager :: PassManager -> IO Int
+finalizeFunctionPassManager pm = liftM fromIntegral $ withPassManager pm FFI.finalizeFunctionPassManager

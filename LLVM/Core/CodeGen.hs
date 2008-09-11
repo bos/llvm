@@ -53,7 +53,7 @@ createModule cgm = newModule >>= \ m -> defineModule m cgm
 
 --------------------------------------
 
-newtype Value a = Value FFI.ValueRef
+newtype Value a = Value { unValue :: FFI.ValueRef }
 
 newtype ConstValue a = ConstValue FFI.ValueRef
 

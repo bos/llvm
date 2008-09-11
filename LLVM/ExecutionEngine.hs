@@ -16,9 +16,9 @@ import System.IO.Unsafe (unsafePerformIO)
 
 import LLVM.ExecutionEngine.Engine
 import LLVM.FFI.Core(ValueRef)
---import LLVM.Core.Data(Ptr)
 import LLVM.Core.CodeGen(Value(..))
 import LLVM.Core
+import LLVM.Core.Util(runFunctionPassManager, initializeFunctionPassManager, finalizeFunctionPassManager)
 
 class Translatable f where
     translate :: ExecutionEngine -> [GenericValue] -> ValueRef -> f
@@ -49,11 +49,13 @@ simpleFunction :: (Translatable f) => CodeGenModule (Function f) -> IO f
 simpleFunction bld = do
     m <- newModule
     func <- defineModule m bld
+    dumpValue func
     prov <- createModuleProviderForExistingModule m
     ee <- createExecutionEngine prov
 
     pm <- createFunctionPassManager prov
-    -- TargetData.add (ExecutionEngine.target_data ee) pm;
+    td <- getExecutionEngineTargetData ee
+    addTargetData td pm
     addInstructionCombiningPass pm
     addReassociatePass pm
     addGVNPass pm
