@@ -1,6 +1,6 @@
 ghc := ghc
 ghcflags := -Wall
-examples := Fibonacci HelloJIT
+examples := HelloJIT Fibonacci BrainF
 # BrainF
 
 all: $(examples)
@@ -14,5 +14,4 @@ all: $(examples)
 clean:
 	-rm -f *.o *.hi $(examples)
 
-run:	Fibonacci.run HelloJIT.run
-# BrainF.run
+run:	Fibonacci.run HelloJIT.run BrainF.run

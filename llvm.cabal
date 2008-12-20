@@ -21,6 +21,7 @@ extra-source-files:
     README.txt
     configure
     configure.ac
+    examples/BrainF.hs
     examples/Fibonacci.hs
     examples/HelloJIT.hs
     examples/Makefile
