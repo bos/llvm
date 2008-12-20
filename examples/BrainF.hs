@@ -1,7 +1,6 @@
 module BrainF where
 -- BrainF compiler example 
 --
---
 -- The BrainF language has 8 commands:
 -- Command   Equivalent C    Action
 -- -------   ------------    ------
@@ -33,12 +32,12 @@ main = do
                "]" ++
                "++++++++++."
 
-    prog <- simpleFunction $ brainMod text 65536
+    prog <- simpleFunction $ brainFunc text 65536
     putStrLn "Should print !\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGH on the next line:"
     prog
 
-brainMod :: String -> Word32 -> CodeGenModule (Function (IO ()))
-brainMod instrs wmemtotal = do
+brainFunc :: String -> Word32 -> CodeGenModule (Function (IO ()))
+brainFunc instrs wmemtotal = do
     -- LLVM functions
     memset    <- newNamedFunction ExternalLinkage "llvm.memset.i32"
               :: TFunction (Ptr Word8 -> Word8 -> Word32 -> Word32 -> IO ())
@@ -47,69 +46,85 @@ brainMod instrs wmemtotal = do
     putchar   <- newNamedFunction ExternalLinkage "putchar"
               :: TFunction (Int32 -> IO Int32)
 
-
+    -- Generate code, first argument is the list of commands,
+    -- second argument is a stack of loop contexts, and the
+    -- third argument is the current register for the head and
+    -- the current basic block.
+    -- A loop context is a triple of the phi node, the loop top label,
+    -- and the loop exit label.
     let generate [] [] _ =
             return ()
         generate [] (_:_) _ = error "Missing ]"
         generate (']':_) [] _ = error "Missing ["
         generate (']':is) ((cphi, loop, exit) : bs) (cur, bb) = do
+            -- The loop has terminated, add the phi node at the top,
+            -- branch to the top, and set up the exit label.
             addPhiInputs cphi [(cur, bb)]
             br loop
             defineBasicBlock exit
             generate is bs (cphi, exit)
     
         generate ('[':is) bs curbb = do
-            loop <- newBasicBlock
-            body <- newBasicBlock
-            exit <- newBasicBlock
+            -- Start a new loop.
+            loop <- newBasicBlock    -- loop top
+            body <- newBasicBlock    -- body of the loop
+            exit <- newBasicBlock    -- loop exit label
             br loop
 
             defineBasicBlock loop
-            cur <- phi [curbb]
-            val <- load cur
-            eqz <- icmp IntEQ val (0::Word8)
-            condBr eqz exit body
+            cur <- phi [curbb]       -- will get one more input from the loop terminator.
+            val <- load cur          -- load head byte.
+            eqz <- icmp IntEQ val (0::Word8) -- test if it is 0.
+            condBr eqz exit body     -- and branch accordingly.
     
             defineBasicBlock body
             generate is ((cur, loop, exit) : bs) (cur, body)
     
         generate (i:is) bs (curhead, bb) = do
+            -- A simple command, with no new basic blocks.
+            -- Just update which register the head is in.
             curhead' <- gen curhead i
             generate is bs (curhead', bb)
 
         gen cur ',' = do
+            -- Read a character.
             char32 <- call getchar
             char8  <- trunc char32
             store char8 cur
             return cur
         gen cur '.' = do
+            -- Write a character.
             char8 <- load cur
             char32 <- zext char8
             call putchar char32
             return cur
         gen cur '-' = do
+            -- Decrement byte at head.
             val <- load cur
             val' <- sub val (1 :: Word8)
             store val' cur
             return cur
         gen cur '+' = do
+            -- Increment byte at head.
             val <- load cur
             val' <- add val (1 :: Word8)
             store val' cur
             return cur
         gen cur '<' =
+            -- Decrement head.
             getElementPtr cur ((-1) :: Word32, ())
         gen cur '>' =
+            -- Increment head.
             getElementPtr cur (1 :: Word32, ())
         gen _ c = error $ "Bad character in program: " ++ show c
 
 
     brainf <- createFunction InternalLinkage $ do
-        let memtotal = valueOf wmemtotal
-        ptr_arr <- arrayMalloc memtotal
-        call memset ptr_arr (valueOf 0) memtotal (valueOf 0)
---        _ptr_arrmax <- getElementPtr ptr_arr [memtotal]
-        curhead <- getElementPtr (ptr_arr :: Value (Ptr Word8)) (valueOf (wmemtotal `div` 2), ())
+        ptr_arr <- arrayMalloc wmemtotal
+        call memset ptr_arr (valueOf 0) (valueOf wmemtotal) (valueOf 0)
+--        _ptr_arrmax <- getElementPtr ptr_arr (wmemtotal, ())
+        -- Start head in the middle.
+        curhead <- getElementPtr ptr_arr (wmemtotal `div` 2, ())
 
         bb <- getCurrentBasicBlock
         generate instrs [] (curhead, bb)

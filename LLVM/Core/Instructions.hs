@@ -403,6 +403,15 @@ select (Value cnd) (Value thn) (Value els) =
 
 --------------------------------------
 
+class AllocArg a where
+    getAllocArg :: a -> FFI.ValueRef
+instance AllocArg (Value Word32) where
+    getAllocArg (Value v) = v
+instance AllocArg (ConstValue Word32) where
+    getAllocArg = unConst
+instance AllocArg Word32 where
+    getAllocArg = unConst . constOf
+
 -- XXX What's the type returned by malloc
 -- | Allocate heap memory.
 malloc :: forall a r . (IsSized a) => CodeGenFunction r (Value (Ptr a))
@@ -413,13 +422,13 @@ malloc =
 
 -- XXX What's the type returned by arrayMalloc?
 -- | Allocate heap (array) memory.
-arrayMalloc :: forall a r . (IsSized a) =>
-               Value (Word32) -> CodeGenFunction r (Value (Ptr a)) -- XXX
-arrayMalloc (Value n) =
+arrayMalloc :: forall a r s . (IsSized a, AllocArg s) =>
+               s -> CodeGenFunction r (Value (Ptr a)) -- XXX
+arrayMalloc s =
     liftM Value $
     withCurrentBuilder $ \ bldPtr ->
       U.withEmptyCString $
-        FFI.buildArrayMalloc bldPtr (typeRef (undefined :: a)) n
+        FFI.buildArrayMalloc bldPtr (typeRef (undefined :: a)) (getAllocArg s)
 
 -- XXX What's the type returned by malloc
 -- | Allocate stack memory.
@@ -431,13 +440,13 @@ alloca =
 
 -- XXX What's the type returned by arrayAlloca?
 -- | Allocate stack (array) memory.
-arrayAlloca :: forall a r . (IsSized a) =>
-               Value (Word32) -> CodeGenFunction r (Value (Ptr a))
-arrayAlloca (Value n) =
+arrayAlloca :: forall a r s . (IsSized a, AllocArg s) =>
+               s -> CodeGenFunction r (Value (Ptr a))
+arrayAlloca s =
     liftM Value $
     withCurrentBuilder $ \ bldPtr ->
       U.withEmptyCString $
-        FFI.buildArrayAlloca bldPtr (typeRef (undefined :: a)) n
+        FFI.buildArrayAlloca bldPtr (typeRef (undefined :: a)) (getAllocArg s)
 
 -- XXX What's the type of free?
 -- | Free heap memory.

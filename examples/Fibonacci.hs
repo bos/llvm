@@ -68,7 +68,7 @@ buildMod = do
         r <- phi [(r1, l1), (r2, l2)]
         ret r
 
-    -- The usual doubley recursive Fibonacci.
+    -- The usual doubly recursive Fibonacci.
     -- Use new&define so the name fib is defined in the body for recursive calls.
     fib <- newNamedFunction ExternalLinkage "fib"
     defineFunction fib $ \ arg -> do
