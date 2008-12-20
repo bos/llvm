@@ -1,77 +1,97 @@
 module Fibonacci where
-import Prelude hiding (and, or)
-import System.Environment (getArgs)
+import Prelude hiding(and, or)
+import System.Environment(getArgs)
 import Control.Monad(forM_)
 import Data.Word
 
 import LLVM.Core
 import LLVM.ExecutionEngine
 
-main :: IO ()
-main = do
-  args <- getArgs
-  let args' = if null args then ["10"] else args
-
-  m <- newNamedModule "fib"
-  fns <- defineModule m buildMod
-  dumpValue $ mfib fns
-  dumpValue $ mplus fns
-
-  prov <- createModuleProviderForExistingModule m
-  ee <- createExecutionEngine prov
-  
-  let fib = unsafePurify $ generateFunction ee $ mfib fns
-
-  forM_ args' $ \num -> do
-      putStrLn $ "fib " ++ num ++ " = " ++ show (fib (read num))
-  return ()
-
+-- Our module will have these two functions.
 data Mod = Mod {
     mfib :: Function (Word32 -> IO Word32),
     mplus :: Function (Word32 -> Word32 -> IO Word32)
     }
 
+main :: IO ()
+main = do
+    args <- getArgs
+    let args' = if null args then ["10"] else args
+
+    -- Create a module,
+    m <- newNamedModule "fib"
+    -- and define its contents.
+    fns <- defineModule m buildMod
+
+    -- Show the code for the two functions, just for fun.
+    dumpValue $ mfib fns
+    dumpValue $ mplus fns
+
+    -- Create a JIT execution engine for the module.
+    ee <- createModuleProviderForExistingModule m >>= createExecutionEngine
+
+    -- Generate code for mfib, and then throw away the IO in the type.
+    -- The result is an ordinary Haskell function.
+    let fib = unsafePurify $ generateFunction ee $ mfib fns
+
+    -- Run fib for the arguments.
+    forM_ args' $ \num -> do
+        putStrLn $ "fib " ++ num ++ " = " ++ show (fib (read num))
+    return ()
+
 buildMod :: CodeGenModule Mod
 buildMod = do
-  -- Add two numbers in a cumbersome way.
-  plus <- createFunction InternalLinkage $ \ x y -> do
-    l1 <- newBasicBlock
-    l2 <- newBasicBlock
-    l3 <- newBasicBlock
+    -- Add two numbers in a cumbersome way.
+    plus <- createFunction InternalLinkage $ \ x y -> do
+        -- Create three additional basic blocks, need to be created before being referred to.
+        l1 <- newBasicBlock
+        l2 <- newBasicBlock
+        l3 <- newBasicBlock
 
-    a <- and x (1 :: Word32)
-    c <- icmp IntEQ a (0 :: Word32)
-    condBr c l1 l2
+        -- Test if x is even/odd.
+        a <- and x (1 :: Word32)
+        c <- icmp IntEQ a (0 :: Word32)
+        condBr c l1 l2
 
-    defineBasicBlock l1
-    r1 <- add x y
-    br l3
+        -- Do x+y if even.
+        defineBasicBlock l1
+        r1 <- add x y
+        br l3
 
-    defineBasicBlock l2
-    r2 <- add y x
-    br l3
-    defineBasicBlock l3
+        -- Do y+x if odd.
+        defineBasicBlock l2
+        r2 <- add y x
+        br l3
 
-    r <- phi [(r1, l1), (r2, l2)]
-    ret r
+        defineBasicBlock l3
+        -- Join the two execution paths with a phi instruction.
+        r <- phi [(r1, l1), (r2, l2)]
+        ret r
 
-  fib <- newNamedFunction ExternalLinkage "fib"
-  defineFunction fib $ \ arg -> do
-    recurse <- newBasicBlock
-    exit <- newBasicBlock
+    -- The usual doubley recursive Fibonacci.
+    -- Use new&define so the name fib is defined in the body for recursive calls.
+    fib <- newNamedFunction ExternalLinkage "fib"
+    defineFunction fib $ \ arg -> do
+        -- Create the two basic blocks.
+        recurse <- newBasicBlock
+        exit <- newBasicBlock
 
-    test <- icmp IntUGT arg (2::Word32)
-    condBr test recurse exit
+        -- Test if arg > 2
+        test <- icmp IntUGT arg (2::Word32)
+        condBr test recurse exit
 
-    defineBasicBlock exit
-    ret (1::Word32)
+        -- Just return 1 if not > 2
+        defineBasicBlock exit
+        ret (1::Word32)
 
-    defineBasicBlock recurse
-    x1 <- sub arg (1::Word32)
-    fibx1 <- call fib x1
-    x2 <- sub arg (2::Word32)
-    fibx2 <- call fib x2
-    r <- call plus fibx1 fibx2
-    ret r
+        -- Recurse if > 2, using the cumbersome plus to add the results.
+        defineBasicBlock recurse
+        x1 <- sub arg (1::Word32)
+        fibx1 <- call fib x1
+        x2 <- sub arg (2::Word32)
+        fibx2 <- call fib x2
+        r <- call plus fibx1 fibx2
+        ret r
 
-  return $ Mod fib plus
+    -- Return the two functions.
+    return $ Mod fib plus
