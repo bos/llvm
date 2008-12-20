@@ -26,7 +26,6 @@ extra-source-files:
     examples/HelloJIT.hs
     examples/Makefile
     tests/Makefile
-    tests/TestType.hs
     tests/TestValue.hs
     tools/Makefile
     tools/IntrinsicMangler.hs
