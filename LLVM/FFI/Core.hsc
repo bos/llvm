@@ -38,7 +38,6 @@ module LLVM.FFI.Core
     , deleteTypeName
 
     , getTypeKind
-    , refineAbstractType
 
     -- ** Integer types
     , int1Type
@@ -122,7 +121,6 @@ module LLVM.FFI.Core
     , addGlobal
     , getNamedGlobal
     , deleteGlobal
-    , hasInitializer
     , getInitializer
     , setInitializer
     , isThreadLocal
@@ -143,8 +141,8 @@ module LLVM.FFI.Core
     , getParams
     , getParam
     , getIntrinsicID
-    , getCollector
-    , setCollector
+    , getGC
+    , setGC
     , getFirstFunction
     , getNextFunction
     , getPreviousFunction
@@ -154,6 +152,8 @@ module LLVM.FFI.Core
     , getPreviousParam
     , getLastParam
     , getParamParent
+    , isTailCall
+    , setTailCall
 
     -- ** Phi nodes
     , addIncoming
@@ -335,10 +335,10 @@ module LLVM.FFI.Core
     , disposeMessage
 
     -- * Parameter passing
-    , addInstrParamAttr
-    , addParamAttr
-    , removeInstrParamAttr
-    , removeParamAttr
+    , addInstrAttribute
+    , addAttribute
+    , removeInstrAttribute
+    , removeAttribute
     , setInstrParamAlignment
     , setParamAlignment
 
@@ -485,9 +485,6 @@ foreign import ccall unsafe "LLVMSetInitializer" setInitializer
 foreign import ccall unsafe "LLVMGetNamedGlobal" getNamedGlobal
     :: ModuleRef -> CString -> IO ValueRef
 
-foreign import ccall unsafe "LLVMHasInitializer" hasInitializer
-    :: ValueRef -> IO CInt
-
 foreign import ccall unsafe "LLVMGetInitializer" getInitializer
     :: ValueRef -> IO ValueRef
 
@@ -516,19 +513,19 @@ foreign import ccall unsafe "LLVMDumpValue" dumpValue
     :: ValueRef -> IO ()
 
 foreign import ccall unsafe "LLVMConstAllOnes" constAllOnes
-    :: TypeRef -> IO ValueRef
+    :: TypeRef -> ValueRef
 
 foreign import ccall unsafe "LLVMConstArray" constArray
-    :: TypeRef -> Ptr ValueRef -> CUInt -> IO ValueRef
+    :: TypeRef -> Ptr ValueRef -> CUInt -> ValueRef
 
 foreign import ccall unsafe "LLVMConstNull" constNull
-    :: TypeRef -> IO ValueRef
+    :: TypeRef -> ValueRef
 
 foreign import ccall unsafe "LLVMIsConstant" isConstant
     :: ValueRef -> IO CInt
 
 foreign import ccall unsafe "LLVMGetUndef" getUndef
-    :: TypeRef -> IO ValueRef
+    :: TypeRef -> ValueRef
 
 foreign import ccall unsafe "LLVMIsNull" isNull
     :: ValueRef -> IO CInt
@@ -601,14 +598,11 @@ foreign import ccall unsafe "LLVMSetFunctionCallConv" setFunctionCallConv
     -> CUInt
     -> IO ()
 
-foreign import ccall unsafe "LLVMGetCollector" getCollector
-    :: ValueRef                 -- ^ function
-    -> IO CString
+foreign import ccall unsafe "LLVMGetGC" getGC
+    :: ValueRef -> IO CString
 
-foreign import ccall unsafe "LLVMSetCollector" setCollector
-    :: ValueRef                 -- ^ function
-    -> CString
-    -> IO ()
+foreign import ccall unsafe "LLVMSetGC" setGC
+    :: ValueRef -> CString -> IO ()
 
 foreign import ccall unsafe "LLVMIsDeclaration" isDeclaration
     :: ValueRef -> IO CInt
@@ -652,10 +646,10 @@ foreign import ccall unsafe "LLVMConstString" constString
     :: CString -> CUInt -> CInt -> ValueRef
 
 foreign import ccall unsafe "LLVMConstStruct" constStruct
-    :: Ptr ValueRef -> CUInt -> CInt -> IO ValueRef
+    :: Ptr ValueRef -> CUInt -> CInt -> ValueRef
 
 foreign import ccall unsafe "LLVMConstVector" constVector
-    :: Ptr ValueRef -> CUInt -> IO ValueRef
+    :: Ptr ValueRef -> CUInt -> ValueRef
 
 foreign import ccall unsafe "LLVMConstNeg" constNeg
     :: ValueRef -> ValueRef
@@ -997,8 +991,6 @@ foreign import ccall unsafe "LLVMGetTypeKind" getTypeKind
     :: TypeRef -> IO TypeKind
 foreign import ccall unsafe "LLVMGetVectorSize" getVectorSize
     :: TypeRef -> IO CUInt
-foreign import ccall unsafe "LLVMRefineAbstractType" refineAbstractType
-    :: TypeRef -> TypeRef -> IO ()
 foreign import ccall unsafe "LLVMRefineType" refineType
     :: TypeRef -> TypeRef -> IO ()
 foreign import ccall unsafe "LLVMResolveTypeHandle" resolveTypeHandle
@@ -1010,28 +1002,24 @@ foreign import ccall unsafe "LLVMSizeOf" sizeOf
 
 {-
 typedef enum {
-    LLVMZExtParamAttr       = 1<<0,
-    LLVMSExtParamAttr       = 1<<1,
-    LLVMNoReturnParamAttr   = 1<<2,
-    LLVMInRegParamAttr      = 1<<3,
-    LLVMStructRetParamAttr  = 1<<4,
-    LLVMNoUnwindParamAttr   = 1<<5,
-    LLVMNoAliasParamAttr    = 1<<6,
-    LLVMByValParamAttr      = 1<<7,
-    LLVMNestParamAttr       = 1<<8,
-    LLVMReadNoneParamAttr   = 1<<9,
-    LLVMReadOnlyParamAttr   = 1<<10
-} LLVMParamAttr;
+    LLVMZExtAttribute       = 1<<0,
+    LLVMSExtAttribute       = 1<<1,
+    LLVMNoReturnAttribute   = 1<<2,
+    LLVMInRegAttribute      = 1<<3,
+    LLVMStructRetAttribute  = 1<<4,
+    LLVMNoUnwindAttribute   = 1<<5,
+    LLVMNoAliasAttribute    = 1<<6,
+    LLVMByValAttribute      = 1<<7,
+    LLVMNestAttribute       = 1<<8,
+    LLVMReadNoneAttribute   = 1<<9,
+    LLVMReadOnlyAttribute   = 1<<10
+} LLVMAttribute;
 -}
-type ParamAttr = CInt
+type Attribute = CInt
 
 data PassManager
 type PassManagerRef = Ptr PassManager
 
-foreign import ccall unsafe "LLVMAddInstrParamAttr" addInstrParamAttr
-    :: ValueRef -> CUInt -> ParamAttr -> IO ()
-foreign import ccall unsafe "LLVMAddParamAttr" addParamAttr
-    :: ValueRef -> ParamAttr -> IO ()
 foreign import ccall unsafe "LLVMConstRealOfString" constRealOfString
     :: TypeRef -> CString -> IO ValueRef
 foreign import ccall unsafe "LLVMCreateFunctionPassManager" createFunctionPassManager
@@ -1102,10 +1090,6 @@ foreign import ccall unsafe "LLVMOpaqueType" opaqueType
     :: IO TypeRef
 foreign import ccall unsafe "LLVMPositionBuilder" positionBuilder
     :: BuilderRef -> BasicBlockRef -> ValueRef -> IO ()
-foreign import ccall unsafe "LLVMRemoveInstrParamAttr" removeInstrParamAttr
-    :: ValueRef -> CUInt -> ParamAttr -> IO ()
-foreign import ccall unsafe "LLVMRemoveParamAttr" removeParamAttr
-    :: ValueRef -> ParamAttr -> IO ()
 foreign import ccall unsafe "LLVMRunFunctionPassManager" runFunctionPassManager
     :: PassManagerRef -> ValueRef -> IO CInt
 foreign import ccall unsafe "LLVMRunPassManager" runPassManager
@@ -1114,3 +1098,15 @@ foreign import ccall unsafe "LLVMSetInstrParamAlignment" setInstrParamAlignment
     :: ValueRef -> CUInt -> CUInt -> IO ()
 foreign import ccall unsafe "LLVMSetParamAlignment" setParamAlignment
     :: ValueRef -> CUInt -> IO ()
+foreign import ccall unsafe "LLVMAddAttribute" addAttribute
+    :: ValueRef -> Attribute -> IO ()
+foreign import ccall unsafe "LLVMAddInstrAttribute" addInstrAttribute
+    :: ValueRef -> CUInt -> Attribute -> IO ()
+foreign import ccall unsafe "LLVMIsTailCall" isTailCall
+    :: ValueRef -> IO CInt
+foreign import ccall unsafe "LLVMRemoveAttribute" removeAttribute
+    :: ValueRef -> Attribute -> IO ()
+foreign import ccall unsafe "LLVMRemoveInstrAttribute" removeInstrAttribute
+    :: ValueRef -> CUInt -> Attribute -> IO ()
+foreign import ccall unsafe "LLVMSetTailCall" setTailCall
+    :: ValueRef -> CInt -> IO ()

@@ -17,6 +17,7 @@ module LLVM.FFI.ExecutionEngine
     , runFunction
     , runFunctionAsMain
     , getExecutionEngineTargetData
+    , addGlobalMapping
 
     -- * Generic values
     , GenericValue
@@ -105,3 +106,5 @@ foreign import ccall unsafe "LLVMRunFunctionAsMain" runFunctionAsMain
 
 foreign import ccall unsafe "LLVMGetExecutionEngineTargetData" getExecutionEngineTargetData
     :: ExecutionEngineRef -> IO TargetDataRef
+foreign import ccall unsafe "LLVMAddGlobalMapping" addGlobalMapping
+    :: ExecutionEngineRef -> ValueRef -> Ptr () -> IO ()
