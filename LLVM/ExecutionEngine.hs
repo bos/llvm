@@ -49,7 +49,7 @@ simpleFunction :: (Translatable f) => CodeGenModule (Function f) -> IO f
 simpleFunction bld = do
     m <- newModule
     func <- defineModule m bld
-    dumpValue func
+--    dumpValue func
     prov <- createModuleProviderForExistingModule m
     ee <- createExecutionEngine prov
 
@@ -60,6 +60,14 @@ simpleFunction bld = do
     addReassociatePass pm
     addGVNPass pm
     addCFGSimplificationPass pm
+    addPromoteMemoryToRegisterPass pm
+    initializeFunctionPassManager pm
+--    print ("rc1", rc1)
+    runFunctionPassManager pm (unValue func)
+--    print ("rc2", rc2)
+    finalizeFunctionPassManager pm
+--    print ("rc3", rc3)
+--    dumpValue func
 
     return $ generateFunction ee func
 

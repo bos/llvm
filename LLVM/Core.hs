@@ -36,7 +36,8 @@ module LLVM.Core(
     module LLVM.Core.Data,
     -- * Values and constants
     Value, ConstValue, valueOf, constOf, value,
-    constString, constStringNul,
+    zero, allOnes, undef,
+    createString, createStringNul,
     -- * Code generation
     CodeGenFunction, CodeGenModule,
     -- * Functions
@@ -62,8 +63,7 @@ import LLVM.Core.CodeGen
 import LLVM.Core.CodeGenMonad(CodeGenFunction, CodeGenModule)
 import LLVM.Core.Data
 import LLVM.Core.Instructions
-import LLVM.Core.Type hiding (IsType)
-import LLVM.Core.Type(IsType)
+import LLVM.Core.Type
 
 -- |Print a value.
 dumpValue :: Value a -> IO ()
@@ -74,7 +74,12 @@ dumpType :: forall a . (IsType a) => Value a -> IO ()
 dumpType _ = FFI.dumpValue (typeRef (undefined :: a))
 -}
 
+-- TODO for types:
 -- Enforce free is only called on malloc memory.  (Enforce only one free?)
 -- Enforce phi nodes a accessor of variables outside the bb
 -- Enforce bb terminator
 -- Enforce phi first
+--
+-- TODO:
+-- Add Struct, PackedStruct types
+-- Get alignment from code gen

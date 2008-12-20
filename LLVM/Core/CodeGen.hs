@@ -13,13 +13,14 @@ module LLVM.Core.CodeGen(
     -- * Values
     Value(..), ConstValue(..),
     IsConst(..), valueOf, value,
-    constString, constStringNul,
+    zero, allOnes, undef,
+    createString, createStringNul,
     -- * Basic blocks
     BasicBlock(..), newBasicBlock, newNamedBasicBlock, defineBasicBlock, createBasicBlock,
     -- * Misc
     withCurrentBuilder
     ) where
-import Control.Monad(liftM)
+import Control.Monad(liftM, when)
 import Data.Int
 import Data.Word
 import Data.TypeNumbers
@@ -97,11 +98,25 @@ valueOf = value . constOf
 value :: ConstValue a -> Value a
 value (ConstValue a) = Value a
 
-constString :: String -> ConstValue (Array AnySize Word8)
-constString = ConstValue . U.constString
+-- Not unsafe, just generates a constant.
+zero :: forall a . (IsType a) => ConstValue a
+zero = ConstValue $ FFI.constNull $ typeRef (undefined :: a)
 
-constStringNul :: String -> ConstValue (Array AnySize Word8)
+-- Not unsafe, just generates a constant.
+allOnes :: forall a . (IsInteger a) => ConstValue a
+allOnes = ConstValue $ FFI.constAllOnes $ typeRef (undefined :: a)
+
+-- Not unsafe, just generates a constant.
+undef :: forall a . (IsType a) => ConstValue a
+undef = ConstValue $ FFI.getUndef $ typeRef (undefined :: a)
+
+{-
+createString :: String -> ConstValue (DynamicArray Word8)
+createString = ConstValue . U.constString
+
+constStringNul :: String -> ConstValue (DynamicArray Word8)
 constStringNul = ConstValue . U.constStringNul
+-}
 
 --------------------------------------
 
@@ -226,20 +241,24 @@ withCurrentBuilder body = do
 
 --------------------------------------
 
-type AnySize = End
 type Global a = Value (Ptr a)
 
--- XXX what's the right type?
 -- | Create a new named global variable.
-newNamedGlobal :: forall a . (IsType a) => Linkage -> String -> TGlobal a
-newNamedGlobal linkage name = do
+newNamedGlobal :: forall a . (IsType a)
+               => Bool         -- ^Constant?
+               -> Linkage      -- ^Visibility
+               -> String       -- ^Name
+               -> TGlobal a
+newNamedGlobal isConst linkage name = do
     modul <- getModule
     let typ = typeRef (undefined :: a)
-    liftIO $ liftM Value $ U.addGlobal modul (fromIntegral $ fromEnum linkage) name typ
+    liftIO $ liftM Value $ do g <- U.addGlobal modul (fromIntegral $ fromEnum linkage) name typ
+    	     	   	      when isConst $ FFI.setGlobalConstant g 1
+			      return g
 
 -- | Create a new global variable.
-newGlobal :: forall a . (IsType a) => Linkage -> TGlobal a
-newGlobal linkage = genMSym "glb" >>= newNamedGlobal linkage
+newGlobal :: forall a . (IsType a) => Bool -> Linkage -> TGlobal a
+newGlobal isConst linkage = genMSym "glb" >>= newNamedGlobal isConst linkage
 
 -- | Give a global variable a (constant) value.
 defineGlobal :: Global a -> ConstValue a -> CodeGenModule ()
@@ -247,14 +266,31 @@ defineGlobal (Value g) (ConstValue v) =
     liftIO $ FFI.setInitializer g v
 
 -- | Create and define a global variable.
-createGlobal :: (IsType a) => Linkage -> ConstValue a -> TGlobal a
-createGlobal linkage con = do
-    g <- newGlobal linkage
+createGlobal :: (IsType a) => Bool -> Linkage -> ConstValue a -> TGlobal a
+createGlobal isConst linkage con = do
+    g <- newGlobal isConst linkage
     defineGlobal g con
     return g
 
 type TFunction a = CodeGenModule (Function a)
 type TGlobal a = CodeGenModule (Global a)
+
+-- Special string creators
+createString :: String -> TGlobal (Array n Word8)
+createString s = string (length s) (U.constString s)
+
+createStringNul :: String -> TGlobal (Array n Word8)
+createStringNul s = string (length s + 1) (U.constStringNul s)
+
+string :: Int -> FFI.ValueRef -> TGlobal (Array n Word8)
+string n s = do
+    modul <- getModule
+    name <- genMSym "str"
+    let typ = FFI.arrayType (typeRef (undefined :: Word8)) (fromIntegral n)
+    liftIO $ liftM Value $ do g <- U.addGlobal modul (fromIntegral $ fromEnum InternalLinkage) name typ
+    	     	   	      FFI.setGlobalConstant g 1
+			      FFI.setInitializer g s
+			      return g
 
 --------------------------------------
 

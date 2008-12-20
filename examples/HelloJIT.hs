@@ -1,6 +1,5 @@
 module HelloJIT (main) where
 
-import Data.Int(Int32)
 import Data.Word
 
 import LLVM.Core
@@ -8,18 +7,17 @@ import LLVM.ExecutionEngine
 
 bldGreet :: CodeGenModule (Function (IO ()))
 bldGreet = do
-    greetz <- createGlobal InternalLinkage $ constStringNul "Hello, JIT!"
     puts <- newNamedFunction ExternalLinkage "puts" :: TFunction (Ptr Word8 -> IO Word32)
+    greetz <- createStringNul "Hello, JIT!"
     func <- createFunction ExternalLinkage $ do
-      let zero = valueOf (0::Int32)
-      tmp <- getElementPtr greetz [zero::Value Int32, zero]
+      tmp <- getElementPtr greetz (0::Word32, (0::Word32, ()))
       call puts tmp -- Throw away return value.
       ret ()
     return func
 
 main :: IO ()
 main = do
-  greet <- simpleFunction bldGreet
-  greet
-  greet
-  return ()
+    greet <- simpleFunction bldGreet
+    greet
+    greet
+    return ()

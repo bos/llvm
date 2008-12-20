@@ -1,4 +1,4 @@
-{-# LANGUAGE MultiParamTypeClasses, FunctionalDependencies, FlexibleInstances, UndecidableInstances, TypeSynonymInstances, ScopedTypeVariables, OverlappingInstances #-}
+{-# LANGUAGE MultiParamTypeClasses, FunctionalDependencies, FlexibleInstances, UndecidableInstances, TypeSynonymInstances, ScopedTypeVariables, OverlappingInstances, FlexibleContexts #-}
 module LLVM.Core.Instructions(
     -- * Terminator instructions
     ret,
@@ -44,7 +44,7 @@ module LLVM.Core.Instructions(
     ) where
 import Prelude hiding (and, or)
 import Control.Monad(liftM)
---import Data.Int
+import Data.Int
 import Data.Word
 --import Data.TypeNumbers
 import qualified LLVM.FFI.Core as FFI
@@ -462,6 +462,7 @@ store (Value v) (Value p) =
     withCurrentBuilder $ \ bldPtr ->
       FFI.buildStore bldPtr v p
 
+{-
 -- XXX type is wrong
 -- | Address arithmetic.  See LLVM description.
 -- (The type isn't as accurate as it should be.)
@@ -471,5 +472,75 @@ getElementPtr (Value ptr) ixs =
     liftM Value $
     withCurrentBuilder $ \ bldPtr ->
       U.withArrayLen [ v | Value v <- ixs ] $ \ idxLen idxPtr ->
+        U.withEmptyCString $
+          FFI.buildGEP bldPtr ptr idxPtr (fromIntegral idxLen)
+-}
+
+class GetElementPtr optr ixs nptr | optr ixs -> nptr {-, ixs nptr -> optr, nptr optr -> ixs-} where
+    getIxList :: optr -> ixs -> [FFI.ValueRef]
+
+class IsIndexArg a where
+    getArg :: a -> FFI.ValueRef
+
+instance IsIndexArg (Value Word32) where
+    getArg (Value v) = v
+
+instance IsIndexArg (Value Word64) where
+    getArg (Value v) = v
+
+instance IsIndexArg (Value Int32) where
+    getArg (Value v) = v
+
+instance IsIndexArg (Value Int64) where
+    getArg (Value v) = v
+
+instance IsIndexArg (ConstValue Word32) where
+    getArg = unConst
+
+instance IsIndexArg (ConstValue Word64) where
+    getArg = unConst
+
+instance IsIndexArg (ConstValue Int32) where
+    getArg = unConst
+
+instance IsIndexArg (ConstValue Int64) where
+    getArg = unConst
+
+instance IsIndexArg Word32 where
+    getArg = unConst . constOf
+
+instance IsIndexArg Word64 where
+    getArg = unConst . constOf
+
+instance IsIndexArg Int32 where
+    getArg = unConst . constOf
+
+instance IsIndexArg Int64 where
+    getArg = unConst . constOf
+
+unConst :: ConstValue a -> FFI.ValueRef
+unConst (ConstValue v) = v
+
+-- End of indexing
+instance GetElementPtr a () a where
+    getIxList _ () = []
+
+-- Index in Array
+instance (GetElementPtr o i n, IsIndexArg a) => GetElementPtr (Array k o) (a, i) n where
+    getIxList ~(Array (a:_)) (v, i) = getArg v : getIxList a i
+
+-- Index in Vector
+instance (GetElementPtr o i n, IsIndexArg a) => GetElementPtr (Vector k o) (a, i) n where
+    getIxList ~(Vector (Array (a:_))) (v, i) = getArg v : getIxList a i
+
+-- | Address arithmetic.  See LLVM description.
+-- The index is a nested tuple of the form @(i1,(i2,( ... ())))@.
+getElementPtr :: forall a o i n r . (GetElementPtr o i n, IsIndexArg a) =>
+                 Value (Ptr o) -> (a, i) -> CodeGenFunction r (Value (Ptr n))
+getElementPtr (Value ptr) (a, ixs) =
+    let ixl = getArg a : getIxList (undefined :: o) ixs in
+    liftM Value $
+    withCurrentBuilder $ \ bldPtr ->
+      U.withArrayLen ixl $ \ idxLen idxPtr ->
         U.withEmptyCString $
           FFI.buildGEP bldPtr ptr idxPtr (fromIntegral idxLen)
