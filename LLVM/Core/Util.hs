@@ -8,7 +8,7 @@ module LLVM.Core.Util(
     PassManager(..), withPassManager, createPassManager, createFunctionPassManager,
     runFunctionPassManager, initializeFunctionPassManager, finalizeFunctionPassManager,
     -- * Instruction builder
-    Builder(..), withBuilder, createBuilder, positionAtEnd,
+    Builder(..), withBuilder, createBuilder, positionAtEnd, getInsertBlock,
     -- * Basic blocks
     BasicBlock,
     appendBasicBlock,
@@ -139,6 +139,11 @@ positionAtEnd :: Builder -> FFI.BasicBlockRef -> IO ()
 positionAtEnd bld bblk =
     withBuilder bld $ \ bldPtr ->
       FFI.positionAtEnd bldPtr bblk
+
+getInsertBlock :: Builder -> IO FFI.BasicBlockRef
+getInsertBlock bld =
+    withBuilder bld $ \ bldPtr ->
+      FFI.getInsertBlock bldPtr
 
 --------------------------------------
 

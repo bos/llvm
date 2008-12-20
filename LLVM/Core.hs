@@ -49,7 +49,7 @@ module LLVM.Core(
     -- * Globals
     Linkage(..),
     -- * Basic blocks
-    BasicBlock, newBasicBlock, newNamedBasicBlock, defineBasicBlock, createBasicBlock,
+    BasicBlock, newBasicBlock, newNamedBasicBlock, defineBasicBlock, createBasicBlock, getCurrentBasicBlock,
     -- * Debugging
     dumpValue,
     -- * Transformations

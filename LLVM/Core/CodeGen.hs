@@ -16,7 +16,7 @@ module LLVM.Core.CodeGen(
     zero, allOnes, undef,
     createString, createStringNul,
     -- * Basic blocks
-    BasicBlock(..), newBasicBlock, newNamedBasicBlock, defineBasicBlock, createBasicBlock,
+    BasicBlock(..), newBasicBlock, newNamedBasicBlock, defineBasicBlock, createBasicBlock, getCurrentBasicBlock,
     -- * Misc
     withCurrentBuilder
     ) where
@@ -226,6 +226,11 @@ defineBasicBlock :: BasicBlock -> CodeGenFunction r ()
 defineBasicBlock (BasicBlock l) = do
     bld <- getBuilder
     liftIO $ U.positionAtEnd bld l
+
+getCurrentBasicBlock :: CodeGenFunction r BasicBlock
+getCurrentBasicBlock = do
+    bld <- getBuilder
+    liftIO $ liftM BasicBlock $ U.getInsertBlock bld
 
 --------------------------------------
 
