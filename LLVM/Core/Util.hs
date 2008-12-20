@@ -102,7 +102,7 @@ newtype ModuleProvider = ModuleProvider {
 
 withModuleProvider :: ModuleProvider -> (FFI.ModuleProviderRef -> IO a)
                    -> IO a
-withModuleProvider prov = withForeignPtr (fromModuleProvider prov)
+withModuleProvider = withForeignPtr . fromModuleProvider
 
 -- | Turn a module into a module provider.
 createModuleProviderForExistingModule :: Module -> IO ModuleProvider
@@ -162,7 +162,7 @@ addFunction modul linkage name typ =
         return f
 
 getParam :: Function -> Int -> Value
-getParam f n = FFI.getParam f (fromIntegral n)
+getParam f = FFI.getParam f . fromIntegral
 
 --------------------------------------
 
@@ -234,7 +234,7 @@ newtype PassManager = PassManager {
 
 withPassManager :: PassManager -> (FFI.PassManagerRef -> IO a)
                    -> IO a
-withPassManager prov = withForeignPtr (fromPassManager prov)
+withPassManager = withForeignPtr . fromPassManager
 
 createPassManager :: IO PassManager
 createPassManager = do

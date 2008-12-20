@@ -173,7 +173,7 @@ class FunctionArgs f g r | f -> g r, g r -> f where
     apArgs :: Int -> FunctionRef -> g -> r
 
 applyArgs :: (FunctionArgs f g r) => FunctionRef -> g -> r
-applyArgs f g = apArgs 0 f g
+applyArgs = apArgs 0
 
 instance (FunctionArgs b b' r) => FunctionArgs (a -> b) (Value a -> b') r where
     apArgs n f g = apArgs (n+1) f (g $ Value $ U.getParam f n)

@@ -70,7 +70,7 @@ class Ret a r where
     ret :: a -> CodeGenFunction r Terminate  -- ^ Return from the current function with the given value.  Use () as the return value for what would be a void function is C.
 
 instance (IsFirstClass a, IsConst a) => Ret a a where
-    ret a = ret (valueOf a)
+    ret = ret . valueOf
 
 instance Ret (Value a) a where
     ret (Value a) = do
@@ -355,9 +355,10 @@ class CallArgs f g | f -> g, g -> f where
     doCall :: Caller -> [FFI.ValueRef] -> g
 
 instance (CallArgs b b') => CallArgs (a -> b) (Value a -> b') where
-    doCall mkCall args = \ (Value arg) -> doCall mkCall (arg : args)
+    doCall mkCall args (Value arg) = doCall mkCall (arg : args)
 
-instance CallArgs (IO a) (CodeGenFunction r (Value a)) where doCall = doCallDef
+instance CallArgs (IO a) (CodeGenFunction r (Value a)) where
+    doCall = doCallDef
 
 doCallDef :: Caller -> [FFI.ValueRef] -> CodeGenFunction r (Value a)
 doCallDef mkCall args =

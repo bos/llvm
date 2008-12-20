@@ -31,7 +31,7 @@ newtype ExecutionEngine = ExecutionEngine {
 
 withExecutionEngine :: ExecutionEngine -> (Ptr FFI.ExecutionEngine -> IO a)
                     -> IO a
-withExecutionEngine ee = withForeignPtr (fromExecutionEngine ee)
+withExecutionEngine = withForeignPtr . fromExecutionEngine
 
 createExecutionEngine :: ModuleProvider -> IO ExecutionEngine
 createExecutionEngine prov =
