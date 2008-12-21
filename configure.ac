@@ -6,11 +6,17 @@ AC_CONFIG_FILES([llvm.buildinfo])
 
 AC_PROG_CXX
 
+AC_ARG_WITH(compiler,
+  [AS_HELP_STRING([--with-compiler],
+    [use the given Haskell compiler])],
+  compiler="$withval",
+  compiler=ghc)dnl
+
 AC_ARG_WITH(llvm_prefix,
   [AS_HELP_STRING([--with-llvm-prefix],
     [use the version of LLVM at the given location])],
   llvm_prefix="$withval",
-  llvm_prefix=/usr/local)dnl
+  llvm_prefix="$prefix")dnl
 
 AC_ARG_WITH(llvm_bindir,
   [AS_HELP_STRING([--with-llvm-bindir],
@@ -42,6 +48,9 @@ CC=$CXX
 AC_CHECK_LIB(LLVMCore, LLVMModuleCreateWithName, [],
   [AC_MSG_ERROR(could not find LLVM C bindings)])
 
-AC_SUBST([llvm_cppflags llvm_engine_libs llvm_includedir llvm_ldflags])
+AC_SUBST([llvm_cppflags])
+AC_SUBST([llvm_engine_libs])
+AC_SUBST([llvm_includedir])
+AC_SUBST([llvm_ldflags])
 
 AC_OUTPUT

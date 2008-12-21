@@ -11,8 +11,9 @@ maintainer: Lennart Augustsson <lennart@augustsson.net>
 homepage: http://www.serpentine.com/blog/software/llvm/
 stability: experimental
 category: Compilers/Interpreters, Code Generation
-tested-with: GHC == 6.8.2
+tested-with: GHC == 6.8.2, GHC == 6.10.1
 cabal-version: >= 1.2.3
+build-type: Configure
 
 extra-source-files:
     INSTALL.txt
