@@ -52,7 +52,7 @@ library
   else
     build-depends: base < 2.0 || >= 2.2, bytestring >= 0.9, mtl
 
-  ghc-options: -Wall -Werror
+  ghc-options: -Wall
 
   exposed-modules:
       Data.TypeNumbers
