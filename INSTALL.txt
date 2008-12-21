@@ -30,7 +30,7 @@ configure LLVM.  It can be build and installed with the usual
 three steps.
 
 Configure the package.
-  runhaskell Setup configure --with-llvm-prefix=$SOMEWHERE
+  runhaskell Setup configure --configure-option --with-llvm-prefix=$SOMEWHERE
 
 Build.
   runhaskell Setup build
