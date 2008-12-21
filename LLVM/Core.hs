@@ -31,6 +31,7 @@ module LLVM.Core(
     Module, newModule, newNamedModule, defineModule, destroyModule, createModule,
     ModuleProvider, createModuleProviderForExistingModule,
     PassManager, createPassManager, createFunctionPassManager,
+    writeBitcodeToFile,
     -- * Instructions
     module LLVM.Core.Instructions,
     -- * Types classification
