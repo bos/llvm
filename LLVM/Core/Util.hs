@@ -1,7 +1,7 @@
 {-# LANGUAGE ForeignFunctionInterface #-}
 module LLVM.Core.Util(
     -- * Module handling
-    Module(..), withModule, createModule, destroyModule,
+    Module(..), withModule, createModule, destroyModule, writeBitcodeToFile,
     -- * Module provider handling
     ModuleProvider(..), withModuleProvider, createModuleProviderForExistingModule,
     -- * Pass manager handling
@@ -29,7 +29,7 @@ module LLVM.Core.Util(
     addGVNPass, addInstructionCombiningPass, addPromoteMemoryToRegisterPass, addReassociatePass,
     addTargetData
     ) where
-import Control.Monad(liftM)
+import Control.Monad(liftM, when)
 import Foreign.C.String (withCString, withCStringLen, CString)
 import Foreign.ForeignPtr (ForeignPtr, FinalizerPtr, newForeignPtr, withForeignPtr)
 import Foreign.Marshal.Array (withArrayLen, withArray)
@@ -38,6 +38,7 @@ import System.IO.Unsafe (unsafePerformIO)
 
 import qualified LLVM.FFI.Core as FFI
 import qualified LLVM.FFI.Target as FFI
+import qualified LLVM.FFI.BitWriter as FFI
 import qualified LLVM.FFI.Transforms.Scalar as FFI
 
 type Type = FFI.TypeRef
@@ -86,11 +87,26 @@ withModule modul f = f (fromModule modul)
 
 createModule :: String -> IO Module
 createModule name =
-    withCString name $ \namePtr -> do
+    withCString name $ \ namePtr -> do
       liftM Module $ FFI.moduleCreateWithName namePtr
 
+-- | Free all storage related to a module.  *Note*, this is a dangerous call, since referring
+-- to the module after this call is an error.  The reason for the explicit call to free
+-- the module instead of an automatic lifetime management is that modules have a
+-- somewhat complicated ownership.  Handing a module to a module provider changes
+-- the ownership of the module, and the module provider will free the module when necessary.
 destroyModule :: Module -> IO ()
 destroyModule = FFI.disposeModule . fromModule
+
+-- |Write a module to a file.
+writeBitcodeToFile :: String -> Module -> IO ()
+writeBitcodeToFile name mdl =
+    withCString name $ \ namePtr ->
+      withModule mdl $ \ mdlPtr -> do
+        rc <- FFI.writeBitcodeToFile mdlPtr namePtr
+        when (rc /= 0) $
+          ioError $ userError $ "writeBitcodeToFile: return code " ++ show rc
+        return ()
 
 --------------------------------------
 -- Handle module providers
@@ -233,6 +249,7 @@ addPhiIns inst incoming = do
 
 --------------------------------------
 
+-- | Manage compile passes.
 newtype PassManager = PassManager {
       fromPassManager :: ForeignPtr FFI.PassManager
     }
@@ -241,12 +258,14 @@ withPassManager :: PassManager -> (FFI.PassManagerRef -> IO a)
                    -> IO a
 withPassManager = withForeignPtr . fromPassManager
 
+-- | Create a pass manager.
 createPassManager :: IO PassManager
 createPassManager = do
     ptr <- FFI.createPassManager
     final <- h2c_passManager FFI.disposePassManager
     liftM PassManager $ newForeignPtr final ptr
 
+-- | Create a pass manager for a module.
 createFunctionPassManager :: ModuleProvider -> IO PassManager
 createFunctionPassManager modul =
     withModuleProvider modul $ \modulPtr -> do
@@ -257,15 +276,18 @@ createFunctionPassManager modul =
 foreign import ccall "wrapper" h2c_passManager
     :: (FFI.PassManagerRef -> IO ()) -> IO (FinalizerPtr a)
 
+-- | Add a control flow graph simplification pass to the manager.
 addCFGSimplificationPass :: PassManager -> IO ()
 addCFGSimplificationPass pm = withPassManager pm FFI.addCFGSimplificationPass
 
+-- | Add a constant propagation pass to the manager.
 addConstantPropagationPass :: PassManager -> IO ()
 addConstantPropagationPass pm = withPassManager pm FFI.addConstantPropagationPass
 
 addDemoteMemoryToRegisterPass :: PassManager -> IO ()
 addDemoteMemoryToRegisterPass pm = withPassManager pm FFI.addDemoteMemoryToRegisterPass
 
+-- | Add a global value numbering pass to the manager.
 addGVNPass :: PassManager -> IO ()
 addGVNPass pm = withPassManager pm FFI.addGVNPass
 

@@ -25,6 +25,7 @@ import qualified LLVM.FFI.Target as FFI
 import LLVM.Core.Util(Function)
 import LLVM.Core.Type(IsFirstClass, IsType(..))
 
+-- |The type of the JITer.
 newtype ExecutionEngine = ExecutionEngine {
       fromExecutionEngine :: ForeignPtr FFI.ExecutionEngine
     }
@@ -33,6 +34,7 @@ withExecutionEngine :: ExecutionEngine -> (Ptr FFI.ExecutionEngine -> IO a)
                     -> IO a
 withExecutionEngine = withForeignPtr . fromExecutionEngine
 
+-- |Create an execution engine for a module provider.
 createExecutionEngine :: ModuleProvider -> IO ExecutionEngine
 createExecutionEngine prov =
     withModuleProvider prov $ \provPtr ->

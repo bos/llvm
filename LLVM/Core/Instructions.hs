@@ -9,9 +9,12 @@ module LLVM.Core.Instructions(
     unwind,
     unreachable,
     -- * Arithmetic binary operations
+    -- | Arithmetic operations with the normal semantics.
+    -- The u instractions are unsigned, the s instructions are signed.
     add, sub, mul,
     udiv, sdiv, fdiv, urem, srem, frem,
     -- * Logical binary operations
+    -- |Logical instructions with the normal semantics.
     shl, lshr, ashr, and, or, xor,
     -- * Vector operations
     extractelement,
@@ -31,16 +34,18 @@ module LLVM.Core.Instructions(
     uitofp, sitofp,
     ptrtoint, inttoptr,
     bitcast,
-    -- * Other
+    -- * Comparison
     IntPredicate(..), RealPredicate(..),
     icmp, fcmp,
-    phi, addPhiInputs,
     select,
+    -- * Other
+    phi, addPhiInputs,
     call,
-    -- va_arg
     -- * Classes and types
     Terminate,
-    Ret, CallArgs, ABinOp, CmpOp, FunctionArgs, IsConst
+    Ret, CallArgs, ABinOp, CmpOp, FunctionArgs, IsConst,
+    AllocArg,
+    GetElementPtr, IsIndexArg
     ) where
 import Prelude hiding (and, or)
 import Control.Monad(liftM)
@@ -66,19 +71,24 @@ terminate = ()
 
 --------------------------------------
 
+-- |Acceptable arguments to the 'ret' instruction.
 class Ret a r where
-    ret :: a -> CodeGenFunction r Terminate  -- ^ Return from the current function with the given value.  Use () as the return value for what would be a void function is C.
+    ret' :: a -> CodeGenFunction r Terminate
+
+-- | Return from the current function with the given value.  Use () as the return value for what would be a void function is C.
+ret :: (Ret a r) => a -> CodeGenFunction r Terminate
+ret = ret'
 
 instance (IsFirstClass a, IsConst a) => Ret a a where
-    ret = ret . valueOf
+    ret' = ret . valueOf
 
 instance Ret (Value a) a where
-    ret (Value a) = do
+    ret' (Value a) = do
         withCurrentBuilder $ \ bldPtr -> FFI.buildRet bldPtr a
         return terminate
 
 instance Ret () () where
-    ret _ = do
+    ret' _ = do
         withCurrentBuilder $ FFI.buildRetVoid
         return terminate
 
@@ -118,11 +128,14 @@ switch (Value val) (BasicBlock dflt) arms = do
 
 --------------------------------------
 
+-- |Unwind the call stack until a function call performed with 'invoke' is reached.
+-- I.e., throw a non-local exception.
 unwind :: CodeGenFunction r Terminate
 unwind = do
     withCurrentBuilder FFI.buildUnwind
     return terminate
 
+-- |Inform the code generator that this code can never be reached.
 unreachable :: CodeGenFunction r Terminate
 unreachable = do
     withCurrentBuilder FFI.buildUnreachable
@@ -135,34 +148,44 @@ unreachable = do
 type FFIBinOp = FFI.BuilderRef -> FFI.ValueRef -> FFI.ValueRef -> U.CString -> IO FFI.ValueRef
 type FFIConstBinOp = FFI.ValueRef -> FFI.ValueRef -> FFI.ValueRef
 
+-- |Acceptable arguments to arithmetic binary instructions.
 class ABinOp a b c | a b -> c where
     abinop :: FFIConstBinOp -> FFIBinOp -> a -> b -> CodeGenFunction r c
 
--- | Arithmetic operations with the normal semantics.
-add, sub, mul :: (IsArithmetic c, ABinOp a b (v c)) => a -> b -> CodeGenFunction r (v c)
+add :: (IsArithmetic c, ABinOp a b (v c)) => a -> b -> CodeGenFunction r (v c)
 add = abinop FFI.constAdd FFI.buildAdd
+sub :: (IsArithmetic c, ABinOp a b (v c)) => a -> b -> CodeGenFunction r (v c)
 sub = abinop FFI.constSub FFI.buildSub
+mul :: (IsArithmetic c, ABinOp a b (v c)) => a -> b -> CodeGenFunction r (v c)
 mul = abinop FFI.constMul FFI.buildMul
 
--- | The u instractions are unsigned, the s instrctions are signed.
-udiv, sdiv, urem, srem :: (IsInteger c, ABinOp a b (v c)) => a -> b -> CodeGenFunction r (v c)
+udiv :: (IsInteger c, ABinOp a b (v c)) => a -> b -> CodeGenFunction r (v c)
 udiv = abinop FFI.constUDiv FFI.buildUDiv
+sdiv :: (IsInteger c, ABinOp a b (v c)) => a -> b -> CodeGenFunction r (v c)
 sdiv = abinop FFI.constSDiv FFI.buildSDiv
+urem :: (IsInteger c, ABinOp a b (v c)) => a -> b -> CodeGenFunction r (v c)
 urem = abinop FFI.constURem FFI.buildURem
+srem :: (IsInteger c, ABinOp a b (v c)) => a -> b -> CodeGenFunction r (v c)
 srem = abinop FFI.constSRem FFI.buildSRem
 
--- | Floating point division and remainder.
-fdiv, frem :: (IsFloating c, ABinOp a b (v c)) => a -> b -> CodeGenFunction r (v c)
+-- | Floating point division.
+fdiv :: (IsFloating c, ABinOp a b (v c)) => a -> b -> CodeGenFunction r (v c)
 fdiv = abinop FFI.constFDiv FFI.buildFDiv
+-- | Floating point remainder.
+frem :: (IsFloating c, ABinOp a b (v c)) => a -> b -> CodeGenFunction r (v c)
 frem = abinop FFI.constFRem FFI.buildFRem
 
-shl, lshr, ashr, and, or, xor :: (IsInteger c, ABinOp a b (v c)) =>
-     	   	      	         a -> b -> CodeGenFunction r (v c)
+shl :: (IsInteger c, ABinOp a b (v c)) => a -> b -> CodeGenFunction r (v c)
 shl  = abinop FFI.constShl  FFI.buildShl
+lshr :: (IsInteger c, ABinOp a b (v c)) => a -> b -> CodeGenFunction r (v c)
 lshr = abinop FFI.constLShr FFI.buildLShr
+ashr :: (IsInteger c, ABinOp a b (v c)) => a -> b -> CodeGenFunction r (v c)
 ashr = abinop FFI.constAShr FFI.buildAShr
+and :: (IsInteger c, ABinOp a b (v c)) => a -> b -> CodeGenFunction r (v c)
 and  = abinop FFI.constAnd  FFI.buildAnd
+or :: (IsInteger c, ABinOp a b (v c)) => a -> b -> CodeGenFunction r (v c)
 or   = abinop FFI.constOr   FFI.buildOr
+xor :: (IsInteger c, ABinOp a b (v c)) => a -> b -> CodeGenFunction r (v c)
 xor  = abinop FFI.constXor  FFI.buildXor
 
 instance ABinOp (Value a) (Value a) (Value a) where
@@ -325,6 +348,7 @@ data RealPredicate =
   | RealT               -- ^ Always true (always folded)
     deriving (Eq, Ord, Enum, Show)
 
+-- |Acceptable operands to comparison instructions.
 class CmpOp a b c | a b -> c where
     cmpop :: FFIBinOp -> a -> b -> CodeGenFunction r (Value Bool)
 
@@ -349,49 +373,6 @@ fcmp p = cmpop (flip FFI.buildFCmp (fromIntegral (fromEnum p)))
 
 --------------------------------------
 
-type Caller = FFI.BuilderRef -> [FFI.ValueRef] -> IO FFI.ValueRef
-
-class CallArgs f g | f -> g, g -> f where
-    doCall :: Caller -> [FFI.ValueRef] -> g
-
-instance (CallArgs b b') => CallArgs (a -> b) (Value a -> b') where
-    doCall mkCall args (Value arg) = doCall mkCall (arg : args)
-
-instance CallArgs (IO a) (CodeGenFunction r (Value a)) where
-    doCall = doCallDef
-
-doCallDef :: Caller -> [FFI.ValueRef] -> CodeGenFunction r (Value a)
-doCallDef mkCall args =
-    withCurrentBuilder $ \ bld -> 
-      liftM Value $ mkCall bld (reverse args)
-
--- | Call a function with the given arguments.
-call :: (CallArgs f g) => Function f -> g
-call (Value f) = doCall (U.makeCall f) []
-
--- | Call a function with exception handling.
-invoke :: (CallArgs f g) => BasicBlock -> BasicBlock -> Function f -> g
-invoke (BasicBlock norm) (BasicBlock expt) (Value f) =
-    doCall (U.makeInvoke norm expt f) []
-
---------------------------------------
-
--- XXX could do const song and dance
-phi :: forall a r . (IsFirstClass a) => [(Value a, BasicBlock)] -> CodeGenFunction r (Value a)
-phi incoming = 
-    liftM Value $
-      withCurrentBuilder $ \ bldPtr -> do
-        inst <- U.buildEmptyPhi bldPtr (typeRef (undefined :: a))
-        U.addPhiIns inst [ (v, b) | (Value v, BasicBlock b) <- incoming ]
-        return inst
-
-addPhiInputs :: forall a r . (IsFirstClass a) => (Value a) -> [(Value a, BasicBlock)] -> CodeGenFunction r ()
-addPhiInputs (Value inst) incoming =
-    liftIO $ U.addPhiIns inst [ (v, b) | (Value v, BasicBlock b) <- incoming ]
-    
-
---------------------------------------
-
 -- XXX could do const song and dance
 -- | Select between two values depending on a boolean.
 select :: (IsFirstClass a) => Value Bool -> Value a -> Value a -> CodeGenFunction r (Value a)
@@ -403,6 +384,67 @@ select (Value cnd) (Value thn) (Value els) =
 
 --------------------------------------
 
+type Caller = FFI.BuilderRef -> [FFI.ValueRef] -> IO FFI.ValueRef
+
+-- |Acceptable arguments to 'call'.
+class CallArgs f g | f -> g, g -> f where
+    doCall :: Caller -> [FFI.ValueRef] -> f -> g
+
+instance (CallArgs b b') => CallArgs (a -> b) (Value a -> b') where
+    doCall mkCall args f (Value arg) = doCall mkCall (arg : args) (f (undefined :: a))
+
+--instance (CallArgs b b') => CallArgs (a -> b) (ConstValue a -> b') where
+--    doCall mkCall args f (ConstValue arg) = doCall mkCall (arg : args) (f (undefined :: a))
+
+instance CallArgs (IO a) (CodeGenFunction r (Value a)) where
+    doCall = doCallDef
+
+doCallDef :: Caller -> [FFI.ValueRef] -> b -> CodeGenFunction r (Value a)
+doCallDef mkCall args _ =
+    withCurrentBuilder $ \ bld -> 
+      liftM Value $ mkCall bld (reverse args)
+
+-- | Call a function with the given arguments.  The 'call' instruction is variadic, i.e., the number of arguments
+-- it takes depends on the type of /f/.
+call :: (CallArgs f g) => Function f -> g
+call (Value f) = doCall (U.makeCall f) [] (undefined :: f)
+
+-- | Call a function with exception handling.
+invoke :: (CallArgs f g)
+       => BasicBlock         -- ^Normal return point.
+       -> BasicBlock         -- ^Exception return point.
+       -> Function f         -- ^Function to call.
+       -> g
+invoke (BasicBlock norm) (BasicBlock expt) (Value f) =
+    doCall (U.makeInvoke norm expt f) [] (undefined :: f)
+
+--------------------------------------
+
+-- XXX could do const song and dance
+-- |Join several variables (virtual registers) from different basic blocks into one.
+-- All of the variables in the list are joined.  See also 'addPhiInputs'.
+phi :: forall a r . (IsFirstClass a) => [(Value a, BasicBlock)] -> CodeGenFunction r (Value a)
+phi incoming = 
+    liftM Value $
+      withCurrentBuilder $ \ bldPtr -> do
+        inst <- U.buildEmptyPhi bldPtr (typeRef (undefined :: a))
+        U.addPhiIns inst [ (v, b) | (Value v, BasicBlock b) <- incoming ]
+        return inst
+
+-- |Add additional inputs to an existing phi node.
+-- The reason for this instruction is that sometimes the structure of the code
+-- makes it impossible to have all variables in scope at the point where you need the phi node.
+addPhiInputs :: forall a r . (IsFirstClass a)
+             => Value a                      -- ^Must be a variable from a call to 'phi'.
+             -> [(Value a, BasicBlock)]      -- ^Variables to add.
+             -> CodeGenFunction r ()
+addPhiInputs (Value inst) incoming =
+    liftIO $ U.addPhiIns inst [ (v, b) | (Value v, BasicBlock b) <- incoming ]
+    
+
+--------------------------------------
+
+-- | Acceptable argument to array memory allocation.
 class AllocArg a where
     getAllocArg :: a -> FFI.ValueRef
 instance AllocArg (Value Word32) where
@@ -486,9 +528,11 @@ getElementPtr (Value ptr) ixs =
           FFI.buildGEP bldPtr ptr idxPtr (fromIntegral idxLen)
 -}
 
+-- |Acceptable arguments to 'getElementPointer'.
 class GetElementPtr optr ixs nptr | optr ixs -> nptr {-, ixs nptr -> optr, nptr optr -> ixs-} where
     getIxList :: optr -> ixs -> [FFI.ValueRef]
 
+-- |Acceptable single index to 'getElementPointer'.
 class IsIndexArg a where
     getArg :: a -> FFI.ValueRef
 
@@ -545,6 +589,7 @@ instance (GetElementPtr o i n, IsIndexArg a) => GetElementPtr (Vector k o) (a, i
 
 -- | Address arithmetic.  See LLVM description.
 -- The index is a nested tuple of the form @(i1,(i2,( ... ())))@.
+-- (This is without a doubt the most confusing LLVM instruction, but the types help.)
 getElementPtr :: forall a o i n r . (GetElementPtr o i n, IsIndexArg a) =>
                  Value (Ptr o) -> (a, i) -> CodeGenFunction r (Value (Ptr n))
 getElementPtr (Value ptr) (a, ixs) =

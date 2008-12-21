@@ -1,7 +1,8 @@
--- |The LLVM (Low Level Virtual Machine) is virtial machine at a machine code level.
--- It supports both stand alone code generation, and also a JIT.
+-- |The LLVM (Low Level Virtual Machine) is virtual machine at a machine code level.
+-- It supports both stand alone code generation and JITing.
 -- The Haskell llvm package is a (relatively) high level interface to the LLVM.
 -- The high level interface makes it easy to construct LLVM code.
+-- There is also an interface to the raw low level LLVM API as exposed by the LLVM C interface.
 --
 -- LLVM code is organized into modules (type 'Module').
 -- Each module contains a number of global variables and functions (type 'Function').
@@ -10,9 +11,11 @@
 -- a value (type 'Value').
 --
 -- Unlike assembly code for a real processor the assembly code for LLVM is
--- on SSA (Static Single Assignment) form.  This means that each instruction generates
--- a new bound variable which may not be assigned again.  Each variable must also
--- only be used in the basic block where it was defined, except for phi instructions.
+-- in SSA (Static Single Assignment) form.  This means that each instruction generates
+-- a new bound variable which may not be assigned again.
+-- A consequence of this is that where control flow joins from several execution
+-- paths there has to be a phi pseudo instruction if you want different variables
+-- to be joined into one.
 --
 -- The definition of several of the LLVM entities ('Module', 'Function', and 'BasicBlock')
 -- follow the same pattern.  First the entity has to be created using @newX@ (where @X@

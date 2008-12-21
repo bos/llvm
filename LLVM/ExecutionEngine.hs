@@ -1,4 +1,5 @@
 {-# LANGUAGE FlexibleInstances, UndecidableInstances, MultiParamTypeClasses, FunctionalDependencies #-}
+ -- |An 'ExecutionEngine' is JIT compiler that is used to generate code for an LLVM module.
 module LLVM.ExecutionEngine(
     -- * Execution engine
     ExecutionEngine,
@@ -8,7 +9,10 @@ module LLVM.ExecutionEngine(
     -- * Translation
     Translatable, Generic,
     generateFunction,
+    -- * Unsafe type conversion
+    Unsafe,
     unsafePurify,
+    -- * Simplified interface.
     simpleFunction,
     unsafeGenerateFunction
     ) where
@@ -20,6 +24,8 @@ import LLVM.Core.CodeGen(Value(..))
 import LLVM.Core
 import LLVM.Core.Util(runFunctionPassManager, initializeFunctionPassManager, finalizeFunctionPassManager)
 
+-- |Class of LLVM function types that can be translated to the corresponding
+-- Haskell type.
 class Translatable f where
     translate :: ExecutionEngine -> [GenericValue] -> ValueRef -> f
 
@@ -34,9 +40,8 @@ generateFunction :: (Translatable f) =>
                     ExecutionEngine -> Value (Ptr f) -> f
 generateFunction ee (Value f) = translate ee [] f
 
--- |Remove the IO from a function return type.  This is unsafe in general.
 class Unsafe a b | a -> b where
-    unsafePurify :: a -> b
+    unsafePurify :: a -> b  -- ^Remove the IO from a function return type.  This is unsafe in general.
 
 instance (Unsafe b b') => Unsafe (a->b) (a->b') where
     unsafePurify f = unsafePurify . f
@@ -44,7 +49,8 @@ instance (Unsafe b b') => Unsafe (a->b) (a->b') where
 instance Unsafe (IO a) a where
     unsafePurify = unsafePerformIO
 
--- |Translate a function to Haskell code.
+-- |Translate a function to Haskell code.  This is a simplified interface to
+-- the execution engine and module mechanism.
 simpleFunction :: (Translatable f) => CodeGenModule (Function f) -> IO f
 simpleFunction bld = do
     m <- newModule
@@ -71,6 +77,7 @@ simpleFunction bld = do
 
     return $ generateFunction ee func
 
+-- | Combine 'simpleFunction' and 'unsafePurify'.
 unsafeGenerateFunction :: (Unsafe t a, Translatable t) =>
                           CodeGenModule (Function t) -> a
 unsafeGenerateFunction bld = unsafePerformIO $ do
