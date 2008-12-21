@@ -18,8 +18,9 @@ fastfib:	Fibonacci
 	time ./Fibonacci $(N)
 	opt -std-compile-opts Fibonacci.bc -o Fib.bc
 	llc Fib.bc
-	gcc mainfib.c Fib.s -o Fib
+	$(CC) mainfib.c Fib.s -o Fib
 	time ./Fib $(N)
+	@echo Have a look at Fib.s if you like to see clever code.
 
 clean:
 	rm -f $(examples) *.o *.hi *.s *.bc Fib
