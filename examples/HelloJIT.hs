@@ -20,4 +20,5 @@ main = do
     greet <- simpleFunction bldGreet
     greet
     greet
+    greet
     return ()

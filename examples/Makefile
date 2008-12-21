@@ -14,4 +14,4 @@ all: $(examples)
 clean:
 	-rm -f *.o *.hi $(examples)
 
-run:	Fibonacci.run HelloJIT.run BrainF.run
+run:	HelloJIT.run Fibonacci.run BrainF.run

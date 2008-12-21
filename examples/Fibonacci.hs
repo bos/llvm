@@ -24,8 +24,11 @@ main = do
     fns <- defineModule m buildMod
 
     -- Show the code for the two functions, just for fun.
-    dumpValue $ mfib fns
-    dumpValue $ mplus fns
+    --dumpValue $ mfib fns
+    --dumpValue $ mplus fns
+    -- Write the code to a file for later perusal.
+    -- Can be disassembled with llvm-dis.
+    writeBitcodeToFile "Fibonacci.bc" m
 
     -- Create a JIT execution engine for the module.
     ee <- createModuleProviderForExistingModule m >>= createExecutionEngine
