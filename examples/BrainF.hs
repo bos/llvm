@@ -13,16 +13,19 @@ module BrainF where
 -- [         while(*h) {     Start loop
 -- ]         }               End loop
 --
+import Control.Monad(when)
 import Control.Monad.Trans
 import Data.Word
 import Data.Int
+import System.Environment(getArgs)
 
 import LLVM.Core
 import LLVM.ExecutionEngine
 
 main :: IO ()
 main = do
---    text <- getContents
+    aargs <- getArgs
+    let (args, debug) = if take 1 aargs == ["-"] then (tail aargs, True) else (aargs, False)
     let text = "+++++++++++++++++++++++++++++++++" ++  -- constant 33
                ">++++" ++                              -- next cell, loop counter, constant 4
                "[>++++++++++" ++                       -- loop, loop counter, constant 10
@@ -31,13 +34,15 @@ main = do
                  "]<-" ++                              -- back to 4, decrement loop counter
                "]" ++
                "++++++++++."
+    prog <- if length args == 1 then readFile (head args) else return text
 
-    prog <- simpleFunction $ brainFunc text 65536
-    putStrLn "Should print !\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGH on the next line:"
-    prog
+    bfprog <- simpleFunction $ brainCompile debug prog 65536
+    when (prog == text) $
+        putStrLn "Should print '!\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGH' on the next line:"
+    bfprog
 
-brainFunc :: String -> Word32 -> CodeGenModule (Function (IO ()))
-brainFunc instrs wmemtotal = do
+brainCompile :: Bool -> String -> Word32 -> CodeGenModule (Function (IO ()))
+brainCompile debug instrs wmemtotal = do
     -- LLVM functions
     memset    <- newNamedFunction ExternalLinkage "llvm.memset.i32"
               :: TFunction (Ptr Word8 -> Word8 -> Word32 -> Word32 -> IO ())
@@ -132,6 +137,7 @@ brainFunc instrs wmemtotal = do
         free ptr_arr
         ret ()
 
-    liftIO $ dumpValue brainf
+    when (debug) $
+        liftIO $ dumpValue brainf
 
     return brainf
