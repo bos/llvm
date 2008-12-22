@@ -8,6 +8,19 @@ home page is here:
   http://llvm.org/
 
 
+Configuration
+-------------
+
+By default, when you run "runghc Setup configure", the Haskell
+bindings will be configured to install to /usr/local.  The configure
+script will look for your LLVM installation in that same directory.
+
+If you have LLVM installed in a different location, e.g. /usr, you can
+tell the configure script where to find it as follows:
+
+  runghc Setup configure --configure-option=--with-llvm-prefix=/usr
+
+
 Package status - what to expect
 -------------------------------
 
