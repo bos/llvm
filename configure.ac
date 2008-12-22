@@ -26,7 +26,7 @@ AC_ARG_WITH(llvm_bindir,
 
 AC_PATH_PROG(llvm_config, llvm-config,
   [AC_MSG_ERROR(could not find llvm-config in $llvm_bindir)],
-  [$llvm_bindir])
+  ["$llvm_bindir:$PATH"])
 
 llvm_cppflags="`$llvm_config --cppflags`"
 llvm_includedir="`$llvm_config --includedir`"
