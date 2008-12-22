@@ -1,13 +1,11 @@
 name: llvm
-version: 0.4.0.0
+version: 0.4.0.1
 license: BSD3
 license-file: LICENSE
 synopsis: Bindings to the LLVM compiler toolkit
 description: Bindings to the LLVM compiler toolkit
-author: Bryan O'Sullivan
-author: Lennart Augustsson
-maintainer: Bryan O'Sullivan <bos@serpentine.com>
-maintainer: Lennart Augustsson <lennart@augustsson.net>
+author: Bryan O'Sullivan, Lennart Augustsson
+maintainer: Bryan O'Sullivan <bos@serpentine.com>, Lennart Augustsson <lennart@augustsson.net>
 homepage: http://www.serpentine.com/blog/software/llvm/
 stability: experimental
 category: Compilers/Interpreters, Code Generation
