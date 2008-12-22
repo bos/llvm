@@ -30,10 +30,9 @@ The high level bindings are currently incomplete, so there are some
 limits on what you can do.  Adding new functions is generally easy,
 though, so don't be afraid to get your hands dirty.
 
-The high level interface is mostly safe, but the type system does not
-protect against anything that can go wrong, so take care.
-And, of course, there's no way to guarantee anything about the
-generated code.
+The high level interface is mostly safe, but the type system cannot
+protect against everything that can go wrong, so take care.  And, of
+course, there's no way to guarantee anything about the generated code.
 
 
 Jump in and help!
