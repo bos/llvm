@@ -1,4 +1,4 @@
-{-# LANGUAGE ForeignFunctionInterface, FlexibleInstances, UndecidableInstances, OverlappingInstances #-}
+{-# LANGUAGE ForeignFunctionInterface, FlexibleInstances, UndecidableInstances, OverlappingInstances, ScopedTypeVariables #-}
 module LLVM.ExecutionEngine.Engine(
        ExecutionEngine,
        createExecutionEngine, runStaticConstructors, runStaticDestructors,
@@ -156,10 +156,10 @@ toGenericReal :: (Real a, IsFirstClass a) => a -> GenericValue
 toGenericReal val = unsafePerformIO $ createGenericValueWith $
     FFI.createGenericValueOfFloat (typeRef val) (realToFrac val)
 
-fromGenericReal :: (Fractional a, IsFirstClass a) => GenericValue -> a
+fromGenericReal :: forall a . (Fractional a, IsFirstClass a) => GenericValue -> a
 fromGenericReal val = unsafePerformIO $
     withGenericValue val $ \ ref ->
-      return . realToFrac $ FFI.genericValueToFloat ref
+      return . realToFrac $ FFI.genericValueToFloat (typeRef (undefined :: a)) ref
 
 instance Generic Float where
     toGeneric = toGenericReal

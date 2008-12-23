@@ -70,7 +70,7 @@ foreign import ccall unsafe "LLVMCreateGenericValueOfFloat"
     createGenericValueOfFloat :: TypeRef -> CDouble -> IO GenericValueRef
 
 foreign import ccall unsafe "LLVMGenericValueToFloat" genericValueToFloat
-    :: GenericValueRef -> CDouble
+    :: TypeRef -> GenericValueRef -> CDouble
 
 foreign import ccall unsafe "LLVMDisposeGenericValue" disposeGenericValue
     :: GenericValueRef -> IO ()
