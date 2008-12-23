@@ -237,6 +237,8 @@ insertelement (Value vec) (Value e) (Value i) =
     withCurrentBuilder $ \ bldPtr ->
       U.withEmptyCString $ FFI.buildInsertElement bldPtr vec e i
 
+-- XXX The documentation say the mask and result can  different length from
+-- the two first operand, but the C++ code doesn't do that.
 -- | Permute vector.
 shufflevector :: Value (Vector n a)
               -> Value (Vector n a)
@@ -599,3 +601,4 @@ getElementPtr (Value ptr) (a, ixs) =
       U.withArrayLen ixl $ \ idxLen idxPtr ->
         U.withEmptyCString $
           FFI.buildGEP bldPtr ptr idxPtr (fromIntegral idxLen)
+

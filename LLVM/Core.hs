@@ -42,6 +42,7 @@ module LLVM.Core(
     Value, ConstValue, valueOf, constOf, value,
     zero, allOnes, undef,
     createString, createStringNul,
+    constVector, constArray,
     -- * Code generation
     CodeGenFunction, CodeGenModule,
     -- * Functions
@@ -62,7 +63,7 @@ module LLVM.Core(
     addTargetData
     ) where
 import qualified LLVM.FFI.Core as FFI
-import LLVM.Core.Util hiding (Function, BasicBlock, createModule, constString, constStringNul)
+import LLVM.Core.Util hiding (Function, BasicBlock, createModule, constString, constStringNul, constVector, constArray)
 import LLVM.Core.CodeGen
 import LLVM.Core.CodeGenMonad(CodeGenFunction, CodeGenModule)
 import LLVM.Core.Data

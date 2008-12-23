@@ -101,8 +101,8 @@ instance (IsTypeNumber n, IsSized a) => IsType (Array n a)
     	  	      		    (typeNumber (undefined :: n))
 
 instance (IsTypeNumber n, IsPrimitive a) => IsType (Vector n a)
-    where typeRef _ = FFI.arrayType (typeRef (undefined :: a))
-    	  	      		    (typeNumber (undefined :: n))
+    where typeRef _ = FFI.vectorType (typeRef (undefined :: a))
+    	  	      		     (typeNumber (undefined :: n))
 
 instance (IsType a) => IsType (Ptr a) where
     typeRef ~(Ptr a) = FFI.pointerType (typeRef a) 0
@@ -129,6 +129,7 @@ instance IsArithmetic Word8
 instance IsArithmetic Word16
 instance IsArithmetic Word32
 instance IsArithmetic Word64
+instance (IsTypeNumber n, IsPrimitive a, IsArithmetic a) => IsArithmetic (Vector n a)
 
 instance IsFloating Float
 instance IsFloating Double

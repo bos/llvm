@@ -15,6 +15,7 @@ module LLVM.Core.CodeGen(
     IsConst(..), valueOf, value,
     zero, allOnes, undef,
     createString, createStringNul,
+    constVector, constArray,
     -- * Basic blocks
     BasicBlock(..), newBasicBlock, newNamedBasicBlock, defineBasicBlock, createBasicBlock, getCurrentBasicBlock,
     -- * Misc
@@ -320,3 +321,15 @@ data VisibilityTypes
     | ProtectedVisibility -- ^The GV is protected
     deriving (Show, Eq, Ord, Enum)
 -}
+
+--------------------------------------
+
+-- |Make a constant vector.  Replicates or truncates the list to get length /n/.
+constVector :: forall a n . (IsTypeNumber n) => [ConstValue a] -> ConstValue (Vector n a)
+constVector xs =
+    ConstValue $ U.constVector (typeNumber (undefined :: n)) [ v | ConstValue v <- xs ]
+
+-- |Make a constant array.  Replicates or truncates the list to get length /n/.
+constArray :: forall a n . (IsSized a, IsTypeNumber n) => [ConstValue a] -> ConstValue (Array n a)
+constArray xs =
+    ConstValue $ U.constArray (typeRef (undefined :: Array n a)) (typeNumber (undefined :: n)) [ v | ConstValue v <- xs ]

@@ -17,18 +17,20 @@ module LLVM.Core.Util(
     addFunction, getParam,
     -- * Globals
     addGlobal,
-    constString, constStringNul,
+    constString, constStringNul, constVector, constArray,
     -- * Instructions
     makeCall, makeInvoke,
     -- * Misc
     CString, withArrayLen,
     withEmptyCString,
     functionType, buildEmptyPhi, addPhiIns,
+    constVector,
     -- * Transformation passes
     addCFGSimplificationPass, addConstantPropagationPass, addDemoteMemoryToRegisterPass,
     addGVNPass, addInstructionCombiningPass, addPromoteMemoryToRegisterPass, addReassociatePass,
     addTargetData
     ) where
+import Data.TypeNumbers
 import Control.Monad(liftM, when)
 import Foreign.C.String (withCString, withCStringLen, CString)
 import Foreign.ForeignPtr (ForeignPtr, FinalizerPtr, newForeignPtr, withForeignPtr)
@@ -311,3 +313,19 @@ initializeFunctionPassManager pm = liftM fromIntegral $ withPassManager pm FFI.i
 
 finalizeFunctionPassManager :: PassManager -> IO Int
 finalizeFunctionPassManager pm = liftM fromIntegral $ withPassManager pm FFI.finalizeFunctionPassManager
+
+--------------------------------------
+
+-- The unsafePerformIO is just for the non-effecting withArrayLen
+constVector :: Int -> [Value] -> Value
+constVector n xs = unsafePerformIO $ do
+    let xs' = take n (cycle xs) 
+    withArrayLen xs' $ \ len ptr ->
+        return $ FFI.constVector ptr (fromIntegral len)
+
+-- The unsafePerformIO is just for the non-effecting withArrayLen
+constArray :: Type -> Int -> [Value] -> Value
+constArray t n xs = unsafePerformIO $ do
+    let xs' = take n (cycle xs) 
+    withArrayLen xs' $ \ len ptr ->
+        return $ FFI.constArray t ptr (fromIntegral len)
