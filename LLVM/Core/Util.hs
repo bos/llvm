@@ -24,13 +24,11 @@ module LLVM.Core.Util(
     CString, withArrayLen,
     withEmptyCString,
     functionType, buildEmptyPhi, addPhiIns,
-    constVector,
     -- * Transformation passes
     addCFGSimplificationPass, addConstantPropagationPass, addDemoteMemoryToRegisterPass,
     addGVNPass, addInstructionCombiningPass, addPromoteMemoryToRegisterPass, addReassociatePass,
     addTargetData
     ) where
-import Data.TypeNumbers
 import Control.Monad(liftM, when)
 import Foreign.C.String (withCString, withCStringLen, CString)
 import Foreign.ForeignPtr (ForeignPtr, FinalizerPtr, newForeignPtr, withForeignPtr)
