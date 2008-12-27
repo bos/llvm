@@ -609,3 +609,40 @@ getElementPtr (Value ptr) (a, ixs) =
         U.withEmptyCString $
           FFI.buildGEP bldPtr ptr idxPtr (fromIntegral idxLen)
 
+
+--------------------------------------
+{-
+instance (IsConst a) => Show (ConstValue a) -- XXX
+instance (IsConst a) => Eq (ConstValue a)
+
+{-
+instance (IsConst a) => Eq (ConstValue a) where
+    ConstValue x == ConstValue y  =
+        if isFloating x then ConstValue (FFI.constFCmp (fromRealPredicate RealOEQ) x y)
+                        else ConstValue (FFI.constICmp (fromIntPredicate    IntEQ) x y)
+    ConstValue x /= ConstValue y  =
+        if isFloating x then ConstValue (FFI.constFCmp (fromRealPredicate RealONE) x y)
+                        else ConstValue (FFI.constICmp (fromIntPredicate    IntNE) x y)
+
+instance (IsConst a) => Ord (ConstValue a) where
+    ConstValue x <  ConstValue y  =
+        if isFloating x then ConstValue (FFI.constFCmp (fromRealPredicate RealOLT) x y)
+                        else ConstValue (FFI.constICmp (fromIntPredicate    IntLT) x y)
+    ConstValue x <= ConstValue y  =
+        if isFloating x then ConstValue (FFI.constFCmp (fromRealPredicate RealOLE) x y)
+                        else ConstValue (FFI.constICmp (fromIntPredicate    IntLE) x y)
+    ConstValue x >  ConstValue y  =
+        if isFloating x then ConstValue (FFI.constFCmp (fromRealPredicate RealOGT) x y)
+                        else ConstValue (FFI.constICmp (fromIntPredicate    IntGT) x y)
+    ConstValue x >= ConstValue y  =
+        if isFloating x then ConstValue (FFI.constFCmp (fromRealPredicate RealOGE) x y)
+                        else ConstValue (FFI.constICmp (fromIntPredicate    IntGE) x y)
+-}
+
+instance (Num a, IsConst a) => Num (ConstValue a) where
+    ConstValue x + ConstValue y  =  ConstValue (FFI.constAdd x y)
+    ConstValue x - ConstValue y  =  ConstValue (FFI.constSub x y)
+    ConstValue x * ConstValue y  =  ConstValue (FFI.constMul x y)
+    negate (ConstValue x)        =  ConstValue (FFI.constNeg x)
+    fromInteger x                =  constOf (fromInteger x :: a)
+-}
