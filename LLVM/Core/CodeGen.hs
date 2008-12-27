@@ -61,6 +61,8 @@ newtype ConstValue a = ConstValue FFI.ValueRef
 
 class (IsType a) => IsConst a where
     constOf :: a -> ConstValue a
+    isFloat :: a -> Bool
+    isFloat _ = False
 
 instance IsConst Bool   where constOf = constEnum (typeRef True)
 --instance IsConst Char   where constOf = constEnum (typeRef (0::Word8)) -- XXX Unicode
@@ -72,9 +74,9 @@ instance IsConst Int8   where constOf = constI True
 instance IsConst Int16  where constOf = constI True
 instance IsConst Int32  where constOf = constI True
 instance IsConst Int64  where constOf = constI True
-instance IsConst Float  where constOf = constF
-instance IsConst Double where constOf = constF
---instance IsConst FP128  where constOf = constF
+instance IsConst Float  where constOf = constF; isFloat = const True
+instance IsConst Double where constOf = constF; isFloat = const True
+--instance IsConst FP128  where constOf = constF; isFloat = const True
 
 {-
 instance IsConst (Array n a) where
