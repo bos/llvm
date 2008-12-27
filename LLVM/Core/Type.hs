@@ -25,6 +25,19 @@ import LLVM.Core.Util(functionType)
 import LLVM.Core.Data
 import qualified LLVM.FFI.Core as FFI
 
+-- XXX This could defined inductively, but this is good enough for LLVM
+class (IsTypeNumber n) => IsPowerOf2 n
+instance IsPowerOf2 (D1 End)
+instance IsPowerOf2 (D2 End)
+instance IsPowerOf2 (D4 End)
+instance IsPowerOf2 (D8 End)
+instance IsPowerOf2 (D1 (D6 End))
+instance IsPowerOf2 (D3 (D2 End))
+instance IsPowerOf2 (D6 (D4 End))
+instance IsPowerOf2 (D1 (D2 (D8 End)))
+instance IsPowerOf2 (D2 (D5 (D6 End)))
+instance IsPowerOf2 (D5 (D1 (D2 End)))
+
 -- TODO:
 -- Move IntN, WordN to a special module that implements those types
 --   properly in Haskell.
@@ -100,7 +113,7 @@ instance (IsTypeNumber n, IsSized a) => IsType (Array n a)
     where typeRef _ = FFI.arrayType (typeRef (undefined :: a))
     	  	      		    (typeNumber (undefined :: n))
 
-instance (IsTypeNumber n, IsPrimitive a) => IsType (Vector n a)
+instance (IsPowerOf2 n, IsPrimitive a) => IsType (Vector n a)
     where typeRef _ = FFI.vectorType (typeRef (undefined :: a))
     	  	      		     (typeNumber (undefined :: n))
 
@@ -129,7 +142,7 @@ instance IsArithmetic Word8
 instance IsArithmetic Word16
 instance IsArithmetic Word32
 instance IsArithmetic Word64
-instance (IsTypeNumber n, IsPrimitive a, IsArithmetic a) => IsArithmetic (Vector n a)
+instance (IsPowerOf2 n, IsPrimitive a, IsArithmetic a) => IsArithmetic (Vector n a)
 
 instance IsFloating Float
 instance IsFloating Double
@@ -161,12 +174,12 @@ instance IsFirstClass Word8
 instance IsFirstClass Word16
 instance IsFirstClass Word32
 instance IsFirstClass Word64
-instance (IsTypeNumber n, IsPrimitive a) => IsFirstClass (Vector n a)
+instance (IsPowerOf2 n, IsPrimitive a) => IsFirstClass (Vector n a)
 instance (IsType a) => IsFirstClass (Ptr a)
 instance IsFirstClass () -- XXX This isn't right, but () can be returned
 
 instance (IsTypeNumber n) => IsSequence (Array n)
---instance (IsTypeNumber n, IsPrimitive a) => IsSequence (Vector n) a
+--instance (IsPowerOf2 n, IsPrimitive a) => IsSequence (Vector n) a
 
 instance IsSized Float
 instance IsSized Double
@@ -183,7 +196,7 @@ instance IsSized Word16
 instance IsSized Word32
 instance IsSized Word64
 instance (IsTypeNumber n, IsSized a) => IsSized (Array n a)
-instance (IsTypeNumber n, IsPrimitive a) => IsSized (Vector n a)
+instance (IsPowerOf2 n, IsPrimitive a) => IsSized (Vector n a)
 instance (IsType a) => IsSized (Ptr a)
 
 instance IsPrimitive Float
