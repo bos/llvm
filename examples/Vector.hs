@@ -6,8 +6,10 @@ import Data.Word
 import LLVM.Core
 import LLVM.ExecutionEngine
 
+-- Type of vector elements.
 type T = Float
 
+-- Number of vector elements.
 type N = D1 (D6 End)
 
 cgvec :: CodeGenModule (Function (T -> IO T))
@@ -23,6 +25,7 @@ cgvec = do
 
 	br loop1
 
+	-- Fill 0 vector with x, x+1, x+2, ...
         defineBasicBlock loop1
         i1 <- phi [(valueOf 0, top1)]
 	x1 <- phi [(x, top1)]
@@ -39,6 +42,7 @@ cgvec = do
 	br loop1
 	defineBasicBlock exit1
 
+	-- Elementwise cubing of the vector.
 	vsq <- mul v1 v1
         vcb <- mul vsq v1
 
@@ -49,6 +53,7 @@ cgvec = do
 
 	br loop2
 
+	-- Sum all the elements in the vector.
         defineBasicBlock loop2
         i2 <- phi [(valueOf 0, top2)]
 	s2 <- phi [(valueOf 0, top2)]
