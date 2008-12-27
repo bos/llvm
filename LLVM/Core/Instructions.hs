@@ -51,6 +51,7 @@ import Prelude hiding (and, or)
 import Control.Monad(liftM)
 import Data.Int
 import Data.Word
+import Foreign.C(CInt)
 --import Data.TypeNumbers
 import qualified LLVM.FFI.Core as FFI
 import LLVM.Core.Data
@@ -331,6 +332,9 @@ data IntPredicate =
   | IntSLE                      -- ^ signed less or equal
     deriving (Eq, Ord, Enum, Show)
 
+fromIntPredicate :: IntPredicate -> CInt
+fromIntPredicate p = fromIntegral (fromEnum p + 32)
+
 data RealPredicate =
     RealFalse           -- ^ Always false (always folded)
   | RealOEQ             -- ^ True if ordered and equal
@@ -350,6 +354,9 @@ data RealPredicate =
   | RealT               -- ^ Always true (always folded)
     deriving (Eq, Ord, Enum, Show)
 
+fromRealPredicate :: RealPredicate -> CInt
+fromRealPredicate p = fromIntegral (fromEnum p)
+
 -- |Acceptable operands to comparison instructions.
 class CmpOp a b c | a b -> c where
     cmpop :: FFIBinOp -> a -> b -> CodeGenFunction r (Value Bool)
@@ -366,12 +373,12 @@ instance (IsConst a) => CmpOp (Value a) a a where
 -- | Compare integers.
 icmp :: (IsInteger c, CmpOp a b c) =>
         IntPredicate -> a -> b -> CodeGenFunction r (Value Bool)
-icmp p = cmpop (flip FFI.buildICmp (fromIntegral (fromEnum p + 32)))
+icmp p = cmpop (flip FFI.buildICmp (fromIntPredicate p))
 
 -- | Compare floating point values.
 fcmp :: (IsFloating c, CmpOp a b c) =>
         RealPredicate -> a -> b -> CodeGenFunction r (Value Bool)
-fcmp p = cmpop (flip FFI.buildFCmp (fromIntegral (fromEnum p)))
+fcmp p = cmpop (flip FFI.buildFCmp (fromRealPredicate p))
 
 --------------------------------------
 
