@@ -1,6 +1,6 @@
 ghc := ghc
 ghcflags := -Wall
-examples := HelloJIT Fibonacci BrainF
+examples := HelloJIT Fibonacci BrainF Vector
 
 all: $(examples)
 
