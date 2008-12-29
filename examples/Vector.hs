@@ -61,4 +61,3 @@ main = do
 
     print name
     print $ vec' 10
-    
