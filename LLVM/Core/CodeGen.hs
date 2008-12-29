@@ -2,7 +2,7 @@
 module LLVM.Core.CodeGen(
     -- * Module creation
     newModule, newNamedModule, defineModule, createModule,
-    getModuleFunctions, ModuleFunction, castModuleFunction,
+    getModuleValues, ModuleValue, castModuleValue,
     -- * Globals
     Linkage(..),
     -- * Function creation
@@ -56,14 +56,14 @@ createModule cgm = newModule >>= \ m -> defineModule m cgm
 
 --------------------------------------
 
-newtype ModuleFunction = ModuleFunction U.Function
+newtype ModuleValue = ModuleValue FFI.ValueRef
 
-getModuleFunctions :: U.Module -> IO [(String, ModuleFunction)]
-getModuleFunctions = liftM (map (\ (s,p) -> (s, ModuleFunction p))) . U.getFunctions
+getModuleValues :: U.Module -> IO [(String, ModuleValue)]
+getModuleValues = liftM (map (\ (s,p) -> (s, ModuleValue p))) . U.getModuleValues
 
-castModuleFunction :: forall a . (IsFunction a) => ModuleFunction -> Maybe (Function a)
-castModuleFunction (ModuleFunction f) =
-    if U.valueHasType f (typeRef (undefined :: Ptr a)) then Just (Value f) else Nothing
+castModuleValue :: forall a . (IsType a) => ModuleValue -> Maybe (Value a)
+castModuleValue (ModuleValue f) =
+    if U.valueHasType f (typeRef (undefined :: a)) then Just (Value f) else Nothing
 
 --------------------------------------
 

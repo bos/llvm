@@ -2,7 +2,7 @@
 module LLVM.Core.Util(
     -- * Module handling
     Module(..), withModule, createModule, destroyModule, writeBitcodeToFile, readBitcodeFromFile,
-    getFunctions, valueHasType,
+    getModuleValues, valueHasType,
     -- * Module provider handling
     ModuleProvider(..), withModuleProvider, createModuleProviderForExistingModule,
     -- * Pass manager handling
@@ -142,17 +142,26 @@ readBitcodeFromFile name =
 -}
                 return $ Module ptr
 
-getFunctions :: Module -> IO [(String, Function)]
-getFunctions mdl = do
+getModuleValues :: Module -> IO [(String, Value)]
+getModuleValues mdl = do
     withModule mdl $ \ mdlPtr -> do
       ffst <- FFI.getFirstFunction mdlPtr
-      let loop p = if p == nullPtr then return [] else do
+      let floop p = if p == nullPtr then return [] else do
               n <- FFI.getNextFunction p
-              ps <- loop n
+              ps <- floop n
               sptr <- FFI.getValueName p
               s <- peekCString sptr
               return ((s, p) : ps)
-      loop ffst
+      fs <- floop ffst
+      gfst <- FFI.getFirstGlobal mdlPtr
+      let gloop p = if p == nullPtr then return [] else do
+              n <- FFI.getNextGlobal p
+              ps <- gloop n
+              sptr <- FFI.getValueName p
+              s <- peekCString sptr
+              return ((s, p) : ps)
+      gs <- gloop gfst
+      return (fs ++ gs)
 
 -- This is safe because we just ask for the type of a value.
 valueHasType :: Value -> Type -> Bool

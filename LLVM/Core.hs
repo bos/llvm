@@ -32,7 +32,7 @@ module LLVM.Core(
     ModuleProvider, createModuleProviderForExistingModule,
     PassManager, createPassManager, createFunctionPassManager,
     writeBitcodeToFile, readBitcodeFromFile,
-    getModuleFunctions, ModuleFunction, castModuleFunction,
+    getModuleValues, ModuleValue, castModuleValue,
     -- * Instructions
     module LLVM.Core.Instructions,
     -- * Types classification
@@ -64,7 +64,7 @@ module LLVM.Core(
     addTargetData
     ) where
 import qualified LLVM.FFI.Core as FFI
-import LLVM.Core.Util hiding (Function, BasicBlock, createModule, constString, constStringNul, constVector, constArray, getFunctions, valueHasType)
+import LLVM.Core.Util hiding (Function, BasicBlock, createModule, constString, constStringNul, constVector, constArray, getModuleValues, valueHasType)
 import LLVM.Core.CodeGen
 import LLVM.Core.CodeGenMonad(CodeGenFunction, CodeGenModule)
 import LLVM.Core.Data
