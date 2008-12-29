@@ -4,6 +4,7 @@ module LLVM.ExecutionEngine(
     -- * Execution engine
     ExecutionEngine,
     createExecutionEngine,
+    addModuleProvider,
     runStaticConstructors,
     runStaticDestructors,
     -- * Translation

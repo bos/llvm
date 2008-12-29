@@ -1,7 +1,7 @@
 {-# LANGUAGE ForeignFunctionInterface, FlexibleInstances, UndecidableInstances, OverlappingInstances, ScopedTypeVariables #-}
 module LLVM.ExecutionEngine.Engine(
        ExecutionEngine,
-       createExecutionEngine, runStaticConstructors, runStaticDestructors,
+       createExecutionEngine, addModuleProvider, runStaticConstructors, runStaticDestructors,
        getExecutionEngineTargetData,
        runFunction,
        GenericValue, Generic(..)
@@ -35,6 +35,7 @@ withExecutionEngine :: ExecutionEngine -> (Ptr FFI.ExecutionEngine -> IO a)
 withExecutionEngine = withForeignPtr . fromExecutionEngine
 
 -- |Create an execution engine for a module provider.
+-- Warning, do not call this function more than once.
 createExecutionEngine :: ModuleProvider -> IO ExecutionEngine
 createExecutionEngine prov =
     withModuleProvider prov $ \provPtr ->
@@ -52,6 +53,12 @@ createExecutionEngine prov =
 
 foreign import ccall "wrapper" h2c_ee
     :: (Ptr FFI.ExecutionEngine -> IO ()) -> IO (FinalizerPtr a)
+
+addModuleProvider :: ExecutionEngine -> ModuleProvider -> IO ()
+addModuleProvider ee prov =
+    withExecutionEngine ee $ \ eePtr ->
+      withModuleProvider prov $ \ provPtr ->
+        FFI.addModuleProvider eePtr provPtr
 
 runStaticConstructors :: ExecutionEngine -> IO ()
 runStaticConstructors ee = withExecutionEngine ee FFI.runStaticConstructors
