@@ -1,7 +1,8 @@
-{-# LANGUAGE ScopedTypeVariables, MultiParamTypeClasses, FunctionalDependencies, FlexibleInstances, TypeSynonymInstances, UndecidableInstances, FlexibleContexts #-}
+{-# LANGUAGE ScopedTypeVariables, MultiParamTypeClasses, FunctionalDependencies, FlexibleInstances, TypeSynonymInstances, UndecidableInstances, FlexibleContexts, ScopedTypeVariables #-}
 module LLVM.Core.CodeGen(
     -- * Module creation
     newModule, newNamedModule, defineModule, createModule,
+    getModuleFunctions, ModuleFunction, castModuleFunction,
     -- * Globals
     Linkage(..),
     -- * Function creation
@@ -52,6 +53,17 @@ defineModule = runCodeGenModule
 createModule :: CodeGenModule a       -- ^ module body
              -> IO a
 createModule cgm = newModule >>= \ m -> defineModule m cgm
+
+--------------------------------------
+
+newtype ModuleFunction = ModuleFunction U.Function
+
+getModuleFunctions :: U.Module -> IO [(String, ModuleFunction)]
+getModuleFunctions = liftM (map (\ (s,p) -> (s, ModuleFunction p))) . U.getFunctions
+
+castModuleFunction :: forall a . (IsFunction a) => ModuleFunction -> Maybe (Function a)
+castModuleFunction (ModuleFunction f) =
+    if U.valueHasType f (typeRef (undefined :: a)) then Just (Value f) else Nothing
 
 --------------------------------------
 

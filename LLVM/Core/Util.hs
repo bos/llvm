@@ -1,7 +1,8 @@
 {-# LANGUAGE ForeignFunctionInterface #-}
 module LLVM.Core.Util(
     -- * Module handling
-    Module(..), withModule, createModule, destroyModule, writeBitcodeToFile,
+    Module(..), withModule, createModule, destroyModule, writeBitcodeToFile, readBitcodeFromFile,
+    getFunctions, valueHasType,
     -- * Module provider handling
     ModuleProvider(..), withModuleProvider, createModuleProviderForExistingModule,
     -- * Pass manager handling
@@ -30,15 +31,19 @@ module LLVM.Core.Util(
     addTargetData
     ) where
 import Control.Monad(liftM, when)
-import Foreign.C.String (withCString, withCStringLen, CString)
+import Foreign.C.String (withCString, withCStringLen, CString, peekCString)
 import Foreign.ForeignPtr (ForeignPtr, FinalizerPtr, newForeignPtr, withForeignPtr)
+import Foreign.Ptr (nullPtr)
 import Foreign.Marshal.Array (withArrayLen, withArray)
+import Foreign.Marshal.Alloc (alloca)
+import Foreign.Storable (peek)
 import Foreign.Marshal.Utils (fromBool)
 import System.IO.Unsafe (unsafePerformIO)
 
 import qualified LLVM.FFI.Core as FFI
 import qualified LLVM.FFI.Target as FFI
 import qualified LLVM.FFI.BitWriter as FFI
+import qualified LLVM.FFI.BitReader as FFI
 import qualified LLVM.FFI.Transforms.Scalar as FFI
 
 type Type = FFI.TypeRef
@@ -107,6 +112,52 @@ writeBitcodeToFile name mdl =
         when (rc /= 0) $
           ioError $ userError $ "writeBitcodeToFile: return code " ++ show rc
         return ()
+
+-- |Read a module from a file.
+readBitcodeFromFile :: String -> IO Module
+readBitcodeFromFile name =
+    withCString name $ \ namePtr ->
+      alloca $ \ bufPtr ->
+      alloca $ \ modPtr ->
+      alloca $ \ errStr -> do
+        rrc <- FFI.createMemoryBufferWithContentsOfFile namePtr bufPtr errStr
+        if rrc /= 0 then do
+            -- XXX should get the error string from errStr
+            msg <- peek errStr >>= peekCString
+            ioError $ userError $ "readBitcodeFromFile: read return code " ++ show rrc ++ ", " ++ msg
+         else do
+            buf <- peek bufPtr
+            prc <- FFI.parseBitcode buf modPtr errStr
+	    if prc /= 0 then do
+                -- XXX should get the error string from errStr
+                msg <- peek errStr >>= peekCString
+                ioError $ userError $ "readBitcodeFromFile: parse return code " ++ show prc ++ ", " ++ msg
+             else do
+                ptr <- peek modPtr
+{-
+                final <- h2c_module FFI.disposeModule
+                liftM Module $ newForeignPtr final ptr
+-}
+                return $ Module ptr
+
+getFunctions :: Module -> IO [(String, Function)]
+getFunctions mdl = do
+    withModule mdl $ \ mdlPtr -> do
+      ffst <- FFI.getFirstFunction mdlPtr
+      let loop p = if p == nullPtr then return [] else do
+              n <- FFI.getNextFunction p
+              ps <- loop n
+              sptr <- FFI.getValueName p
+              s <- peekCString sptr
+              return ((s, p) : ps)
+      loop ffst
+
+-- | This is safe because we just aske for the type of a value
+valueHasType :: Value -> Type -> Bool
+valueHasType v t = unsafePerformIO $ do
+    vt <- FFI.typeOf v
+    -- XXX compare t and vt
+    return True
 
 --------------------------------------
 -- Handle module providers
