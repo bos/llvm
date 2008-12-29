@@ -1,4 +1,5 @@
 module Vector where
+import System.Process(system)
 import Control.Monad.Trans(liftIO)
 import Data.TypeNumbers
 import Data.Word
@@ -40,11 +41,17 @@ cgvec = do
 --    liftIO $ dumpValue f
     return f
 
+optimize :: String -> IO ()
+optimize name = do
+    _rc <- system $ "opt -std-compile-opts " ++ name ++ " -f -o " ++ name
+    return ()
+
 main :: IO ()
 main = do
+    let name = "Vec.bc"
     m <- newModule
-    iovec <- defineModule m cgvec
-    writeBitcodeToFile "Vec.bc" m
+    _iovec <- defineModule m cgvec
+    writeBitcodeToFile name m
 
 {-
     ee <- createModuleProviderForExistingModule m >>= createExecutionEngine
@@ -52,12 +59,15 @@ main = do
 
     print $ vec 10
 -}
-    m' <- readBitcodeFromFile "Vec.bc"
-    [(name, func)] <- getModuleFunctions m'
+    optimize name
+
+    m' <- readBitcodeFromFile name
+    [(fname, func)] <- getModuleFunctions m'
     let iovec' :: Function (T -> IO T)
         Just iovec' = castModuleFunction func
     ee' <- createModuleProviderForExistingModule m' >>= createExecutionEngine
     let vec' = unsafePurify $ generateFunction ee' $ iovec'
 
-    print name
+    print fname
+    dumpValue iovec'
     print $ vec' 10
