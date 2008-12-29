@@ -65,6 +65,8 @@ optimize name = do
     _rc <- system $ "opt -std-compile-opts " ++ name ++ " -f -o " ++ name
     return ()
 
+-- Optimize the module by writing the bit code to file, running the optimizer, and then reading the file back in.
+-- XXX With a working pass manager it wouldn't be necessary to go via a file.
 main :: IO ()
 main = do
     let name = "Vec.bc"
