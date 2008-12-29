@@ -18,12 +18,22 @@ type N = D1 (D6 End)
 
 cgvec :: CodeGenModule (Function (T -> IO T))
 cgvec = do
-    _v <- createNamedGlobal False ExternalLinkage "var" (constOf (42 :: Float))
+    -- A global variable that vectest messes with.
+    acc <- createNamedGlobal False ExternalLinkage "acc" (constOf (0 :: T))
+
+    -- Return the global variable.
+    retAcc <- createNamedFunction ExternalLinkage "retacc" $ do
+        vacc <- load acc
+        ret vacc
+    let _ = retAcc :: Function (IO T)  -- Force the type of retAcc.
+
+    -- A function that tests vector opreations.
     f <- createNamedFunction ExternalLinkage "vectest" $ \ x -> do
 
         let v = value (zero :: ConstValue (Vector N T))
 	    n = typeNumber (undefined :: N) :: Word32
 
+        -- Fill the vector with x, x+1, x+2, ...
         (_, v1) <- forLoop (valueOf 0) (valueOf n) (x, v) $ \ i (x1, v1) -> do
             x1' <- add x1 (1::T)
 	    v1' <- insertelement v1 x1 i
@@ -33,16 +43,23 @@ cgvec = do
 	vsq <- mul v1 v1
         vcb <- mul vsq v1
 
+        -- Sum the elements of the vector.
         s <- forLoop (valueOf 0) (valueOf n) (valueOf 0) $ \ i s -> do
             y <- extractelement vcb i
      	    s' <- add s (y :: Value T)
 	    return s'
+
+        -- Update the global variable.
+        vacc <- load acc
+        vacc' <- add vacc s
+        store vacc' acc
 
         ret (s :: Value T)
 
 --    liftIO $ dumpValue f
     return f
 
+-- Run LLVM optimizer at standard level.
 optimize :: String -> IO ()
 optimize name = do
     _rc <- system $ "opt -std-compile-opts " ++ name ++ " -f -o " ++ name
@@ -56,11 +73,13 @@ main = do
     writeBitcodeToFile name m
 
 {-
+    -- XXX Using createExecutionEngine more than once aborts the LLVM.
     ee <- createModuleProviderForExistingModule m >>= createExecutionEngine
     let vec = unsafePurify $ generateFunction ee $ iovec
 
     print $ vec 10
 -}
+
     optimize name
 
     m' <- readBitcodeFromFile name
@@ -69,9 +88,17 @@ main = do
 
     let iovec' :: Function (T -> IO T)
         Just iovec' = castModuleValue $ fromJust $ lookup "vectest" funcs
+	ioretacc' :: Function (IO T)
+        Just ioretacc' = castModuleValue $ fromJust $ lookup "retacc" funcs
     ee' <- createModuleProviderForExistingModule m' >>= createExecutionEngine
-    let vec' = unsafePurify $ generateFunction ee' $ iovec'
+    let vec' = generateFunction ee' iovec'
+        retacc' = generateFunction ee' ioretacc'
 
     dumpValue iovec'
-    print $ vec' 10
 
+    x <- vec' 10
+    print x
+    y <- vec' 0
+    print y
+    z <- retacc'
+    print z
