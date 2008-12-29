@@ -124,23 +124,21 @@ readBitcodeFromFile name =
       alloca $ \ errStr -> do
         rrc <- FFI.createMemoryBufferWithContentsOfFile namePtr bufPtr errStr
         if rrc /= 0 then do
-            -- XXX should get the error string from errStr
             msg <- peek errStr >>= peekCString
             ioError $ userError $ "readBitcodeFromFile: read return code " ++ show rrc ++ ", " ++ msg
          else do
             buf <- peek bufPtr
             prc <- FFI.parseBitcode buf modPtr errStr
 	    if prc /= 0 then do
-                -- XXX should get the error string from errStr
                 msg <- peek errStr >>= peekCString
                 ioError $ userError $ "readBitcodeFromFile: parse return code " ++ show prc ++ ", " ++ msg
              else do
                 ptr <- peek modPtr
+                return $ Module ptr
 {-
                 final <- h2c_module FFI.disposeModule
                 liftM Module $ newForeignPtr final ptr
 -}
-                return $ Module ptr
 
 getModuleValues :: Module -> IO [(String, Value)]
 getModuleValues mdl = do
