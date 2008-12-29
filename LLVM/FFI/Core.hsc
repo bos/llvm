@@ -38,6 +38,7 @@ module LLVM.FFI.Core
     , deleteTypeName
 
     , getTypeKind
+    , TypeKind(..)
 
     -- ** Integer types
     , int1Type
@@ -429,15 +430,15 @@ foreign import ccall unsafe "LLVMFunctionType" functionType
 
 -- | Indicate whether a function takes varargs.
 foreign import ccall unsafe "LLVMIsFunctionVarArg" isFunctionVarArg
-        :: TypeRef -> CInt
+        :: TypeRef -> IO CInt
 
 -- | Give a function's return type.
 foreign import ccall unsafe "LLVMGetReturnType" getReturnType
-        :: TypeRef -> TypeRef
+        :: TypeRef -> IO TypeRef
 
 -- | Give the number of fixed parameters that a function takes.
 foreign import ccall unsafe "LLVMCountParamTypes" countParamTypes
-        :: TypeRef -> CUInt
+        :: TypeRef -> IO CUInt
 
 -- | Fill out an array with the types of a function's fixed
 -- parameters.
@@ -465,9 +466,9 @@ foreign import ccall unsafe "LLVMAddTypeName" addTypeName
 foreign import ccall unsafe "LLVMDeleteTypeName" deleteTypeName
     :: ModuleRef -> CString -> IO ()
 
--- | Give the type of a sequential type's elements.
+-- | Get the type of a sequential type's elements.
 foreign import ccall unsafe "LLVMGetElementType" getElementType
-    :: TypeRef -> TypeRef
+    :: TypeRef -> IO TypeRef
 
 
 data Value
@@ -965,7 +966,25 @@ type MemoryBufferRef = Ptr MemoryBuffer
 data TypeHandle
 type TypeHandleRef = Ptr TypeHandle
 
-type TypeKind = CUInt
+data TypeKind
+    = VoidTypeKind
+    | FloatTypeKind
+    | DoubleTypeKind
+    | X86_FP80TypeKind
+    | FP128TypeKind
+    | PPC_FP128TypeKind
+    | LabelTypeKind
+    | IntegerTypeKind
+    | FunctionTypeKind
+    | StructTypeKind
+    | ArrayTypeKind
+    | PointerTypeKind
+    | OpaqueTypeKind
+    | VectorTypeKind
+    deriving (Eq, Ord, Enum, Bounded, Show, Read)
+
+getTypeKind :: TypeRef -> IO TypeKind
+getTypeKind = fmap (toEnum . fromIntegral) . getTypeKindCUInt
 
 foreign import ccall unsafe "LLVMCreateMemoryBufferWithContentsOfFile" createMemoryBufferWithContentsOfFile
     :: CString -> Ptr MemoryBufferRef -> Ptr CString -> IO CInt
@@ -987,8 +1006,8 @@ foreign import ccall unsafe "LLVMGetPointerAddressSpace" getPointerAddressSpace
     :: TypeRef -> IO CUInt
 foreign import ccall unsafe "LLVMGetTarget" getTarget
     :: ModuleRef -> IO CString
-foreign import ccall unsafe "LLVMGetTypeKind" getTypeKind
-    :: TypeRef -> IO TypeKind
+foreign import ccall unsafe "LLVMGetTypeKind" getTypeKindCUInt
+    :: TypeRef -> IO CUInt
 foreign import ccall unsafe "LLVMGetVectorSize" getVectorSize
     :: TypeRef -> IO CUInt
 foreign import ccall unsafe "LLVMRefineType" refineType

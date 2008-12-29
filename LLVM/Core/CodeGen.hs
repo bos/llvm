@@ -63,7 +63,7 @@ getModuleFunctions = liftM (map (\ (s,p) -> (s, ModuleFunction p))) . U.getFunct
 
 castModuleFunction :: forall a . (IsFunction a) => ModuleFunction -> Maybe (Function a)
 castModuleFunction (ModuleFunction f) =
-    if U.valueHasType f (typeRef (undefined :: a)) then Just (Value f) else Nothing
+    if U.valueHasType f (typeRef (undefined :: Ptr a)) then Just (Value f) else Nothing
 
 --------------------------------------
 

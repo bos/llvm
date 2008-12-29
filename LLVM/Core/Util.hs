@@ -1,4 +1,4 @@
-{-# LANGUAGE ForeignFunctionInterface #-}
+{-# LANGUAGE ForeignFunctionInterface, ScopedTypeVariables #-}
 module LLVM.Core.Util(
     -- * Module handling
     Module(..), withModule, createModule, destroyModule, writeBitcodeToFile, readBitcodeFromFile,
@@ -25,18 +25,20 @@ module LLVM.Core.Util(
     CString, withArrayLen,
     withEmptyCString,
     functionType, buildEmptyPhi, addPhiIns,
+    showTypeOf,
     -- * Transformation passes
     addCFGSimplificationPass, addConstantPropagationPass, addDemoteMemoryToRegisterPass,
     addGVNPass, addInstructionCombiningPass, addPromoteMemoryToRegisterPass, addReassociatePass,
     addTargetData
     ) where
-import Control.Monad(liftM, when)
+import Data.List(intercalate)
+import Control.Monad(liftM, when, zipWithM)
 import Foreign.C.String (withCString, withCStringLen, CString, peekCString)
 import Foreign.ForeignPtr (ForeignPtr, FinalizerPtr, newForeignPtr, withForeignPtr)
 import Foreign.Ptr (nullPtr)
-import Foreign.Marshal.Array (withArrayLen, withArray)
+import Foreign.Marshal.Array (withArrayLen, withArray, allocaArray, peekArray)
 import Foreign.Marshal.Alloc (alloca)
-import Foreign.Storable (peek)
+import Foreign.Storable (Storable(..))
 import Foreign.Marshal.Utils (fromBool)
 import System.IO.Unsafe (unsafePerformIO)
 
@@ -152,12 +154,81 @@ getFunctions mdl = do
               return ((s, p) : ps)
       loop ffst
 
--- | This is safe because we just aske for the type of a value
+-- This is safe because we just ask for the type of a value.
 valueHasType :: Value -> Type -> Bool
 valueHasType v t = unsafePerformIO $ do
     vt <- FFI.typeOf v
-    -- XXX compare t and vt
-    return True
+    eqType vt t
+
+showTypeOf :: Value -> IO String
+showTypeOf v = FFI.typeOf v >>= showType'
+
+showType' :: Type -> IO String
+showType' p = do
+    pk <- FFI.getTypeKind p
+    case pk of
+        FFI.VoidTypeKind -> return "()"
+	FFI.FloatTypeKind -> return "Float"
+	FFI.DoubleTypeKind -> return "Double"
+	FFI.X86_FP80TypeKind -> return "X86_FP80"
+	FFI.FP128TypeKind -> return "FP128"
+	FFI.PPC_FP128TypeKind -> return "PPC_FP128"
+	FFI.LabelTypeKind -> return "Label"
+	FFI.IntegerTypeKind -> do w <- FFI.getIntTypeWidth p; return $ "(IntN " ++ show w ++ ")"
+	FFI.FunctionTypeKind -> do
+            r <- FFI.getReturnType p
+	    c <- FFI.countParamTypes p
+	    let n = fromIntegral c
+	    as <- allocaArray n $ \ args -> do
+		     FFI.getParamTypes p args
+		     peekArray n args
+	    ts <- mapM showType' (as ++ [r])
+	    return $ "(" ++ intercalate " -> " ts ++ ")"
+	FFI.StructTypeKind -> return "(Struct ...)"
+	FFI.ArrayTypeKind -> do n <- FFI.getArrayLength p; t <- FFI.getElementType p >>= showType'; return $ "(Array " ++ show n ++ " " ++ t ++ ")"
+	FFI.PointerTypeKind -> do t <- FFI.getElementType p >>= showType'; return $ "(Ptr " ++ t ++ ")"
+	FFI.OpaqueTypeKind -> return "Opaque"
+	FFI.VectorTypeKind -> do n <- FFI.getVectorSize p; t <- FFI.getElementType p >>= showType'; return $ "(Vector " ++ show n ++ " " ++ t ++ ")"
+
+-- XXX Should be exported from LLVM?
+eqType :: Type -> Type -> IO Bool
+eqType p q =
+    if p == q then
+        return True
+    else do
+        pk <- FFI.getTypeKind p
+	qk <- FFI.getTypeKind q
+        let eqElem False = return False
+	    eqElem True = do ep <- FFI.getElementType p; eq <- FFI.getElementType q; eqType ep eq
+        if pk /= qk then
+            return False
+         else
+            case pk of
+            FFI.IntegerTypeKind -> do wp <- FFI.getIntTypeWidth p; wq <- FFI.getIntTypeWidth q; return (wp == wq)
+	    FFI.FunctionTypeKind -> do
+                rp <- FFI.getReturnType p
+                rq <- FFI.getReturnType q
+		req <- eqType rp rq
+		cp <- FFI.countParamTypes p
+		cq <- FFI.countParamTypes q
+		if not req || cp /= cq then
+		    return False
+		 else do
+		     let n = fromIntegral cp
+		     pas <- allocaArray n $ \ pargs -> do
+		     	        FFI.getParamTypes p pargs
+		     	        peekArray n pargs
+		     qas <- allocaArray n $ \ qargs -> do
+		     	        FFI.getParamTypes q qargs
+		     	        peekArray n qargs
+		     eqs <- zipWithM eqType pas qas
+		     return (and eqs)
+	    FFI.StructTypeKind -> error "eqType: StructTypeKind not implemented"
+	    FFI.ArrayTypeKind -> do sp <- FFI.getArrayLength p; sq <- FFI.getArrayLength q; eqElem (sp == sq)
+	    FFI.PointerTypeKind -> eqElem True
+	    FFI.VectorTypeKind -> do sp <- FFI.getVectorSize p; sq <- FFI.getVectorSize q; eqElem (sp == sq)
+	    FFI.OpaqueTypeKind -> return False
+	    _ -> return True
 
 --------------------------------------
 -- Handle module providers

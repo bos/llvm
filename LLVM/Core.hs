@@ -57,14 +57,14 @@ module LLVM.Core(
     -- * Basic blocks
     BasicBlock, newBasicBlock, newNamedBasicBlock, defineBasicBlock, createBasicBlock, getCurrentBasicBlock,
     -- * Debugging
-    dumpValue,
+    dumpValue, dumpType,
     -- * Transformations
     addCFGSimplificationPass, addConstantPropagationPass, addDemoteMemoryToRegisterPass,
     addGVNPass, addInstructionCombiningPass, addPromoteMemoryToRegisterPass, addReassociatePass,
     addTargetData
     ) where
 import qualified LLVM.FFI.Core as FFI
-import LLVM.Core.Util hiding (Function, BasicBlock, createModule, constString, constStringNul, constVector, constArray)
+import LLVM.Core.Util hiding (Function, BasicBlock, createModule, constString, constStringNul, constVector, constArray, getFunctions, valueHasType)
 import LLVM.Core.CodeGen
 import LLVM.Core.CodeGenMonad(CodeGenFunction, CodeGenModule)
 import LLVM.Core.Data
@@ -75,10 +75,8 @@ import LLVM.Core.Type
 dumpValue :: Value a -> IO ()
 dumpValue (Value v) = FFI.dumpValue v
 
-{-
-dumpType :: forall a . (IsType a) => Value a -> IO ()
-dumpType _ = FFI.dumpValue (typeRef (undefined :: a))
--}
+dumpType :: Value a -> IO ()
+dumpType (Value v) = showTypeOf v >>= putStrLn
 
 -- TODO for types:
 -- Enforce free is only called on malloc memory.  (Enforce only one free?)
