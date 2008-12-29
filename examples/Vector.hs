@@ -6,6 +6,8 @@ import Data.Word
 import LLVM.Core
 import LLVM.ExecutionEngine
 
+import Loop
+
 -- Type of vector elements.
 type T = Float
 
@@ -15,62 +17,27 @@ type N = D1 (D6 End)
 cgvec :: CodeGenModule (Function (T -> IO T))
 cgvec = do
     f <- createFunction ExternalLinkage $ \ x -> do
-        top1 <- getCurrentBasicBlock
-        loop1 <- newBasicBlock
-        body1 <- newBasicBlock
-        exit1 <- newBasicBlock
 
         let v = value (zero :: ConstValue (Vector N T))
 	    n = typeNumber (undefined :: N) :: Word32
 
-	br loop1
-
-	-- Fill 0 vector with x, x+1, x+2, ...
-        defineBasicBlock loop1
-        i1 <- phi [(valueOf 0, top1)]
-	x1 <- phi [(x, top1)]
-	v1 <- phi [(v, top1)]
-        t1 <- icmp IntULT i1 (valueOf n)
-	condBr t1 body1 exit1
-        defineBasicBlock body1
-	x1' <- add x1 (1::T)
-	i1' <- add i1 (1::Word32)
-	v1' <- insertelement v1 x1 i1
-	addPhiInputs i1 [(i1', body1)]
-	addPhiInputs x1 [(x1', body1)]
-	addPhiInputs v1 [(v1', body1)]
-	br loop1
-	defineBasicBlock exit1
+        (_, v1) <- forLoop (valueOf 0) (valueOf n) (x, v) $ \ i (x1, v1) -> do
+            x1' <- add x1 (1::T)
+	    v1' <- insertelement v1 x1 i
+	    return (x1', v1')
 
 	-- Elementwise cubing of the vector.
 	vsq <- mul v1 v1
         vcb <- mul vsq v1
 
-	top2 <- getCurrentBasicBlock
-        loop2 <- newBasicBlock
-        body2 <- newBasicBlock
-        exit2 <- newBasicBlock
+        (OneTuple s) <- forLoop (valueOf 0) (valueOf n) (OneTuple (valueOf 0)) $ \ i (OneTuple s) -> do
+            y <- extractelement vcb i
+     	    s' <- add s (y :: Value T)
+	    return (OneTuple s')
 
-	br loop2
+        ret (s :: Value T)
 
-	-- Sum all the elements in the vector.
-        defineBasicBlock loop2
-        i2 <- phi [(valueOf 0, top2)]
-	s2 <- phi [(valueOf 0, top2)]
-        t2 <- icmp IntULT i2 (valueOf n)
-	condBr t2 body2 exit2
-        defineBasicBlock body2
-	i2' <- add i2 (1::Word32)
-	y <- extractelement vcb i2
-        s2' <- add s2 (y :: Value T)
-	addPhiInputs i2 [(i2', body2)]
-	addPhiInputs s2 [(s2', body2)]
-	br loop2
-	defineBasicBlock exit2
-
-        ret (s2 :: Value T)
-
-    liftIO $ dumpValue f
+--    liftIO $ dumpValue f
     return f
 
 main :: IO ()
@@ -79,8 +46,19 @@ main = do
     iovec <- defineModule m cgvec
     writeBitcodeToFile "Vec.bc" m
 
+{-
     ee <- createModuleProviderForExistingModule m >>= createExecutionEngine
     let vec = unsafePurify $ generateFunction ee $ iovec
 
     print $ vec 10
+-}
+    m' <- readBitcodeFromFile "Vec.bc"
+    [(name, func)] <- getModuleFunctions m'
+    let iovec' :: Function (T -> IO T)
+        Just iovec' = castModuleFunction func
+    ee' <- createModuleProviderForExistingModule m' >>= createExecutionEngine
+    let vec' = unsafePurify $ generateFunction ee' $ iovec'
 
+    print name
+    print $ vec' 10
+    
