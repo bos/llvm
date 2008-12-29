@@ -1,7 +1,6 @@
 module Vector where
 import System.Process(system)
 --import Control.Monad.Trans(liftIO)
-import Data.Maybe(fromJust)
 import Data.TypeNumbers
 import Data.Word
 
@@ -69,6 +68,7 @@ optimize name = do
 -- XXX With a working pass manager it wouldn't be necessary to go via a file.
 main :: IO ()
 main = do
+    -- First run standard code.
     m <- newModule
     iovec <- defineModule m cgvec
 
@@ -77,6 +77,7 @@ main = do
 
     vec 10 >>= print
 
+    -- And then optimize and run.
     let name = "Vec.bc"
     writeBitcodeToFile name m
     optimize name
@@ -86,9 +87,9 @@ main = do
     print $ map fst funcs
 
     let iovec' :: Function (T -> IO T)
-        Just iovec' = castModuleValue $ fromJust $ lookup "vectest" funcs
+        Just iovec' = castModuleValue =<< lookup "vectest" funcs
 	ioretacc' :: Function (IO T)
-        Just ioretacc' = castModuleValue $ fromJust $ lookup "retacc" funcs
+        Just ioretacc' = castModuleValue =<< lookup "retacc" funcs
     createModuleProviderForExistingModule m' >>= addModuleProvider ee
     let vec' = generateFunction ee iovec'
         retacc' = generateFunction ee ioretacc'
