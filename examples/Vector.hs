@@ -1,6 +1,7 @@
 module Vector where
 import System.Process(system)
-import Control.Monad.Trans(liftIO)
+--import Control.Monad.Trans(liftIO)
+import Data.Maybe(fromJust)
 import Data.TypeNumbers
 import Data.Word
 
@@ -17,7 +18,8 @@ type N = D1 (D6 End)
 
 cgvec :: CodeGenModule (Function (T -> IO T))
 cgvec = do
-    f <- createFunction ExternalLinkage $ \ x -> do
+    _v <- createNamedGlobal False ExternalLinkage "var" (constOf (42 :: Float))
+    f <- createNamedFunction ExternalLinkage "vectest" $ \ x -> do
 
         let v = value (zero :: ConstValue (Vector N T))
 	    n = typeNumber (undefined :: N) :: Word32
@@ -62,12 +64,14 @@ main = do
     optimize name
 
     m' <- readBitcodeFromFile name
-    [(fname, func)] <- getModuleFunctions m'
+    funcs <- getModuleValues m'
+    print $ map fst funcs
+
     let iovec' :: Function (T -> IO T)
-        Just iovec' = castModuleFunction func
+        Just iovec' = castModuleValue $ fromJust $ lookup "vectest" funcs
     ee' <- createModuleProviderForExistingModule m' >>= createExecutionEngine
     let vec' = unsafePurify $ generateFunction ee' $ iovec'
 
-    print fname
     dumpValue iovec'
     print $ vec' 10
+
