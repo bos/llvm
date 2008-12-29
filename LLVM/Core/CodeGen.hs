@@ -6,11 +6,11 @@ module LLVM.Core.CodeGen(
     -- * Globals
     Linkage(..),
     -- * Function creation
-    Function, newFunction, newNamedFunction, defineFunction, createFunction,
+    Function, newFunction, newNamedFunction, defineFunction, createFunction, createNamedFunction,
     FunctionArgs,
     TFunction,
     -- * Global variable creation
-    Global, newGlobal, newNamedGlobal, defineGlobal, createGlobal, TGlobal,
+    Global, newGlobal, newNamedGlobal, defineGlobal, createGlobal, createNamedGlobal, TGlobal,
     -- * Values
     Value(..), ConstValue(..),
     IsConst(..), valueOf, value,
@@ -181,6 +181,17 @@ createFunction linkage body = do
     defineFunction f body
     return f
 
+-- | Create a new function with the given body.
+createNamedFunction :: (IsFunction f, FunctionArgs f g (CodeGenFunction r ()))
+               => Linkage
+	       -> String
+               -> g  -- ^ Function body.
+               -> CodeGenModule (Function f)
+createNamedFunction linkage name body = do
+    f <- newNamedFunction linkage name
+    defineFunction f body
+    return f
+
 -- XXX This is ugly, it must be possible to make it simpler
 -- Convert a function of type f = t1->t2->...-> IO r to
 -- g = Value t1 -> Value t2 -> ... CodeGenFunction r ()
@@ -289,6 +300,13 @@ defineGlobal (Value g) (ConstValue v) =
 createGlobal :: (IsType a) => Bool -> Linkage -> ConstValue a -> TGlobal a
 createGlobal isConst linkage con = do
     g <- newGlobal isConst linkage
+    defineGlobal g con
+    return g
+
+-- | Create and define a named global variable.
+createNamedGlobal :: (IsType a) => Bool -> Linkage -> String -> ConstValue a -> TGlobal a
+createNamedGlobal isConst linkage name con = do
+    g <- newNamedGlobal isConst linkage name
     defineGlobal g con
     return g
 
