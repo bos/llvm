@@ -69,22 +69,19 @@ optimize name = do
 -- XXX With a working pass manager it wouldn't be necessary to go via a file.
 main :: IO ()
 main = do
-    let name = "Vec.bc"
     m <- newModule
-    _iovec <- defineModule m cgvec
-    writeBitcodeToFile name m
+    iovec <- defineModule m cgvec
 
-{-
-    -- XXX Using createExecutionEngine more than once aborts the LLVM.
     ee <- createModuleProviderForExistingModule m >>= createExecutionEngine
-    let vec = unsafePurify $ generateFunction ee $ iovec
+    let vec = generateFunction ee iovec
 
-    print $ vec 10
--}
+    vec 10 >>= print
 
+    let name = "Vec.bc"
+    writeBitcodeToFile name m
     optimize name
-
     m' <- readBitcodeFromFile name
+
     funcs <- getModuleValues m'
     print $ map fst funcs
 
@@ -92,15 +89,12 @@ main = do
         Just iovec' = castModuleValue $ fromJust $ lookup "vectest" funcs
 	ioretacc' :: Function (IO T)
         Just ioretacc' = castModuleValue $ fromJust $ lookup "retacc" funcs
-    ee' <- createModuleProviderForExistingModule m' >>= createExecutionEngine
-    let vec' = generateFunction ee' iovec'
-        retacc' = generateFunction ee' ioretacc'
+    createModuleProviderForExistingModule m' >>= addModuleProvider ee
+    let vec' = generateFunction ee iovec'
+        retacc' = generateFunction ee ioretacc'
 
     dumpValue iovec'
 
-    x <- vec' 10
-    print x
-    y <- vec' 0
-    print y
-    z <- retacc'
-    print z
+    vec' 10 >>= print
+    vec' 0 >>= print
+    retacc' >>= print
