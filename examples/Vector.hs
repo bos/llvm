@@ -33,10 +33,10 @@ cgvec = do
 	vsq <- mul v1 v1
         vcb <- mul vsq v1
 
-        (OneTuple s) <- forLoop (valueOf 0) (valueOf n) (OneTuple (valueOf 0)) $ \ i (OneTuple s) -> do
+        s <- forLoop (valueOf 0) (valueOf n) (valueOf 0) $ \ i s -> do
             y <- extractelement vcb i
      	    s' <- add s (y :: Value T)
-	    return (OneTuple s')
+	    return s'
 
         ret (s :: Value T)
 

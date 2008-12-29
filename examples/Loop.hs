@@ -1,6 +1,5 @@
 {-# LANGUAGE ScopedTypeVariables, FlexibleInstances, TypeOperators #-}
-module Loop(Phi, (:*)(..), forLoop, module Data.Tuple.OneTuple) where
-import Data.Tuple.OneTuple
+module Loop(Phi, (:*)(..), forLoop) where
 import LLVM.Core
 
 class Phi a where
@@ -25,11 +24,11 @@ instance Phi () where
     phis _ _ = return ()
     addPhis _ _ _ = return ()
 
-instance (IsFirstClass a) => Phi (OneTuple (Value a)) where
-    phis bb (OneTuple a) = do
+instance (IsFirstClass a) => Phi (Value a) where
+    phis bb a = do
         a' <- phi [(a, bb)]
-        return (OneTuple a')
-    addPhis bb (OneTuple a) (OneTuple a') = do
+        return a'
+    addPhis bb a a' = do
         addPhiInputs a [(a', bb)]
 
 instance (IsFirstClass a, IsFirstClass b) => Phi (Value a, Value b) where

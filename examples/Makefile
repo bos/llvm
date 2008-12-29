@@ -4,6 +4,8 @@ examples := HelloJIT Fibonacci BrainF Vector
 
 all: $(examples)
 
+Vector:	Loop.hs
+
 %: %.hs
 	$(ghc) $(ghcflags) --make -o $@ -main-is $(basename $<).main $<
 
