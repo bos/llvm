@@ -6,6 +6,7 @@ import LLVM.Core
 
 import Loop
 
+cg :: CodeGenModule (Function (Double -> IO (Ptr Double)))
 cg = do
     dotProd <- createFunction InternalLinkage $ \ size aPtr aStride bPtr bStride -> do
         r <- forLoop (valueOf 0) size (valueOf 0) $ \ i s -> do
@@ -21,9 +22,7 @@ cg = do
     let _ = dotProd :: Function (Word32 -> Ptr Double -> Word32 -> Ptr Double -> Word32 -> IO Double)
 
     -- multiply a:[n x m], b:[m x l]
-    matMul <- createFunction ExternalLinkage $ \ n m l aPtr bPtr -> do
-        size <- mul n l
-        c <- arrayMalloc size
+    matMul <- createFunction InternalLinkage $ \ n m l aPtr bPtr cPtr -> do
         forLoop (valueOf 0) n () $ \ ni () -> do
            forLoop (valueOf 0) l () $ \ li () -> do
 	      ni' <- mul ni m
@@ -31,13 +30,26 @@ cg = do
 	      col <- getElementPtr bPtr (li, ())
               x <- call dotProd m row (valueOf 1) col m
 	      j <- add ni' li
-	      p <- getElementPtr c (j, ())
+	      p <- getElementPtr cPtr (j, ())
 	      store x p
 	      return ()
-        ret c
-    let _ = matMul :: Function (Word32 -> Word32 -> Word32 -> Ptr Double -> Ptr Double -> IO (Ptr Double))
+        ret ()
+    let _ = matMul :: Function (Word32 -> Word32 -> Word32 -> Ptr Double -> Ptr Double -> Ptr Double -> IO ())
 
-    return matMul
+    let fillArray _ [] = return ()
+        fillArray ptr (x:xs) = do store x ptr; ptr' <- getElementPtr ptr (1::Word32,()); fillArray ptr' xs
+
+    test <- createNamedFunction ExternalLinkage "test" $ \ x -> do
+        a <- arrayMalloc (4 :: Word32)
+	fillArray a $ map valueOf [1,2,3,4]
+	b <- arrayMalloc (4 :: Word32)
+	fillArray b [x,x,x,x]
+	c <- arrayMalloc (4 :: Word32)
+	call matMul (valueOf 2) (valueOf 2) (valueOf 2) a b c
+	ret c
+    let _ = test :: Function (Double -> IO (Ptr Double))
+
+    return test
 
 main :: IO ()
 main = do
