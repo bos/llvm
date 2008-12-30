@@ -1,10 +1,11 @@
 ghc := ghc
-ghcflags := -Wall
-examples := HelloJIT Fibonacci BrainF Vector
+ghcflags := -Wall -optl -w -DHAS_GETPOINTERTOGLOBAL=1
+examples := HelloJIT Fibonacci BrainF Vector Array
 
 all: $(examples)
 
-Vector:	Loop.hs
+Vector:	Loop.hs Convert.hs
+Array: Loop.hs
 
 %: %.hs
 	$(ghc) $(ghcflags) --make -o $@ -main-is $(basename $<).main $<

@@ -1,4 +1,4 @@
-{-# LANGUAGE ForeignFunctionInterface, EmptyDataDecls #-}
+{-# LANGUAGE CPP, ForeignFunctionInterface, EmptyDataDecls #-}
 
 module LLVM.FFI.ExecutionEngine
     (
@@ -18,6 +18,7 @@ module LLVM.FFI.ExecutionEngine
     , runFunctionAsMain
     , getExecutionEngineTargetData
     , addGlobalMapping
+    , getPointerToGlobal
 
     -- * Generic values
     , GenericValue
@@ -34,7 +35,7 @@ module LLVM.FFI.ExecutionEngine
 
 import Foreign.C.String (CString)
 import Foreign.C.Types (CDouble, CInt, CUInt, CULLong)
-import Foreign.Ptr (Ptr)
+import Foreign.Ptr (Ptr, FunPtr)
 
 import LLVM.FFI.Core (ModuleRef, ModuleProviderRef, TypeRef, ValueRef)
 import LLVM.FFI.Target(TargetDataRef)
@@ -108,3 +109,8 @@ foreign import ccall unsafe "LLVMGetExecutionEngineTargetData" getExecutionEngin
     :: ExecutionEngineRef -> IO TargetDataRef
 foreign import ccall unsafe "LLVMAddGlobalMapping" addGlobalMapping
     :: ExecutionEngineRef -> ValueRef -> Ptr () -> IO ()
+
+#if HAS_GETPOINTERTOGLOBAL
+foreign import ccall unsafe "LLVMGetPointerToGlobal" getPointerToGlobal
+    :: ExecutionEngineRef -> ValueRef -> IO (FunPtr a)
+#endif

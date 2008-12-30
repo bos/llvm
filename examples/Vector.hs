@@ -1,3 +1,4 @@
+{-# LANGUAGE CPP #-}
 module Vector where
 import System.Process(system)
 --import Control.Monad.Trans(liftIO)
@@ -8,6 +9,7 @@ import LLVM.Core
 import LLVM.ExecutionEngine
 
 import Loop
+import Convert
 
 -- Type of vector elements.
 type T = Float
@@ -73,6 +75,15 @@ main = do
     iovec <- defineModule m cgvec
 
     ee <- createModuleProviderForExistingModule m >>= createExecutionEngine
+
+#if HAS_GETPOINTERTOGLOBAL
+    fptr <- getPointerToFunction ee iovec
+    let fvec = convert fptr
+
+    fvec 10 >>= print
+#endif
+
+{-
     let vec = generateFunction ee iovec
 
     vec 10 >>= print
@@ -99,3 +110,7 @@ main = do
     vec' 10 >>= print
     vec' 0 >>= print
     retacc' >>= print
+-}
+
+
+

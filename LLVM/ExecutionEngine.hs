@@ -1,4 +1,4 @@
-{-# LANGUAGE FlexibleInstances, UndecidableInstances, MultiParamTypeClasses, FunctionalDependencies #-}
+{-# LANGUAGE CPP, FlexibleInstances, UndecidableInstances, MultiParamTypeClasses, FunctionalDependencies #-}
  -- |An 'ExecutionEngine' is JIT compiler that is used to generate code for an LLVM module.
 module LLVM.ExecutionEngine(
     -- * Execution engine
@@ -7,6 +7,9 @@ module LLVM.ExecutionEngine(
     addModuleProvider,
     runStaticConstructors,
     runStaticDestructors,
+#if HAS_GETPOINTERTOGLOBAL
+    getPointerToFunction,
+#endif
     -- * Translation
     Translatable, Generic,
     generateFunction,

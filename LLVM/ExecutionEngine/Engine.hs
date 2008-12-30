@@ -1,8 +1,11 @@
-{-# LANGUAGE ForeignFunctionInterface, FlexibleInstances, UndecidableInstances, OverlappingInstances, ScopedTypeVariables #-}
+{-# LANGUAGE CPP, ForeignFunctionInterface, FlexibleInstances, UndecidableInstances, OverlappingInstances, ScopedTypeVariables #-}
 module LLVM.ExecutionEngine.Engine(
        ExecutionEngine,
        createExecutionEngine, addModuleProvider, runStaticConstructors, runStaticDestructors,
        getExecutionEngineTargetData,
+#if HAS_GETPOINTERTOGLOBAL
+       getPointerToFunction,
+#endif
        runFunction,
        GenericValue, Generic(..)
        ) where
@@ -15,14 +18,15 @@ import Foreign.ForeignPtr (FinalizerPtr, ForeignPtr, newForeignPtr,
                            withForeignPtr)
 import Foreign.Marshal.Utils (fromBool)
 import Foreign.C.String (peekCString)
-import Foreign.Ptr (Ptr)
+import Foreign.Ptr (Ptr, FunPtr)
 import Foreign.Storable (peek)
 import System.IO.Unsafe (unsafePerformIO)
 
 import LLVM.Core.Util(ModuleProvider, withModuleProvider)
 import qualified LLVM.FFI.ExecutionEngine as FFI
 import qualified LLVM.FFI.Target as FFI
-import LLVM.Core.Util(Function)
+import qualified LLVM.Core.Util(Function)
+import LLVM.Core.CodeGen(Value(..), Function)
 import LLVM.Core.Type(IsFirstClass, IsType(..))
 
 -- |The type of the JITer.
@@ -68,6 +72,13 @@ runStaticDestructors ee = withExecutionEngine ee FFI.runStaticDestructors
 
 getExecutionEngineTargetData :: ExecutionEngine -> IO FFI.TargetDataRef
 getExecutionEngineTargetData ee = withExecutionEngine ee FFI.getExecutionEngineTargetData
+
+#if HAS_GETPOINTERTOGLOBAL
+getPointerToFunction :: ExecutionEngine -> Function f -> IO (FunPtr f)
+getPointerToFunction ee (Value f) =
+    withExecutionEngine ee $ \ eePtr ->
+      FFI.getPointerToGlobal eePtr f
+#endif
 
 --------------------------------------
 
