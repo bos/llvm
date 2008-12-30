@@ -52,7 +52,7 @@ instance (IsFirstClass a, IsFirstClass b, IsFirstClass c) => Phi (Value a, Value
         addPhiInputs c [(c', bb)]
 
 -- Loop the index variable from low to high.  The state in the loop starts as start, and is modified
--- by incr in each iteration.  The loop index is treated as unsigned.
+-- by incr in each iteration.
 forLoop :: forall i a r . (Phi a, Num i, IsConst i, IsInteger i, IsFirstClass i) =>
            Value i -> Value i -> a -> (Value i -> a -> CodeGenFunction r a) -> CodeGenFunction r a
 forLoop low high start incr = do
@@ -66,7 +66,7 @@ forLoop low high start incr = do
     defineBasicBlock loop
     i <- phi [(low, top)]
     vars <- phis top start
-    t <- icmp IntULT i high
+    t <- icmp IntNE i high
     condBr t body exit
 
     defineBasicBlock body
@@ -74,8 +74,9 @@ forLoop low high start incr = do
     vars' <- incr i vars
     i' <- add i (valueOf 1 :: Value i)
 
-    addPhis body vars vars'
-    addPhiInputs i [(i', body)]
+    body' <- getCurrentBasicBlock
+    addPhis body' vars vars'
+    addPhiInputs i [(i', body')]
     br loop
     defineBasicBlock exit
 
