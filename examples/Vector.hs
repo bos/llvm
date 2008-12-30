@@ -83,7 +83,6 @@ main = do
     fvec 10 >>= print
 #endif
 
-{-
     let vec = generateFunction ee iovec
 
     vec 10 >>= print
@@ -110,7 +109,6 @@ main = do
     vec' 10 >>= print
     vec' 0 >>= print
     retacc' >>= print
--}
 
 
 
