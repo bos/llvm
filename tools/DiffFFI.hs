@@ -35,5 +35,5 @@ main = do
               putStrLn "In Haskell, not C:"
               forM_ (M.keys $ M.difference hs c) $ putStrLn . ("  "++)
     _ -> do
-         hPutStrLn stderr "Usage: "
+         hPutStrLn stderr "Usage: DiffFFI cFile hsFile"
          exitFailure
