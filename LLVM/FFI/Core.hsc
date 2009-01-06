@@ -1129,3 +1129,21 @@ foreign import ccall unsafe "LLVMRemoveInstrAttribute" removeInstrAttribute
     :: ValueRef -> CUInt -> Attribute -> IO ()
 foreign import ccall unsafe "LLVMSetTailCall" setTailCall
     :: ValueRef -> CInt -> IO ()
+{-
+foreign import ccall unsafe "LLVMAddAlias" addAlias
+    :: ModuleRef -> TypeRef -> ValueRef -> CString -> IO ValueRef
+foreign import ccall unsafe "LLVMBuildExtractValue" buildExtractValue
+    :: BuilderRef -> ValueRef -> CUInt -> CString -> IO ValueRef
+foreign import ccall unsafe "LLVMBuildInsertValue" buildInsertValue
+    :: BuilderRef -> ValueRef -> ValueRef -> CUInt -> CString -> IO ValueRef
+foreign import ccall unsafe "LLVMClearInsertionPosition" clearInsertionPosition
+    :: BuilderRef -> IO ()
+foreign import ccall unsafe "LLVMConstExtractValue" constExtractValue
+    :: ValueRef -> Ptr CUInt -> CUInt -> IO ValueRef
+foreign import ccall unsafe "LLVMConstInlineAsm" constInlineAsm
+    :: TypeRef -> CString -> CString -> CInt -> IO ValueRef
+foreign import ccall unsafe "LLVMConstInsertValue" constInsertValue
+    :: ValueRef -> ValueRef -> Ptr CUInt -> IO ValueRef
+foreign import ccall unsafe "LLVMInsertIntoBuilder" insertIntoBuilder
+    :: BuilderRef -> ValueRef -> IO ()
+-}
