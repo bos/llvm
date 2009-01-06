@@ -1,5 +1,6 @@
 ghc := ghc
-ghcflags := -Wall -optl -w -DHAS_GETPOINTERTOGLOBAL=1
+ghcflags := -Wall -optl -w
+# -DHAS_GETPOINTERTOGLOBAL=1
 examples := HelloJIT Fibonacci BrainF Vector Array
 
 all: $(examples)
