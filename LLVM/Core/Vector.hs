@@ -12,7 +12,7 @@ import Foreign.Marshal.Array(peekArray, pokeArray, withArrayLen)
 import System.IO.Unsafe(unsafePerformIO)
 
 -- XXX Should these really be here?
-class (IsPowerOf2 n, IsPrimitive a) => MkVector va n a | va -> n a where
+class (IsPowerOf2 n, IsPrimitive a) => MkVector va n a | va -> n a, n a -> va where
     mkVector :: va -> Vector n a
 
 instance (IsPrimitive a) => MkVector (a, a) (D2 End) a where
@@ -20,6 +20,9 @@ instance (IsPrimitive a) => MkVector (a, a) (D2 End) a where
 
 instance (IsPrimitive a) => MkVector (a, a, a, a) (D4 End) a where
     mkVector (a1, a2, a3, a4) = Vector [a1, a2, a3, a4]
+
+instance (IsPrimitive a) => MkVector (a, a, a, a, a, a, a, a) (D8 End) a where
+    mkVector (a1, a2, a3, a4, a5, a6, a7, a8) = Vector [a1, a2, a3, a4, a5, a6, a7, a8]
 
 instance (Storable a, IsTypeNumber n) => Storable (Vector n a) where
     sizeOf _ = sizeOf (undefined :: a) * typeNumber (undefined :: n)

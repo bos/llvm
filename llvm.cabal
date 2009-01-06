@@ -72,4 +72,5 @@ library
       LLVM.Core.Instructions
       LLVM.Core.Type
       LLVM.Core.Util
+      LLVM.Core.Vector
       LLVM.ExecutionEngine.Engine
