@@ -31,25 +31,25 @@ instance (IsFirstClass a) => Phi (Value a) where
     addPhis bb a a' = do
         addPhiInputs a [(a', bb)]
 
-instance (IsFirstClass a, IsFirstClass b) => Phi (Value a, Value b) where
+instance (Phi a, Phi b) => Phi (a, b) where
     phis bb (a, b) = do
-        a' <- phi [(a, bb)]
-        b' <- phi [(b, bb)]
+        a' <- phis bb a
+        b' <- phis bb b
         return (a', b')
     addPhis bb (a, b) (a', b') = do
-        addPhiInputs a [(a', bb)]
-        addPhiInputs b [(b', bb)]
+        addPhis bb a a'
+        addPhis bb b b'
 
-instance (IsFirstClass a, IsFirstClass b, IsFirstClass c) => Phi (Value a, Value b, Value c) where
+instance (Phi a, Phi b, Phi c) => Phi (a, b, c) where
     phis bb (a, b, c) = do
-        a' <- phi [(a, bb)]
-        b' <- phi [(b, bb)]
-        c' <- phi [(c, bb)]
+        a' <- phis bb a
+        b' <- phis bb b
+        c' <- phis bb c
         return (a', b', c')
     addPhis bb (a, b, c) (a', b', c') = do
-        addPhiInputs a [(a', bb)]
-        addPhiInputs b [(b', bb)]
-        addPhiInputs c [(c', bb)]
+        addPhis bb a a'
+        addPhis bb b b'
+        addPhis bb c c'
 
 -- Loop the index variable from low to high.  The state in the loop starts as start, and is modified
 -- by incr in each iteration.
