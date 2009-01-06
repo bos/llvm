@@ -186,3 +186,8 @@ instance Generic Float where
 instance Generic Double where
     toGeneric = toGenericReal
     fromGeneric = fromGenericReal
+
+instance Generic (Ptr a) where
+    toGeneric = unsafePerformIO . createGenericValueWith . FFI.createGenericValueOfPointer
+    fromGeneric val = unsafePerformIO . withGenericValue val $ FFI.genericValueToPointer
+
