@@ -118,7 +118,7 @@ instance (IsPowerOf2 n, IsPrimitive a) => IsType (Vector n a)
     	  	      		     (typeNumber (undefined :: n))
 
 instance (IsType a) => IsType (Ptr a) where
-    typeRef ~(Ptr a) = FFI.pointerType (typeRef a) 0
+    typeRef _ = FFI.pointerType (typeRef (undefined :: a)) 0
 
 -- Functions.
 instance (IsFirstClass a, IsFunction b) => IsType (a->b) where

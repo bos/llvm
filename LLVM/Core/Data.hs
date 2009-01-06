@@ -1,5 +1,6 @@
 module LLVM.Core.Data(IntN(..), WordN(..), FP128(..),
-       		      Array(..), Vector(..), Ptr(..)) where
+       		      Array(..), Vector(..), Ptr) where
+import Foreign.Ptr(Ptr)
 import Data.TypeNumbers
 
 -- TODO:
@@ -25,11 +26,6 @@ newtype FP128 = FP128 Rational
 newtype (IsTypeNumber n) => Array n a = Array [a]
     deriving (Show)
 
--- XXX Power of 2 size constraint not enforced
 -- |Fixed sized vector, the array size is encoded in the /n/ parameter.
 newtype Vector n a = Vector (Array n a)
-    deriving (Show)
-
--- |Pointer type.
-newtype Ptr a = Ptr a
     deriving (Show)
