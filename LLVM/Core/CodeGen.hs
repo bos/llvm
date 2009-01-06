@@ -113,15 +113,12 @@ valueOf = value . constOf
 value :: ConstValue a -> Value a
 value (ConstValue a) = Value a
 
--- Not unsafe, just generates a constant.
 zero :: forall a . (IsType a) => ConstValue a
 zero = ConstValue $ FFI.constNull $ typeRef (undefined :: a)
 
--- Not unsafe, just generates a constant.
 allOnes :: forall a . (IsInteger a) => ConstValue a
 allOnes = ConstValue $ FFI.constAllOnes $ typeRef (undefined :: a)
 
--- Not unsafe, just generates a constant.
 undef :: forall a . (IsType a) => ConstValue a
 undef = ConstValue $ FFI.getUndef $ typeRef (undefined :: a)
 

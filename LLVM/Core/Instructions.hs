@@ -590,11 +590,11 @@ instance GetElementPtr a () a where
 
 -- Index in Array
 instance (GetElementPtr o i n, IsIndexArg a) => GetElementPtr (Array k o) (a, i) n where
-    getIxList ~(Array (a:_)) (v, i) = getArg v : getIxList a i
+    getIxList _ (v, i) = getArg v : getIxList (undefined :: o) i
 
 -- Index in Vector
 instance (GetElementPtr o i n, IsIndexArg a) => GetElementPtr (Vector k o) (a, i) n where
-    getIxList ~(Vector (Array (a:_))) (v, i) = getArg v : getIxList a i
+    getIxList _ (v, i) = getArg v : getIxList (undefined :: o) i
 
 -- | Address arithmetic.  See LLVM description.
 -- The index is a nested tuple of the form @(i1,(i2,( ... ())))@.

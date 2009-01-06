@@ -27,5 +27,6 @@ newtype (IsTypeNumber n) => Array n a = Array [a]
     deriving (Show)
 
 -- |Fixed sized vector, the array size is encoded in the /n/ parameter.
-newtype Vector n a = Vector (Array n a)
+newtype Vector n a = Vector [a]
     deriving (Show)
+

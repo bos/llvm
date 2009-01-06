@@ -416,3 +416,4 @@ constArray t n xs = unsafePerformIO $ do
     let xs' = take n (cycle xs) 
     withArrayLen xs' $ \ len ptr ->
         return $ FFI.constArray t ptr (fromIntegral len)
+

@@ -44,6 +44,7 @@ module LLVM.Core(
     zero, allOnes, undef,
     createString, createStringNul,
     constVector, constArray,
+    mkVector,
     -- * Code generation
     CodeGenFunction, CodeGenModule,
     -- * Functions
@@ -70,6 +71,7 @@ import LLVM.Core.CodeGenMonad(CodeGenFunction, CodeGenModule)
 import LLVM.Core.Data
 import LLVM.Core.Instructions
 import LLVM.Core.Type
+import LLVM.Core.Vector
 
 -- |Print a value.
 dumpValue :: Value a -> IO ()

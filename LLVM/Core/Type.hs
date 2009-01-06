@@ -16,7 +16,9 @@ module LLVM.Core.Type(
     IsSized,
     IsFunction,
 --    IsFunctionRet,
-    IsSequence
+    IsSequence,
+    -- ** Others
+    IsPowerOf2
     ) where
 import Data.Int
 import Data.Word
