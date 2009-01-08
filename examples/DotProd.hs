@@ -33,7 +33,7 @@ mDotProd =
     ret (r :: Value a)
 
 type R = Float
-type T = Vector (D8 End) R
+type T = Vector (D4 End) R
 
 main :: IO ()
 main = do
@@ -46,6 +46,8 @@ main = do
          unsafePurify $
          withArrayLen a $ \ aLen aPtr ->
          withArrayLen b $ \ bLen bPtr ->
+-- XXX something weird is going on here.  Without that putStr the result is wrong.
+         putStr "" >>
          ioDotProd (fromIntegral (aLen `min` bLen)) aPtr bPtr
 
 
