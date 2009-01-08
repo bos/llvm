@@ -20,10 +20,15 @@ extra-source-files:
     README.txt
     configure
     configure.ac
+    examples/Array.hs
     examples/BrainF.hs
+    examples/DotProd.hs
     examples/Fibonacci.hs
     examples/HelloJIT.hs
+    examples/Loop.hs
+    examples/Vector.hs
     examples/Makefile
+    examples/mainfib.c
     tests/Makefile
     tests/TestValue.hs
     tools/Makefile
