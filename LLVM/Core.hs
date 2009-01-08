@@ -68,7 +68,8 @@ import qualified LLVM.FFI.Core as FFI
 import LLVM.Core.Util hiding (Function, BasicBlock, createModule, constString, constStringNul, constVector, constArray, getModuleValues, valueHasType)
 import LLVM.Core.CodeGen
 import LLVM.Core.CodeGenMonad(CodeGenFunction, CodeGenModule)
-import LLVM.Core.Data
+import LLVM.Core.Data hiding (Vector, Array)
+import LLVM.Core.Data(Vector, Array)
 import LLVM.Core.Instructions
 import LLVM.Core.Type
 import LLVM.Core.Vector

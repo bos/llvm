@@ -4,7 +4,7 @@ module LLVM.Core.Vector(MkVector(..)) where
 import Data.TypeNumbers
 import LLVM.Core.Type
 import LLVM.Core.Data
-import LLVM.Core.CodeGen(IsConst(..), ConstValue(..))
+import LLVM.Core.CodeGen(IsConst(..), ConstValue(..), Value)
 import LLVM.FFI.Core(constVector)
 import Foreign.Ptr(Ptr, castPtr)
 import Foreign.Storable(Storable(..))
@@ -14,6 +14,11 @@ import System.IO.Unsafe(unsafePerformIO)
 -- XXX Should these really be here?
 class (IsPowerOf2 n, IsPrimitive a) => MkVector va n a | va -> n a, n a -> va where
     mkVector :: va -> Vector n a
+
+{-
+instance (IsPrimitive a) => MkVector (Value a) (D1 End) (Value a) where
+    mkVector a = Vector [a]
+-}
 
 instance (IsPrimitive a) => MkVector (a, a) (D2 End) a where
     mkVector (a1, a2) = Vector [a1, a2]
