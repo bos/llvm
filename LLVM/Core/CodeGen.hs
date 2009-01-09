@@ -71,24 +71,22 @@ newtype Value a = Value { unValue :: FFI.ValueRef }
 
 newtype ConstValue a = ConstValue FFI.ValueRef
 
-class (IsType a) => IsConst a where
+class (IsArithmetic a) => IsConst a where
     constOf :: a -> ConstValue a
-    isFloat :: a -> Bool
-    isFloat _ = False
 
 instance IsConst Bool   where constOf = constEnum (typeRef True)
 --instance IsConst Char   where constOf = constEnum (typeRef (0::Word8)) -- XXX Unicode
-instance IsConst Word8  where constOf = constI False
-instance IsConst Word16 where constOf = constI False
-instance IsConst Word32 where constOf = constI False
-instance IsConst Word64 where constOf = constI False
-instance IsConst Int8   where constOf = constI True
-instance IsConst Int16  where constOf = constI True
-instance IsConst Int32  where constOf = constI True
-instance IsConst Int64  where constOf = constI True
-instance IsConst Float  where constOf = constF; isFloat = const True
-instance IsConst Double where constOf = constF; isFloat = const True
---instance IsConst FP128  where constOf = constF; isFloat = const True
+instance IsConst Word8  where constOf = constI
+instance IsConst Word16 where constOf = constI
+instance IsConst Word32 where constOf = constI
+instance IsConst Word64 where constOf = constI
+instance IsConst Int8   where constOf = constI
+instance IsConst Int16  where constOf = constI
+instance IsConst Int32  where constOf = constI
+instance IsConst Int64  where constOf = constI
+instance IsConst Float  where constOf = constF
+instance IsConst Double where constOf = constF
+--instance IsConst FP128  where constOf = constF
 
 {-
 instance IsConst (Array n a) where
@@ -100,11 +98,10 @@ instance IsConst (Array n a) where
 constEnum :: (Enum a) => FFI.TypeRef -> a -> ConstValue a
 constEnum t i = ConstValue $ FFI.constInt t (fromIntegral $ fromEnum i) 0
 
-constI :: (IsType a, Integral a) => Bool -> a -> ConstValue a
-constI signed i = ConstValue $ FFI.constInt (typeRef i) (fromIntegral i)
-       	      	  	       		    (fromIntegral $ fromEnum signed)
+constI :: (IsInteger a, Integral a) => a -> ConstValue a
+constI i = ConstValue $ FFI.constInt (typeRef i) (fromIntegral i) (fromIntegral $ fromEnum $ isSigned i)
 
-constF :: (IsType a, Real a) => a -> ConstValue a
+constF :: (IsFloating a, Real a) => a -> ConstValue a
 constF i = ConstValue $ FFI.constReal (typeRef i) (realToFrac i)
 
 valueOf :: (IsConst a) => a -> Value a

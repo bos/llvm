@@ -8,8 +8,8 @@ module LLVM.Core.Type(
     -- * Type classifier
     IsType(..),
     -- ** Special type classifiers
-    IsArithmetic,
-    IsInteger,
+    IsArithmetic(..),
+    IsInteger(..),
     IsFloating,
     IsPrimitive,
     IsFirstClass,
@@ -52,10 +52,13 @@ class IsType a where
     typeRef :: a -> FFI.TypeRef  -- ^The argument is never evaluated
 
 -- |Arithmetic types, i.e., integral and floating types.
-class IsType a => IsArithmetic a
+class IsType a => IsArithmetic a where
+    isFloating :: a -> Bool
+    isFloating _ = False
 
 -- |Integral types.
-class IsArithmetic a => IsInteger a
+class IsArithmetic a => IsInteger a where
+    isSigned :: a -> Bool
 
 -- |Floating types.
 class IsArithmetic a => IsFloating a
@@ -130,9 +133,9 @@ instance (IsFirstClass a) => IsType (IO a) where
     typeRef = funcType []
 
 --- Instances to classify types
-instance IsArithmetic Float
-instance IsArithmetic Double
-instance IsArithmetic FP128
+instance IsArithmetic Float where isFloating _ = True
+instance IsArithmetic Double where isFloating _ = True
+instance IsArithmetic FP128 where isFloating _ = True
 instance (IsTypeNumber n) => IsArithmetic (IntN n)
 instance (IsTypeNumber n) => IsArithmetic (WordN n)
 instance IsArithmetic Bool
@@ -150,17 +153,17 @@ instance IsFloating Float
 instance IsFloating Double
 instance IsFloating FP128
 
-instance (IsTypeNumber n) => IsInteger (IntN n)
-instance (IsTypeNumber n) => IsInteger (WordN n)
-instance IsInteger Bool
-instance IsInteger Int8
-instance IsInteger Int16
-instance IsInteger Int32
-instance IsInteger Int64
-instance IsInteger Word8
-instance IsInteger Word16
-instance IsInteger Word32
-instance IsInteger Word64
+instance (IsTypeNumber n) => IsInteger (IntN n) where isSigned _ = True
+instance (IsTypeNumber n) => IsInteger (WordN n) where isSigned _ = False
+instance IsInteger Bool where isSigned _ = False
+instance IsInteger Int8 where isSigned _ = True
+instance IsInteger Int16 where isSigned _ = True
+instance IsInteger Int32 where isSigned _ = True
+instance IsInteger Int64 where isSigned _ = True
+instance IsInteger Word8 where isSigned _ = False
+instance IsInteger Word16 where isSigned _ = False
+instance IsInteger Word32 where isSigned _ = False
+instance IsInteger Word64 where isSigned _ = False
 
 instance IsFirstClass Float
 instance IsFirstClass Double
