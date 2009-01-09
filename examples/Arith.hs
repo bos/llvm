@@ -1,7 +1,7 @@
 {-# OPTIONS_GHC -fno-warn-type-defaults #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 module Arith where
---import Data.Int
+import Data.Int
 import LLVM.Core
 import LLVM.ExecutionEngine
 import LLVM.Util.Arithmetic
@@ -14,20 +14,8 @@ mSomeFn = do
     createFunction ExternalLinkage $ arithFunction $ \ x ->
         sqrt (x^2 - 5 * x + 6) + toArithFunction foo x x
 
-defn :: (CallArgs a g,
-         UnwrapArgs a11 a1 b1 b g r,
-         FunctionArgs a a2 (CodeGenFunction r1 ()),
-         ArithFunction a3 a2,
-         IsFunction a) =>
-        (a11 -> a3) -> CodeGenModule (Function a)
-defn af = do
-    f <- newFunction ExternalLinkage
-    let f' = toArithFunction f
-    defineFunction f $ arithFunction (af f')
-    return f
-
-mFib :: CodeGenModule (Function (Double -> IO Double))
-mFib = defn $ \ rfib n -> n %< 2 ? (1, rfib (n-1) + rfib (n-2))
+mFib :: CodeGenModule (Function (Int32 -> IO Int32))
+mFib = recursiveFunction $ \ rfib n -> n %< 2 ? (1, rfib (n-1) + rfib (n-2))
 
 writeFunction :: String -> CodeGenModule a -> IO ()
 writeFunction name f = do
@@ -48,6 +36,9 @@ main = do
     print (someFn 10)
     print (someFn 2)
 -}
+
+    writeFunction "Arith.bc" mFib
+
     fib <- simpleFunction mFib
-    fib 10 >>= print
+    fib 42 >>= print
 

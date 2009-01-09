@@ -7,7 +7,7 @@ module LLVM.Util.Arithmetic(
     (%&&), (%||),
     (?),
     retrn,
-    ArithFunction(..), UnwrapArgs, toArithFunction,
+    ArithFunction(..), UnwrapArgs, toArithFunction, recursiveFunction
     ) where
 import Data.Word
 import Data.Int
@@ -220,3 +220,19 @@ instance (UncurryN a (a1 -> CodeGenFunction r b1), LiftTuple r a1 b, UncurryN a2
 toArithFunction :: (CallArgs f g, UnwrapArgs a a1 b1 b g r) =>
                     Function f -> a
 toArithFunction f = unwrapArgs (call f)
+
+-------------------------------------------
+
+recursiveFunction ::
+        (CallArgs a g,
+         UnwrapArgs a11 a1 b1 b g r,
+         FunctionArgs a a2 (CodeGenFunction r1 ()),
+         ArithFunction a3 a2,
+         IsFunction a) =>
+        (a11 -> a3) -> CodeGenModule (Function a)
+recursiveFunction af = do
+    f <- newFunction ExternalLinkage
+    let f' = toArithFunction f
+    defineFunction f $ arithFunction (af f')
+    return f
+
