@@ -52,9 +52,11 @@ class IsType a where
     typeRef :: a -> FFI.TypeRef  -- ^The argument is never evaluated
 
 -- |Arithmetic types, i.e., integral and floating types.
-class IsType a => IsArithmetic a where
+class IsFirstClass a => IsArithmetic a where
     isFloating :: a -> Bool
     isFloating _ = False
+    typeName :: a -> String -- XXX could be in IsType
+
 
 -- |Integral types.
 class IsArithmetic a => IsInteger a where
@@ -133,21 +135,21 @@ instance (IsFirstClass a) => IsType (IO a) where
     typeRef = funcType []
 
 --- Instances to classify types
-instance IsArithmetic Float where isFloating _ = True
-instance IsArithmetic Double where isFloating _ = True
-instance IsArithmetic FP128 where isFloating _ = True
-instance (IsTypeNumber n) => IsArithmetic (IntN n)
-instance (IsTypeNumber n) => IsArithmetic (WordN n)
-instance IsArithmetic Bool
-instance IsArithmetic Int8
-instance IsArithmetic Int16
-instance IsArithmetic Int32
-instance IsArithmetic Int64
-instance IsArithmetic Word8
-instance IsArithmetic Word16
-instance IsArithmetic Word32
-instance IsArithmetic Word64
-instance (IsPowerOf2 n, IsPrimitive a, IsArithmetic a) => IsArithmetic (Vector n a)
+instance IsArithmetic Float where isFloating _ = True; typeName _ = "f32"
+instance IsArithmetic Double where isFloating _ = True; typeName _ = "f64"
+instance IsArithmetic FP128 where isFloating _ = True; typeName _ = "f128"
+instance (IsTypeNumber n) => IsArithmetic (IntN n) where typeName _ = "i" ++ show (typeNumber (undefined :: n) :: Int)
+instance (IsTypeNumber n) => IsArithmetic (WordN n) where typeName _ = "i" ++ show (typeNumber (undefined :: n) :: Int)
+instance IsArithmetic Bool where typeName _ = "i1"
+instance IsArithmetic Int8 where typeName _ = "i8"
+instance IsArithmetic Int16 where typeName _ = "i16"
+instance IsArithmetic Int32 where typeName _ = "i32"
+instance IsArithmetic Int64 where typeName _ = "i64"
+instance IsArithmetic Word8 where typeName _ = "i8"
+instance IsArithmetic Word16 where typeName _ = "i16"
+instance IsArithmetic Word32 where typeName _ = "i32"
+instance IsArithmetic Word64 where typeName _ = "i64"
+instance (IsPowerOf2 n, IsPrimitive a, IsArithmetic a) => IsArithmetic (Vector n a) where typeName _ = error "vector type name"
 
 instance IsFloating Float
 instance IsFloating Double
