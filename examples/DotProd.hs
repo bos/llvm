@@ -12,7 +12,7 @@ import Loop
 
 mDotProd :: forall n a . (IsPowerOf2 n, IsTypeNumber n,
 	                  IsPrimitive a, IsArithmetic a, IsFirstClass a, IsConst a, Num a,
-	                  FunctionArgs (IO a) (CodeGenFunction a ()) (CodeGenFunction a ())
+	                  FunctionRet a
 	                 ) =>
             CodeGenModule (Function (Word32 -> Ptr (Vector n a) -> Ptr (Vector n a) -> IO a))
 mDotProd =
