@@ -6,7 +6,7 @@ import LLVM.Core
 import LLVM.ExecutionEngine
 import LLVM.Util.Arithmetic
 
-mSomeFn :: forall a . (IsFirstClass a, IsConst a, Floating a, IsFloating a, Cmp a,
+mSomeFn :: forall a . (IsConst a, Floating a, IsFloating a, Cmp a,
 	      FunctionRet a
 	     ) => CodeGenModule (Function (a -> IO a))
 mSomeFn = do
@@ -39,4 +39,3 @@ main = do
 
     fib <- simpleFunction mFib
     fib 22 >>= print
-
