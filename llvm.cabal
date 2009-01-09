@@ -1,5 +1,5 @@
 name: llvm
-version: 0.5.0.0
+version: 0.5.0.1
 license: BSD3
 license-file: LICENSE
 synopsis: Bindings to the LLVM compiler toolkit
@@ -23,6 +23,7 @@ extra-source-files:
     examples/Arith.hs
     examples/Array.hs
     examples/BrainF.hs
+    examples/Convert.hs
     examples/DotProd.hs
     examples/Fibonacci.hs
     examples/HelloJIT.hs
