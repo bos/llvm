@@ -18,7 +18,11 @@ import Foreign.ForeignPtr (FinalizerPtr, ForeignPtr, newForeignPtr,
                            withForeignPtr)
 import Foreign.Marshal.Utils (fromBool)
 import Foreign.C.String (peekCString)
-import Foreign.Ptr (Ptr, FunPtr)
+import Foreign.Ptr (Ptr)
+#if HAS_GETPOINTERTOGLOBAL
+import Foreign.Ptr (FunPtr)
+import LLVM.Core.CodeGen(Value(..), Function)
+#endif
 import Foreign.Storable (peek)
 import System.IO.Unsafe (unsafePerformIO)
 
@@ -26,7 +30,6 @@ import LLVM.Core.Util(ModuleProvider, withModuleProvider)
 import qualified LLVM.FFI.ExecutionEngine as FFI
 import qualified LLVM.FFI.Target as FFI
 import qualified LLVM.Core.Util(Function)
-import LLVM.Core.CodeGen(Value(..), Function)
 import LLVM.Core.Type(IsFirstClass, IsType(..))
 
 -- |The type of the JITer.

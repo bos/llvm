@@ -18,7 +18,9 @@ module LLVM.FFI.ExecutionEngine
     , runFunctionAsMain
     , getExecutionEngineTargetData
     , addGlobalMapping
+#if HAS_GETPOINTERTOGLOBAL
     , getPointerToGlobal
+#endif
 
     -- * Generic values
     , GenericValue

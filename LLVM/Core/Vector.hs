@@ -1,10 +1,10 @@
-{- # OPTIONS_GHC -fno-warn-orphan-instance # -}
+{-# OPTIONS_GHC -fno-warn-orphans #-}
 {-# LANGUAGE MultiParamTypeClasses, FunctionalDependencies, FlexibleInstances, ScopedTypeVariables #-}
 module LLVM.Core.Vector(MkVector(..)) where
 import Data.TypeNumbers
 import LLVM.Core.Type
 import LLVM.Core.Data
-import LLVM.Core.CodeGen(IsConst(..), ConstValue(..), Value)
+import LLVM.Core.CodeGen(IsConst(..), ConstValue(..))
 import LLVM.FFI.Core(constVector)
 import Foreign.Ptr(Ptr, castPtr)
 import Foreign.Storable(Storable(..))
