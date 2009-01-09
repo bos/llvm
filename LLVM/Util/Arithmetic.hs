@@ -51,10 +51,10 @@ infix  4  %==, %/=, %<, %<=, %>=, %>
 (%==), (%/=), (%<), (%<=), (%>), (%>=) :: (Cmp a) => TValue r a -> TValue r a -> TValue r Bool
 (%==) = binop $ cmp IntEQ
 (%/=) = binop $ cmp IntNE
-(%<)  = binop $ cmp IntUGT
-(%<=) = binop $ cmp IntUGE
-(%>)  = binop $ cmp IntULT
-(%>=) = binop $ cmp IntULE
+(%>)  = binop $ cmp IntUGT
+(%>=) = binop $ cmp IntUGE
+(%<)  = binop $ cmp IntULT
+(%<=) = binop $ cmp IntULE
 
 infixr 3  %&&
 infixr 2  %||
