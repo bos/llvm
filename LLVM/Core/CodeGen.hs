@@ -7,7 +7,7 @@ module LLVM.Core.CodeGen(
     Linkage(..),
     -- * Function creation
     Function, newFunction, newNamedFunction, defineFunction, createFunction, createNamedFunction,
-    FunctionArgs,
+    FunctionArgs, FunctionRet,
     TFunction,
     -- * Global variable creation
     Global, newGlobal, newNamedGlobal, defineGlobal, createGlobal, createNamedGlobal, TGlobal,
@@ -225,6 +225,10 @@ instance (IsTypeNumber n, IsPrimitive a) =>
          FunctionArgs (IO (Vector n a)) (FA (Vector n a)) (FA (Vector n a)) where apArgs _ _ g = g
 instance (IsType a) => 
          FunctionArgs (IO (Ptr a))      (FA (Ptr a))      (FA (Ptr a))      where apArgs _ _ g = g
+
+-- |This class is just to simplify contexts.
+class (FunctionArgs (IO a) (CodeGenFunction a ()) (CodeGenFunction a ())) => FunctionRet a
+instance (FunctionArgs (IO a) (CodeGenFunction a ()) (CodeGenFunction a ())) => FunctionRet a
 
 --------------------------------------
 
