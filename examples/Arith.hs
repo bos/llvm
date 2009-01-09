@@ -1,17 +1,20 @@
+{-# OPTIONS_GHC -fno-warn-type-defaults #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 module Arith where
 --import Data.Int
 import LLVM.Core
 import LLVM.ExecutionEngine
 import LLVM.Util.Arithmetic
 
-mSomePoly :: (IsFirstClass a, IsConst a, Floating a, IsFloating a, Cmp a,
+mSomeFn :: forall a . (IsFirstClass a, IsConst a, Floating a, IsFloating a, Cmp a,
 	      FunctionRet a
 	     ) => CodeGenModule (Function (a -> IO a))
-mSomePoly =
-    createFunction ExternalLinkage $ \ ax -> do
-        let x = return ax
-        r <- sqrt (x^2 - 5 * x + 6) + sqrt x
-        ret r
+mSomeFn = do
+    foo <- createFunction InternalLinkage $ arithFunction $ exp . sin
+    let _ = foo :: Function (a -> IO a)
+        foo' x = x >>= call foo
+    createFunction ExternalLinkage $ arithFunction $ \ x ->
+        sqrt (x^2 - 5 * x + 6) + foo' x
 
 writeFunction :: String -> CodeGenModule a -> IO ()
 writeFunction name f = do
@@ -21,14 +24,14 @@ writeFunction name f = do
 
 main :: IO ()
 main = do
-    let mSomePoly' = mSomePoly
-    ioSomePoly <- simpleFunction mSomePoly'
-    let somePoly :: Double -> Double
-        somePoly = unsafePurify ioSomePoly
+    let mSomeFn' = mSomeFn
+    ioSomeFn <- simpleFunction mSomeFn'
+    let someFn :: Double -> Double
+        someFn = unsafePurify ioSomeFn
 
-    writeFunction "Arith.bc" mSomePoly'
+    writeFunction "Arith.bc" mSomeFn'
 
-    print (somePoly 10)
-    print (somePoly 2)
+    print (someFn 10)
+    print (someFn 2)
 
 
