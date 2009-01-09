@@ -1,9 +1,13 @@
 {-# OPTIONS_GHC -fno-warn-orphans #-}
-{-# LANGUAGE FlexibleInstances, ScopedTypeVariables, FlexibleContexts, UndecidableInstances, TypeSynonymInstances #-}
+{-# LANGUAGE FlexibleInstances, ScopedTypeVariables, FlexibleContexts, UndecidableInstances, TypeSynonymInstances, MultiParamTypeClasses, FunctionalDependencies #-}
 module LLVM.Util.Arithmetic(
+    TValue,
     Cmp,
     (%==), (%/=), (%<), (%<=), (%>), (%>=),
-    (?)
+    (%&&), (%||),
+    (?),
+    retrn,
+    ArithFunction(..)
     ) where
 import Data.Word
 import Data.Int
@@ -52,6 +56,13 @@ infix  4  %==, %/=, %<, %<=, %>=, %>
 (%>)  = binop $ cmp IntULT
 (%>=) = binop $ cmp IntULE
 
+infixr 3  %&&
+infixr 2  %||
+(%&&) :: TValue r Bool -> TValue r Bool -> TValue r Bool
+a %&& b = a ? (b, return (valueOf False))
+(%||) :: TValue r Bool -> TValue r Bool -> TValue r Bool
+a %|| b = a ? (return (valueOf True), b)
+
 infix  0 ?
 (?) :: (IsFirstClass a) => TValue r Bool -> (TValue r a, TValue r a) -> TValue r a
 c ? (t, f) = do
@@ -68,6 +79,9 @@ c ? (t, f) = do
     br lj
     defineBasicBlock lj
     phi [(rt, lt), (rf, lf)]
+
+retrn :: (Ret (Value a) r) => TValue r a -> CodeGenFunction r ()
+retrn x = x >>= ret
 
 instance (Show (TValue r a))
 instance (Eq (TValue r a))
@@ -110,9 +124,9 @@ instance (Cmp a, Floating a, IsConst a, IsFloating a) => Floating (TValue r a) w
     sin = callIntrinsic1 "sin"
     cos = callIntrinsic1 "cos"
     (**) = callIntrinsic2 "pow"
-    exp x = return (valueOf (exp 1)) ** x  -- XXX exp intrinsic missing
+    exp = callIntrinsic1 "exp"
+    log = callIntrinsic1 "log"
 
-    log _ = error "LLVM missing intrinsic: log"
     asin _ = error "LLVM missing intrinsic: asin"
     acos _ = error "LLVM missing intrinsic: acos"
     atan _ = error "LLVM missing intrinsic: atab"
@@ -161,4 +175,15 @@ callIntrinsic2 fn x y = do
     op <- externFunction ("llvm." ++ fn ++ "." ++ typeName (undefined :: a))
     let _ = op :: Function (a -> b -> IO c)
     call op x' y'
+
+-------------------------------------------
+
+class ArithFunction a b | a -> b, b -> a where
+    arithFunction :: a -> b
+
+instance (Ret a r) => ArithFunction (CodeGenFunction r a) (CodeGenFunction r ()) where
+    arithFunction x = x >>= ret
+
+instance (ArithFunction b b') => ArithFunction (CodeGenFunction r a -> b) (a -> b') where
+    arithFunction f = arithFunction . f . return
 
