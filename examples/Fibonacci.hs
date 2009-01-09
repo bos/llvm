@@ -30,12 +30,12 @@ main = do
     -- Can be disassembled with llvm-dis.
     writeBitcodeToFile "Fibonacci.bc" m
 
-    -- Create a JIT execution engine for the module.
-    ee <- createModuleProviderForExistingModule m >>= createExecutionEngine
-
     -- Generate code for mfib, and then throw away the IO in the type.
     -- The result is an ordinary Haskell function.
-    let fib = unsafePurify $ generateFunction ee $ mfib fns
+    iofib <- runEngineAccess $ do
+                 addModule m
+                 generateFunction $ mfib fns
+    let fib = unsafePurify iofib
 
     -- Run fib for the arguments.
     forM_ args' $ \num -> do

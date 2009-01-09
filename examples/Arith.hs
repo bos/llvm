@@ -25,7 +25,6 @@ writeFunction name f = do
 
 main :: IO ()
 main = do
-{-
     let mSomeFn' = mSomeFn
     ioSomeFn <- simpleFunction mSomeFn'
     let someFn :: Double -> Double
@@ -35,10 +34,9 @@ main = do
 
     print (someFn 10)
     print (someFn 2)
--}
 
-    writeFunction "Arith.bc" mFib
+    writeFunction "ArithFib.bc" mFib
 
     fib <- simpleFunction mFib
-    fib 42 >>= print
+    fib 22 >>= print
 

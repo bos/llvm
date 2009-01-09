@@ -1,15 +1,21 @@
-{-# LANGUAGE CPP, ForeignFunctionInterface, FlexibleInstances, UndecidableInstances, OverlappingInstances, ScopedTypeVariables #-}
+{-# LANGUAGE CPP, ForeignFunctionInterface, FlexibleInstances, UndecidableInstances, OverlappingInstances, ScopedTypeVariables, GeneralizedNewtypeDeriving #-}
 module LLVM.ExecutionEngine.Engine(
+       EngineAccess,
+       runEngineAccess,
+{-
        ExecutionEngine,
-       createExecutionEngine, addModuleProvider, runStaticConstructors, runStaticDestructors,
+-}
+       createExecutionEngine, addModuleProvider, addModule,
+       {- runStaticConstructors, runStaticDestructors, -}
        getExecutionEngineTargetData,
 #if HAS_GETPOINTERTOGLOBAL
        getPointerToFunction,
 #endif
-       runFunction,
+       runFunction, getRunFunction,
        GenericValue, Generic(..)
        ) where
-import Control.Monad
+import Control.Monad.State
+import Control.Concurrent.MVar
 import Data.Int
 import Data.Word
 import Foreign.Marshal.Alloc (alloca, free)
@@ -26,12 +32,13 @@ import LLVM.Core.CodeGen(Value(..), Function)
 import Foreign.Storable (peek)
 import System.IO.Unsafe (unsafePerformIO)
 
-import LLVM.Core.Util(ModuleProvider, withModuleProvider)
+import LLVM.Core.Util(Module, ModuleProvider, withModuleProvider, createModule, createModuleProviderForExistingModule)
 import qualified LLVM.FFI.ExecutionEngine as FFI
 import qualified LLVM.FFI.Target as FFI
 import qualified LLVM.Core.Util(Function)
 import LLVM.Core.Type(IsFirstClass, IsType(..))
 
+{-
 -- |The type of the JITer.
 newtype ExecutionEngine = ExecutionEngine {
       fromExecutionEngine :: ForeignPtr FFI.ExecutionEngine
@@ -82,6 +89,82 @@ getPointerToFunction ee (Value f) =
     withExecutionEngine ee $ \ eePtr ->
       FFI.getPointerToGlobal eePtr f
 #endif
+-}
+
+-- This global variable holds the one and only execution engine.
+-- It may be missing, but it never dies.
+-- XXX We could provide a destructor, what about functions obtained by runFunction?
+{-# NOINLINE theEngine #-}
+theEngine :: MVar (Maybe (Ptr FFI.ExecutionEngine))
+theEngine = unsafePerformIO $ newMVar Nothing
+
+createExecutionEngine :: ModuleProvider -> IO (Ptr FFI.ExecutionEngine)
+createExecutionEngine prov =
+    withModuleProvider prov $ \provPtr ->
+      alloca $ \eePtr ->
+        alloca $ \errPtr -> do
+          ret <- FFI.createExecutionEngine eePtr provPtr errPtr
+          if ret == 1
+            then do err <- peek errPtr
+                    errStr <- peekCString err
+                    free err
+                    ioError . userError $ errStr
+            else do peek eePtr
+
+getTheEngine :: IO (Ptr FFI.ExecutionEngine)
+getTheEngine = do
+    mee <- takeMVar theEngine
+    case mee of
+        Just ee -> do putMVar theEngine mee; return ee
+        Nothing -> do
+            m <- createModule "__empty__"
+            mp <- createModuleProviderForExistingModule m
+            ee <- createExecutionEngine mp
+            putMVar theEngine (Just ee)
+            return ee
+
+data EAState = EAState {
+    ea_engine :: Ptr FFI.ExecutionEngine,
+    ea_providers :: [ModuleProvider]
+    }
+
+newtype EngineAccess a = EA (StateT EAState IO a)
+    deriving (Functor, Monad, MonadState EAState, MonadIO)
+
+-- |The LLVM execution engine is encapsulated so it cannot be accessed directly.
+-- The reason is that (currently) there must only ever be one engine,
+-- so access to it is wrapped ina monad.
+runEngineAccess :: EngineAccess a -> IO a
+runEngineAccess (EA body) = do
+    eePtr <- getTheEngine
+    let ea = EAState { ea_engine = eePtr, ea_providers = [] }
+    (a, _ea') <- runStateT body ea
+    -- XXX should remove module providers again
+    return a
+
+addModuleProvider :: ModuleProvider -> EngineAccess ()
+addModuleProvider prov = do
+    ea <- get
+    put ea{ ea_providers = prov : ea_providers ea }
+    liftIO $ withModuleProvider prov $ \ provPtr ->
+                 FFI.addModuleProvider (ea_engine ea) provPtr
+
+getExecutionEngineTargetData :: EngineAccess FFI.TargetDataRef
+getExecutionEngineTargetData = do
+    eePtr <- gets ea_engine
+    liftIO $ FFI.getExecutionEngineTargetData eePtr
+
+#if HAS_GETPOINTERTOGLOBAL
+getPointerToFunction :: Function f -> IO (FunPtr f)
+getPointerToFunction (Value f) = do
+    eePtr <- gets ea_engine
+    liftIO $ FFI.getPointerToGlobal eePtr f
+#endif
+
+addModule :: Module -> EngineAccess ()
+addModule m = do
+    mp <- liftIO $ createModuleProviderForExistingModule m
+    addModuleProvider mp
 
 --------------------------------------
 
@@ -106,13 +189,19 @@ withAll ps a = go [] ps
     where go ptrs (x:xs) = withGenericValue x $ \ptr -> go (ptr:ptrs) xs
           go ptrs _ = withArrayLen (reverse ptrs) a
                    
-runFunction :: ExecutionEngine -> LLVM.Core.Util.Function -> [GenericValue]
-            -> IO GenericValue
-runFunction ee func args =
-    withExecutionEngine ee $ \eePtr ->
-      withAll args $ \argLen argPtr ->
-        createGenericValueWith $ FFI.runFunction eePtr func
-                                        (fromIntegral argLen) argPtr
+runFunction :: LLVM.Core.Util.Function -> [GenericValue] -> EngineAccess GenericValue
+runFunction func args = do
+    eePtr <- gets ea_engine
+    liftIO $ withAll args $ \argLen argPtr ->
+                 createGenericValueWith $ FFI.runFunction eePtr func
+                                              (fromIntegral argLen) argPtr
+getRunFunction :: EngineAccess (LLVM.Core.Util.Function -> [GenericValue] -> IO GenericValue)
+getRunFunction = do
+    eePtr <- gets ea_engine
+    return $ \ func args -> 
+             withAll args $ \argLen argPtr ->
+                 createGenericValueWith $ FFI.runFunction eePtr func
+                                              (fromIntegral argLen) argPtr
 
 class Generic a where
     toGeneric :: a -> GenericValue

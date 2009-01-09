@@ -2,11 +2,14 @@
  -- |An 'ExecutionEngine' is JIT compiler that is used to generate code for an LLVM module.
 module LLVM.ExecutionEngine(
     -- * Execution engine
-    ExecutionEngine,
-    createExecutionEngine,
+    EngineAccess,
+    runEngineAccess,
     addModuleProvider,
+    addModule,
+{-
     runStaticConstructors,
     runStaticDestructors,
+-}
 #if HAS_GETPOINTERTOGLOBAL
     getPointerToFunction,
 #endif
@@ -26,23 +29,25 @@ import LLVM.ExecutionEngine.Engine
 import LLVM.FFI.Core(ValueRef)
 import LLVM.Core.CodeGen(Value(..))
 import LLVM.Core
-import LLVM.Core.Util(runFunctionPassManager, initializeFunctionPassManager, finalizeFunctionPassManager)
+--import LLVM.Core.Util(runFunctionPassManager, initializeFunctionPassManager, finalizeFunctionPassManager)
 
 -- |Class of LLVM function types that can be translated to the corresponding
 -- Haskell type.
 class Translatable f where
-    translate :: ExecutionEngine -> [GenericValue] -> ValueRef -> f
+    translate :: (ValueRef -> [GenericValue] -> IO GenericValue) -> [GenericValue] -> ValueRef -> f
 
 instance (Generic a, Translatable b) => Translatable (a -> b) where
-    translate ee args f = \ arg -> translate ee (toGeneric arg : args) f
+    translate run args f = \ arg -> translate run (toGeneric arg : args) f
 
 instance (Generic a) => Translatable (IO a) where
-    translate ee args f = fmap fromGeneric $ runFunction ee f $ reverse args
+    translate run args f = fmap fromGeneric $ run f $ reverse args
 
 -- |Generate a Haskell function from an LLVM function.
 generateFunction :: (Translatable f) =>
-                    ExecutionEngine -> Value (Ptr f) -> f
-generateFunction ee (Value f) = translate ee [] f
+                    Value (Ptr f) -> EngineAccess f
+generateFunction (Value f) = do
+    run <- getRunFunction
+    return $ translate run [] f
 
 class Unsafe a b | a -> b where
     unsafePurify :: a -> b  -- ^Remove the IO from a function return type.  This is unsafe in general.
@@ -59,10 +64,17 @@ simpleFunction :: (Translatable f) => CodeGenModule (Function f) -> IO f
 simpleFunction bld = do
     m <- newModule
     func <- defineModule m bld
+    prov <- createModuleProviderForExistingModule m
+    runEngineAccess $ do
+        addModuleProvider prov
+        generateFunction func
+
+{-
+    m <- newModule
+    func <- defineModule m bld
 --    dumpValue func
     prov <- createModuleProviderForExistingModule m
     ee <- createExecutionEngine prov
-
     pm <- createFunctionPassManager prov
     td <- getExecutionEngineTargetData ee
     addTargetData td pm
@@ -78,8 +90,8 @@ simpleFunction bld = do
     finalizeFunctionPassManager pm
 --    print ("rc3", rc3)
 --    dumpValue func
-
     return $ generateFunction ee func
+-}
 
 -- | Combine 'simpleFunction' and 'unsafePurify'.
 unsafeGenerateFunction :: (Unsafe t a, Translatable t) =>

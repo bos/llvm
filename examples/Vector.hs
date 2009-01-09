@@ -1,7 +1,7 @@
 {-# LANGUAGE CPP #-}
 module Vector where
 import System.Process(system)
---import Control.Monad.Trans(liftIO)
+import Control.Monad
 import Data.TypeNumbers
 import Data.Word
 
@@ -74,16 +74,14 @@ main = do
     m <- newModule
     iovec <- defineModule m cgvec
 
-    ee <- createModuleProviderForExistingModule m >>= createExecutionEngine
-
 #if HAS_GETPOINTERTOGLOBAL
-    fptr <- getPointerToFunction ee iovec
+    fptr <- runEngineAccess $ do addModule m; getPointerToFunction iovec
     let fvec = convert fptr
 
     fvec 10 >>= print
 #endif
 
-    let vec = generateFunction ee iovec
+    vec <- runEngineAccess $ do addModule m; generateFunction iovec
 
     vec 10 >>= print
 
@@ -100,9 +98,10 @@ main = do
         Just iovec' = castModuleValue =<< lookup "vectest" funcs
 	ioretacc' :: Function (IO T)
         Just ioretacc' = castModuleValue =<< lookup "retacc" funcs
-    createModuleProviderForExistingModule m' >>= addModuleProvider ee
-    let vec' = generateFunction ee iovec'
-        retacc' = generateFunction ee ioretacc'
+    
+    (vec', retacc') <- runEngineAccess $ do
+        addModule m'
+        liftM2 (,) (generateFunction iovec') (generateFunction ioretacc')
 
     dumpValue iovec'
 

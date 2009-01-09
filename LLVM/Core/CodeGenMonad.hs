@@ -19,7 +19,7 @@ data CGMState = CGMState {
     cgm_next :: !Int
     }
 newtype CodeGenModule a = CGM (StateT CGMState IO a)
-    deriving (Monad, MonadState CGMState, MonadIO)
+    deriving (Functor, Monad, MonadState CGMState, MonadIO)
 
 genMSym :: String -> CodeGenModule String
 genMSym prefix = do
@@ -45,7 +45,7 @@ data CGFState r = CGFState {
     cgf_next :: !Int
     }
 newtype CodeGenFunction r a = CGF (StateT (CGFState r) IO a)
-    deriving (Monad, MonadState (CGFState r), MonadIO)
+    deriving (Functor, Monad, MonadState (CGFState r), MonadIO)
 
 genFSym :: CodeGenFunction a String
 genFSym = do
