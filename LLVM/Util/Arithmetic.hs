@@ -7,7 +7,7 @@ module LLVM.Util.Arithmetic(
     (%&&), (%||),
     (?),
     retrn,
-    ArithFunction(..)
+    ArithFunction(..), UnwrapArgs, toArithFunction,
     ) where
 import Data.Word
 import Data.Int
@@ -187,3 +187,36 @@ instance (Ret a r) => ArithFunction (CodeGenFunction r a) (CodeGenFunction r ())
 instance (ArithFunction b b') => ArithFunction (CodeGenFunction r a -> b) (a -> b') where
     arithFunction f = arithFunction . f . return
 
+-------------------------------------------
+
+class UncurryN a b | a -> b, b -> a where
+    uncurryN :: a -> b
+    curryN :: b -> a
+
+instance UncurryN (CodeGenFunction r a) (() -> CodeGenFunction r a) where
+    uncurryN i = \ () -> i
+    curryN f = f ()
+
+instance (UncurryN t (b -> c)) => UncurryN (a -> t) ((a, b) -> c) where
+    uncurryN f = \ (a, b) -> uncurryN (f a) b
+    curryN f = \ a -> curryN (\ b -> f (a, b))
+
+class LiftTuple r a b | a -> b, b -> a where
+    liftTuple :: a -> CodeGenFunction r b
+
+instance LiftTuple r () () where
+    liftTuple = return
+
+instance (LiftTuple r b b') => LiftTuple r (CodeGenFunction r a, b) (a, b') where
+    liftTuple (a, b) = do a' <- a; b' <- liftTuple b; return (a', b')
+
+class (UncurryN a (a1 -> CodeGenFunction r b1), LiftTuple r a1 b, UncurryN a2 (b -> CodeGenFunction r b1)) =>
+      UnwrapArgs a a1 b1 b a2 r | a -> a1 b1, a1 b1 -> a, a1 -> b, b -> a1, a2 -> b b1, b b -> a where
+    unwrapArgs :: a2 -> a
+instance (UncurryN a (a1 -> CodeGenFunction r b1), LiftTuple r a1 b, UncurryN a2 (b -> CodeGenFunction r b1)) =>
+         UnwrapArgs a a1 b1 b a2 r where
+    unwrapArgs f = curryN $ \ x -> do x' <- liftTuple x; uncurryN f x'
+
+toArithFunction :: (CallArgs f g, UnwrapArgs a a1 b1 b g r) =>
+                    Function f -> a
+toArithFunction f = unwrapArgs (call f)
