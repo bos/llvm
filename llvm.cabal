@@ -69,6 +69,7 @@ library
       LLVM.FFI.ExecutionEngine
       LLVM.FFI.Target
       LLVM.FFI.Transforms.Scalar
+      LLVM.Util.Arithmetic
 
   other-modules:
       LLVM.Core.CodeGen
