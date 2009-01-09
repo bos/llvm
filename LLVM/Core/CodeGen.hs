@@ -7,6 +7,7 @@ module LLVM.Core.CodeGen(
     Linkage(..),
     -- * Function creation
     Function, newFunction, newNamedFunction, defineFunction, createFunction, createNamedFunction,
+    externFunction,
     FunctionArgs, FunctionRet,
     TFunction,
     -- * Global variable creation
@@ -255,6 +256,22 @@ getCurrentBasicBlock :: CodeGenFunction r BasicBlock
 getCurrentBasicBlock = do
     bld <- getBuilder
     liftIO $ liftM BasicBlock $ U.getInsertBlock bld
+
+--------------------------------------
+
+-- |Create a reference to an external function while code generating for a function.
+externFunction :: forall a r . (IsFunction a) => String -> CodeGenFunction r (Function a)
+externFunction name = do
+    es <- getExterns
+    case lookup name es of
+        Just f -> return $ Value f
+        Nothing -> do
+            let linkage = ExternalLinkage
+            modul <- getFunctionModule
+            let typ = typeRef (undefined :: a)
+            f <- liftIO $ U.addFunction modul (fromIntegral $ fromEnum linkage) name typ
+            putExterns ((name, f) : es)
+	    return $ Value f
 
 --------------------------------------
 

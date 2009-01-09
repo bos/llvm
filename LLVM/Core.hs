@@ -52,6 +52,7 @@ module LLVM.Core(
     TFunction,
     -- * Global variable creation
     Global, newGlobal, newNamedGlobal, defineGlobal, createGlobal, createNamedGlobal,
+    externFunction,
     TGlobal,
     -- * Globals
     Linkage(..),

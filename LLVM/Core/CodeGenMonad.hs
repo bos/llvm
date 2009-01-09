@@ -3,7 +3,7 @@ module LLVM.Core.CodeGenMonad(
     -- * Module code generation
     CodeGenModule, runCodeGenModule, genMSym, getModule,
     -- * Function code generation
-    CodeGenFunction, runCodeGenFunction, genFSym, getFunction, getBuilder,
+    CodeGenFunction, runCodeGenFunction, genFSym, getFunction, getBuilder, getFunctionModule, getExterns, putExterns,
     -- * Reexport
     liftIO
     ) where
@@ -15,6 +15,7 @@ import LLVM.Core.Util(Module, Builder, Function)
 
 data CGMState = CGMState {
     cgm_module :: Module,
+    cgm_externs :: [(String, Function)],
     cgm_next :: !Int
     }
 newtype CodeGenModule a = CGM (StateT CGMState IO a)
@@ -32,12 +33,13 @@ getModule = gets cgm_module
 
 runCodeGenModule :: Module -> CodeGenModule a -> IO a
 runCodeGenModule m (CGM body) = do
-    let cgm = CGMState { cgm_module = m, cgm_next = 1 }
+    let cgm = CGMState { cgm_module = m, cgm_next = 1, cgm_externs = [] }
     evalStateT body cgm
 
 --------------------------------------
 
 data CGFState r = CGFState { 
+    cgf_module :: CGMState,
     cgf_builder :: Builder,
     cgf_function :: Function,
     cgf_next :: !Int
@@ -58,9 +60,25 @@ getFunction = gets cgf_function
 getBuilder :: CodeGenFunction a Builder
 getBuilder = gets cgf_builder
 
+getFunctionModule :: CodeGenFunction a Module
+getFunctionModule = gets (cgm_module . cgf_module)
+
+getExterns :: CodeGenFunction a [(String, Function)]
+getExterns = gets (cgm_externs . cgf_module)
+
+putExterns :: [(String, Function)] -> CodeGenFunction a ()
+putExterns es = do
+    cgf <- get
+    let cgm' = (cgf_module cgf) { cgm_externs = es }
+    put (cgf { cgf_module = cgm' })
+
 runCodeGenFunction :: Builder -> Function -> CodeGenFunction r a -> CodeGenModule a
 runCodeGenFunction bld fn (CGF body) = do
-    let cgf = CGFState { cgf_builder = bld,
+    cgm <- get
+    let cgf = CGFState { cgf_module = cgm,
+                         cgf_builder = bld,
     	      	       	 cgf_function = fn,
 			 cgf_next = 1 }
-    liftIO $ evalStateT body cgf
+    (a, cgf') <- liftIO $ runStateT body cgf
+    put (cgf_module cgf')
+    return a
