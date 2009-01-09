@@ -11,11 +11,11 @@ module LLVM.Core.Instructions(
     -- * Arithmetic binary operations
     -- | Arithmetic operations with the normal semantics.
     -- The u instractions are unsigned, the s instructions are signed.
-    add, sub, mul,
+    add, sub, mul, neg,
     udiv, sdiv, fdiv, urem, srem, frem,
     -- * Logical binary operations
     -- |Logical instructions with the normal semantics.
-    shl, lshr, ashr, and, or, xor,
+    shl, lshr, ashr, and, or, xor, inv,
     -- * Vector operations
     extractelement,
     insertelement,
@@ -216,6 +216,20 @@ buildBinOp op a1 a2 =
     liftM Value $
     withCurrentBuilder $ \ bld ->
       U.withEmptyCString $ op bld a1 a2
+
+type FFIUnOp = FFI.BuilderRef -> FFI.ValueRef -> U.CString -> IO FFI.ValueRef
+
+buildUnOp :: FFIUnOp -> FFI.ValueRef -> CodeGenFunction r (Value a)
+buildUnOp op a =
+    liftM Value $
+    withCurrentBuilder $ \ bld ->
+      U.withEmptyCString $ op bld a
+
+neg :: (IsArithmetic a) => Value a -> CodeGenFunction r (Value a)
+neg (Value x) = buildUnOp FFI.buildNeg x
+
+inv :: (IsInteger a) => Value a -> CodeGenFunction r (Value a)
+inv (Value x) = buildUnOp FFI.buildNot x
 
 --------------------------------------
 
