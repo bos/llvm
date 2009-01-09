@@ -73,12 +73,14 @@ c ? (t, f) = do
     condBr c' lt lf
     defineBasicBlock lt
     rt <- t
+    lt' <- getCurrentBasicBlock
     br lj
     defineBasicBlock lf
     rf <- f
+    lf' <- getCurrentBasicBlock
     br lj
     defineBasicBlock lj
-    phi [(rt, lt), (rf, lf)]
+    phi [(rt, lt'), (rf, lf')]
 
 retrn :: (Ret (Value a) r) => TValue r a -> CodeGenFunction r ()
 retrn x = x >>= ret
