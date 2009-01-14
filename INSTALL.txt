@@ -10,8 +10,15 @@ Prerequisites
 -------------
 
 Firstly, you'll need to have LLVM.  I recommend installing LLVM
-version 2.4 which is what it's been tested with.
+version 2.4 (from llvm.org) which is what it's been tested with.
+Do A or B.
 
+A) Install from a binary package.  Follow the LLVM instructions.
+The binary package at llvm.org for Windows only contains executable
+files and no libraries.  You can find a complete Windows binary package
+at ???.
+
+B) Install from source.
 Build this and install it somewhere.  Follow the LLVM instructions,
 or use this:
 
@@ -26,8 +33,12 @@ It's a good idea to have $SOMEWHERE/bin is in your path.
 Building
 --------
 It's normal cabal package, but using a configure script as well to
-configure LLVM.  It can be build and installed with the usual
-three steps.
+configure LLVM.  Do A or B.
+
+A) If you have cabal-install just do
+  cabal install --configure-option --with-llvm-prefix=$SOMEWHERE
+
+B) If you don't have cabal-install:
 
 Configure the package.
   runhaskell Setup configure --configure-option --with-llvm-prefix=$SOMEWHERE
