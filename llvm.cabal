@@ -11,7 +11,7 @@ stability: experimental
 category: Compilers/Interpreters, Code Generation
 tested-with: GHC == 6.8.2, GHC == 6.10.1
 cabal-version: >= 1.2.3
-build-type: Configure
+build-type: Custom
 
 extra-source-files:
     INSTALL.txt
@@ -36,6 +36,7 @@ extra-source-files:
     tools/Makefile
     tools/IntrinsicMangler.hs
     llvm.buildinfo.in
+    llvm.buildinfo.windows.in
 
 extra-tmp-files:
     autom4te.cache
