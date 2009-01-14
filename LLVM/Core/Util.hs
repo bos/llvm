@@ -34,7 +34,7 @@ module LLVM.Core.Util(
 import Data.List(intercalate)
 import Control.Monad(liftM, when)
 import Foreign.C.String (withCString, withCStringLen, CString, peekCString)
-import Foreign.ForeignPtr (ForeignPtr, FinalizerPtr, newForeignPtr, withForeignPtr)
+import Foreign.ForeignPtr (ForeignPtr, newForeignPtr, withForeignPtr)
 import Foreign.Ptr (nullPtr)
 import Foreign.Marshal.Array (withArrayLen, withArray, allocaArray, peekArray)
 import Foreign.Marshal.Alloc (alloca)
@@ -72,11 +72,7 @@ createModule :: String -> IO Module
 createModule name =
     withCString name $ \namePtr -> do
       ptr <- FFI.moduleCreateWithName namePtr
-      final <- h2c_module FFI.disposeModule
-      liftM Module $ newForeignPtr final ptr
-
-foreign import ccall "wrapper" h2c_module
-    :: (FFI.ModuleRef -> IO ()) -> IO (FinalizerPtr a)
+      liftM Module $ newForeignPtr FFI.ptrDisposeModule ptr
 -}
 
 -- Don't use a finalizer for the module, but instead provide an
@@ -136,8 +132,7 @@ readBitcodeFromFile name =
                 ptr <- peek modPtr
                 return $ Module ptr
 {-
-                final <- h2c_module FFI.disposeModule
-                liftM Module $ newForeignPtr final ptr
+                liftM Module $ newForeignPtr FFI.ptrDisposeModule ptr
 -}
 
 getModuleValues :: Module -> IO [(String, Value)]
@@ -214,11 +209,7 @@ createModuleProviderForExistingModule :: Module -> IO ModuleProvider
 createModuleProviderForExistingModule modul =
     withModule modul $ \modulPtr -> do
         ptr <- FFI.createModuleProviderForExistingModule modulPtr
-        final <- h2c_moduleProvider FFI.disposeModuleProvider
-        liftM ModuleProvider $ newForeignPtr final ptr
-
-foreign import ccall "wrapper" h2c_moduleProvider
-    :: (FFI.ModuleProviderRef -> IO ()) -> IO (FinalizerPtr a)
+        liftM ModuleProvider $ newForeignPtr FFI.ptrDisposeModuleProvider ptr
 
 
 --------------------------------------
@@ -233,12 +224,8 @@ withBuilder = withForeignPtr . fromBuilder
 
 createBuilder :: IO Builder
 createBuilder = do
-    final <- h2c_builder FFI.disposeBuilder
     ptr <- FFI.createBuilder
-    liftM Builder $ newForeignPtr final ptr
-
-foreign import ccall "wrapper" h2c_builder
-    :: (FFI.BuilderRef -> IO ()) -> IO (FinalizerPtr a)
+    liftM Builder $ newForeignPtr FFI.ptrDisposeBuilder ptr
 
 positionAtEnd :: Builder -> FFI.BasicBlockRef -> IO ()
 positionAtEnd bld bblk =
@@ -351,19 +338,14 @@ withPassManager = withForeignPtr . fromPassManager
 createPassManager :: IO PassManager
 createPassManager = do
     ptr <- FFI.createPassManager
-    final <- h2c_passManager FFI.disposePassManager
-    liftM PassManager $ newForeignPtr final ptr
+    liftM PassManager $ newForeignPtr FFI.ptrDisposePassManager ptr
 
 -- | Create a pass manager for a module.
 createFunctionPassManager :: ModuleProvider -> IO PassManager
 createFunctionPassManager modul =
     withModuleProvider modul $ \modulPtr -> do
         ptr <- FFI.createFunctionPassManager modulPtr
-        final <- h2c_passManager FFI.disposePassManager
-        liftM PassManager $ newForeignPtr final ptr
-
-foreign import ccall "wrapper" h2c_passManager
-    :: (FFI.PassManagerRef -> IO ()) -> IO (FinalizerPtr a)
+        liftM PassManager $ newForeignPtr FFI.ptrDisposePassManager ptr
 
 -- | Add a control flow graph simplification pass to the manager.
 addCFGSimplificationPass :: PassManager -> IO ()

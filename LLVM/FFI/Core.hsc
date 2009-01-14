@@ -18,6 +18,7 @@ module LLVM.FFI.Core
     , ModuleRef
     , moduleCreateWithName
     , disposeModule
+    , ptrDisposeModule
 
     , getDataLayout
     , setDataLayout
@@ -29,7 +30,7 @@ module LLVM.FFI.Core
     , ModuleProvider
     , ModuleProviderRef
     , createModuleProviderForExistingModule
-    , disposeModuleProvider
+    , ptrDisposeModuleProvider
 
     -- * Types
     , Type
@@ -246,7 +247,7 @@ module LLVM.FFI.Core
     , Builder
     , BuilderRef
     , createBuilder
-    , disposeBuilder
+    , ptrDisposeBuilder
     , positionBuilder
     , positionBefore
     , positionAtEnd
@@ -348,7 +349,7 @@ module LLVM.FFI.Core
     , PassManagerRef
     , createFunctionPassManager
     , createPassManager
-    , disposePassManager
+    , ptrDisposePassManager
     , finalizeFunctionPassManager
     , initializeFunctionPassManager
     , runFunctionPassManager
@@ -359,7 +360,7 @@ module LLVM.FFI.Core
 
 import Foreign.C.String (CString)
 import Foreign.C.Types (CDouble, CInt, CUInt, CULLong)
-import Foreign.Ptr (Ptr)
+import Foreign.Ptr (Ptr, FunPtr)
 
 #include <llvm-c/Core.h>
 
@@ -371,6 +372,9 @@ foreign import ccall unsafe "LLVMModuleCreateWithName" moduleCreateWithName
 
 foreign import ccall unsafe "LLVMDisposeModule" disposeModule
     :: ModuleRef -> IO ()
+
+foreign import ccall unsafe "&LLVMDisposeModule" ptrDisposeModule
+    :: FunPtr (ModuleRef -> IO ())
 
 foreign import ccall unsafe "LLVMGetDataLayout" getDataLayout
     :: ModuleRef -> IO CString
@@ -386,8 +390,8 @@ foreign import ccall unsafe "LLVMCreateModuleProviderForExistingModule"
     createModuleProviderForExistingModule
     :: ModuleRef -> IO ModuleProviderRef
 
-foreign import ccall unsafe "LLVMDisposeModuleProvider" disposeModuleProvider
-    :: ModuleProviderRef -> IO ()
+foreign import ccall unsafe "&LLVMDisposeModuleProvider" ptrDisposeModuleProvider
+    :: FunPtr (ModuleProviderRef -> IO ())
 
 
 data Type
@@ -805,8 +809,8 @@ type BuilderRef = Ptr Builder
 foreign import ccall unsafe "LLVMCreateBuilder" createBuilder
     :: IO BuilderRef
 
-foreign import ccall unsafe "LLVMDisposeBuilder" disposeBuilder
-    :: BuilderRef -> IO ()
+foreign import ccall unsafe "&LLVMDisposeBuilder" ptrDisposeBuilder
+    :: FunPtr (BuilderRef -> IO ())
 
 foreign import ccall unsafe "LLVMPositionBuilderBefore" positionBefore
     :: BuilderRef -> ValueRef -> IO ()
@@ -1045,8 +1049,8 @@ foreign import ccall unsafe "LLVMCreateFunctionPassManager" createFunctionPassMa
     :: ModuleProviderRef -> IO PassManagerRef
 foreign import ccall unsafe "LLVMCreatePassManager" createPassManager
     :: IO PassManagerRef
-foreign import ccall unsafe "LLVMDisposePassManager" disposePassManager
-    :: PassManagerRef -> IO ()
+foreign import ccall unsafe "&LLVMDisposePassManager" ptrDisposePassManager
+    :: FunPtr (PassManagerRef -> IO ())
 foreign import ccall unsafe "LLVMDumpModule" dumpModule
     :: ModuleRef -> IO ()
 foreign import ccall unsafe "LLVMFinalizeFunctionPassManager" finalizeFunctionPassManager

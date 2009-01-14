@@ -5,7 +5,7 @@ module LLVM.FFI.ExecutionEngine
     -- * Execution engines
       ExecutionEngine
     , createExecutionEngine
-    , disposeExecutionEngine
+    , ptrDisposeExecutionEngine
     , createInterpreter
     , createJITCompiler
     , addModuleProvider
@@ -32,12 +32,12 @@ module LLVM.FFI.ExecutionEngine
     , genericValueToFloat
     , createGenericValueOfPointer
     , genericValueToPointer
-    , disposeGenericValue
+    , ptrDisposeGenericValue
     ) where
 
 import Foreign.C.String (CString)
 import Foreign.C.Types (CDouble, CInt, CUInt, CULLong)
-import Foreign.Ptr (Ptr)
+import Foreign.Ptr (Ptr, FunPtr)
 #if HAS_GETPOINTERTOGLOBAL
 import Foreign.Ptr (FunPtr)
 #endif
@@ -52,8 +52,8 @@ foreign import ccall unsafe "LLVMCreateExecutionEngine" createExecutionEngine
     :: Ptr ExecutionEngineRef -> ModuleProviderRef -> Ptr CString
     -> IO CInt
 
-foreign import ccall unsafe "LLVMDisposeExecutionEngine" disposeExecutionEngine
-    :: ExecutionEngineRef -> IO ()
+foreign import ccall unsafe "&LLVMDisposeExecutionEngine" ptrDisposeExecutionEngine
+    :: FunPtr (ExecutionEngineRef -> IO ())
 
 foreign import ccall unsafe "LLVMRunStaticConstructors" runStaticConstructors
     :: ExecutionEngineRef -> IO ()
@@ -78,8 +78,8 @@ foreign import ccall unsafe "LLVMCreateGenericValueOfFloat"
 foreign import ccall unsafe "LLVMGenericValueToFloat" genericValueToFloat
     :: TypeRef -> GenericValueRef -> CDouble
 
-foreign import ccall unsafe "LLVMDisposeGenericValue" disposeGenericValue
-    :: GenericValueRef -> IO ()
+foreign import ccall unsafe "&LLVMDisposeGenericValue" ptrDisposeGenericValue
+    :: FunPtr (GenericValueRef -> IO ())
 
 foreign import ccall unsafe "LLVMRunFunction" runFunction
     :: ExecutionEngineRef -> ValueRef -> CUInt

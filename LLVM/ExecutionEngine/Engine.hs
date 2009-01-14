@@ -20,8 +20,7 @@ import Data.Int
 import Data.Word
 import Foreign.Marshal.Alloc (alloca, free)
 import Foreign.Marshal.Array (withArrayLen)
-import Foreign.ForeignPtr (FinalizerPtr, ForeignPtr, newForeignPtr,
-                           withForeignPtr)
+import Foreign.ForeignPtr (ForeignPtr, newForeignPtr, withForeignPtr)
 import Foreign.Marshal.Utils (fromBool)
 import Foreign.C.String (peekCString)
 import Foreign.Ptr (Ptr)
@@ -62,11 +61,7 @@ createExecutionEngine prov =
                     free err
                     ioError . userError $ errStr
             else do ptr <- peek eePtr
-                    final <- h2c_ee FFI.disposeExecutionEngine
-                    liftM ExecutionEngine $ newForeignPtr final ptr
-
-foreign import ccall "wrapper" h2c_ee
-    :: (Ptr FFI.ExecutionEngine -> IO ()) -> IO (FinalizerPtr a)
+                    liftM ExecutionEngine $ newForeignPtr FFI.ptrDisposeExecutionEngine ptr
 
 addModuleProvider :: ExecutionEngine -> ModuleProvider -> IO ()
 addModuleProvider ee prov =
@@ -177,12 +172,8 @@ withGenericValue = withForeignPtr . fromGenericValue
 
 createGenericValueWith :: IO FFI.GenericValueRef -> IO GenericValue
 createGenericValueWith f = do
-  final <- h2c_genericValue FFI.disposeGenericValue
   ptr <- f
-  liftM GenericValue $ newForeignPtr final ptr
-
-foreign import ccall "wrapper" h2c_genericValue
-    :: (FFI.GenericValueRef -> IO ()) -> IO (FinalizerPtr a)
+  liftM GenericValue $ newForeignPtr FFI.ptrDisposeGenericValue ptr
 
 withAll :: [GenericValue] -> (Int -> Ptr FFI.GenericValueRef -> IO a) -> IO a
 withAll ps a = go [] ps
