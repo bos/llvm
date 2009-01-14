@@ -36,10 +36,19 @@ main = do
                "++++++++++."
     prog <- if length args == 1 then readFile (head args) else return text
 
+    when (debug) $
+        writeFunction "BrainF.bc" $ brainCompile debug prog 65536
+
     bfprog <- simpleFunction $ brainCompile debug prog 65536
     when (prog == text) $
         putStrLn "Should print '!\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGH' on the next line:"
     bfprog
+
+writeFunction :: String -> CodeGenModule a -> IO ()
+writeFunction name f = do
+    m <- newModule
+    defineModule m f
+    writeBitcodeToFile name m
 
 brainCompile :: Bool -> String -> Word32 -> CodeGenModule (Function (IO ()))
 brainCompile debug instrs wmemtotal = do
@@ -124,7 +133,7 @@ brainCompile debug instrs wmemtotal = do
         gen _ c = error $ "Bad character in program: " ++ show c
 
 
-    brainf <- createFunction InternalLinkage $ do
+    brainf <- createFunction ExternalLinkage $ do
         ptr_arr <- arrayMalloc wmemtotal
         call memset ptr_arr (valueOf 0) (valueOf wmemtotal) (valueOf 0)
 --        _ptr_arrmax <- getElementPtr ptr_arr (wmemtotal, ())
@@ -136,8 +145,5 @@ brainCompile debug instrs wmemtotal = do
 
         free ptr_arr
         ret ()
-
-    when (debug) $
-        liftIO $ dumpValue brainf
 
     return brainf
