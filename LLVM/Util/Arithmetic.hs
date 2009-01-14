@@ -6,13 +6,16 @@ module LLVM.Util.Arithmetic(
     (%==), (%/=), (%<), (%<=), (%>), (%>=),
     (%&&), (%||),
     (?),
-    retrn,
-    ArithFunction(..), UnwrapArgs, toArithFunction, recursiveFunction
+    retrn, set,
+    ArithFunction, arithFunction,
+    UnwrapArgs, toArithFunction,
+    recursiveFunction
     ) where
 import Data.Word
 import Data.Int
 import LLVM.Core
 
+-- |Synonym for @CodeGenFunction r (Value a)@.
 type TValue r a = CodeGenFunction r (Value a)
 
 class Cmp a where
@@ -31,6 +34,8 @@ instance Cmp Float where cmp = fcmp . adjFloat
 instance Cmp Double where cmp = fcmp . adjFloat
 instance Cmp FP128 where cmp = fcmp . adjFloat
 
+instance (Cmp a) => Cmp (Vector n a)
+
 adjSigned :: IntPredicate -> IntPredicate
 adjSigned IntUGT = IntSGT
 adjSigned IntUGE = IntSGE
@@ -48,6 +53,7 @@ adjFloat IntULE = RealOLE
 adjFloat _ = error "adjFloat"
 
 infix  4  %==, %/=, %<, %<=, %>=, %>
+-- |Comparison functions.
 (%==), (%/=), (%<), (%<=), (%>), (%>=) :: (Cmp a) => TValue r a -> TValue r a -> TValue r Bool
 (%==) = binop $ cmp IntEQ
 (%/=) = binop $ cmp IntNE
@@ -58,12 +64,15 @@ infix  4  %==, %/=, %<, %<=, %>=, %>
 
 infixr 3  %&&
 infixr 2  %||
+-- |Lazy and.
 (%&&) :: TValue r Bool -> TValue r Bool -> TValue r Bool
 a %&& b = a ? (b, return (valueOf False))
+-- |Lazy or.
 (%||) :: TValue r Bool -> TValue r Bool -> TValue r Bool
 a %|| b = a ? (return (valueOf True), b)
 
 infix  0 ?
+-- |Conditional, returns first element of the pair when condition is true, otherwise second.
 (?) :: (IsFirstClass a) => TValue r Bool -> (TValue r a, TValue r a) -> TValue r a
 c ? (t, f) = do
     lt <- newBasicBlock
@@ -82,8 +91,13 @@ c ? (t, f) = do
     defineBasicBlock lj
     phi [(rt, lt'), (rf, lf')]
 
+-- | Return a value from an 'arithFunction'.
 retrn :: (Ret (Value a) r) => TValue r a -> CodeGenFunction r ()
 retrn x = x >>= ret
+
+-- | Use @x <- set $ ...@ to make a binding.
+set :: TValue r a -> (CodeGenFunction r (TValue r a))
+set x = do x' <- x; return (return x')
 
 instance (Show (TValue r a))
 instance (Eq (TValue r a))
@@ -181,13 +195,17 @@ callIntrinsic2 fn x y = do
 -------------------------------------------
 
 class ArithFunction a b | a -> b, b -> a where
-    arithFunction :: a -> b
+    arithFunction' :: a -> b
 
 instance (Ret a r) => ArithFunction (CodeGenFunction r a) (CodeGenFunction r ()) where
-    arithFunction x = x >>= ret
+    arithFunction' x = x >>= ret
 
 instance (ArithFunction b b') => ArithFunction (CodeGenFunction r a -> b) (a -> b') where
-    arithFunction f = arithFunction . f . return
+    arithFunction' f = arithFunction' . f . return
+
+-- |Unlift a function with @TValue@ to have @Value@ arguments.
+arithFunction :: ArithFunction a b => a -> b
+arithFunction = arithFunction'
 
 -------------------------------------------
 
@@ -213,18 +231,20 @@ instance (LiftTuple r b b') => LiftTuple r (CodeGenFunction r a, b) (a, b') wher
     liftTuple (a, b) = do a' <- a; b' <- liftTuple b; return (a', b')
 
 class (UncurryN a (a1 -> CodeGenFunction r b1), LiftTuple r a1 b, UncurryN a2 (b -> CodeGenFunction r b1)) =>
-      UnwrapArgs a a1 b1 b a2 r | a -> a1 b1, a1 b1 -> a, a1 -> b, b -> a1, a2 -> b b1, b b -> a where
+      UnwrapArgs a a1 b1 b a2 r | a -> a1 b1, a1 b1 -> a, a1 -> b, b -> a1, a2 -> b b1, b b1 -> a2 where
     unwrapArgs :: a2 -> a
 instance (UncurryN a (a1 -> CodeGenFunction r b1), LiftTuple r a1 b, UncurryN a2 (b -> CodeGenFunction r b1)) =>
          UnwrapArgs a a1 b1 b a2 r where
     unwrapArgs f = curryN $ \ x -> do x' <- liftTuple x; uncurryN f x'
 
+-- |Lift a function from having @Value@ arguments to having @TValue@ arguments.
 toArithFunction :: (CallArgs f g, UnwrapArgs a a1 b1 b g r) =>
                     Function f -> a
 toArithFunction f = unwrapArgs (call f)
 
 -------------------------------------------
 
+-- |Define a recursive 'arithFunction', gets pased itself as the first argument.
 recursiveFunction ::
         (CallArgs a g,
          UnwrapArgs a11 a1 b1 b g r,
