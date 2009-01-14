@@ -49,7 +49,8 @@ clean:
 	-$(MAKE) -C tests clean
 	-rm -f Setup.hi Setup.o
 	-./setup clean
-	-rm setup
+	-rm -f setup setup.exe setup.exe.manifest
+	-rm *~
 
 distclean: clean
 	-rm -f setup configure
