@@ -44,13 +44,13 @@ adjSigned IntULT = IntSLT
 adjSigned IntULE = IntSLE
 adjSigned p = p
 
-adjFloat :: IntPredicate -> RealPredicate
-adjFloat IntEQ  = RealOEQ
-adjFloat IntNE  = RealONE
-adjFloat IntUGT = RealOGT
-adjFloat IntUGE = RealOGE
-adjFloat IntULT = RealOLT
-adjFloat IntULE = RealOLE
+adjFloat :: IntPredicate -> FPPredicate
+adjFloat IntEQ  = FPOEQ
+adjFloat IntNE  = FPONE
+adjFloat IntUGT = FPOGT
+adjFloat IntUGE = FPOGE
+adjFloat IntULT = FPOLT
+adjFloat IntULE = FPOLE
 adjFloat _ = error "adjFloat"
 
 infix  4  %==, %/=, %<, %<=, %>=, %>

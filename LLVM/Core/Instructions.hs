@@ -35,7 +35,7 @@ module LLVM.Core.Instructions(
     ptrtoint, inttoptr,
     bitcast,
     -- * Comparison
-    IntPredicate(..), RealPredicate(..),
+    IntPredicate(..), FPPredicate(..),
     icmp, fcmp,
     select,
     -- * Other
@@ -347,27 +347,27 @@ data IntPredicate =
 fromIntPredicate :: IntPredicate -> CInt
 fromIntPredicate p = fromIntegral (fromEnum p + 32)
 
-data RealPredicate =
-    RealFalse           -- ^ Always false (always folded)
-  | RealOEQ             -- ^ True if ordered and equal
-  | RealOGT             -- ^ True if ordered and greater than
-  | RealOGE             -- ^ True if ordered and greater than or equal
-  | RealOLT             -- ^ True if ordered and less than
-  | RealOLE             -- ^ True if ordered and less than or equal
-  | RealONE             -- ^ True if ordered and operands are unequal
-  | RealORD             -- ^ True if ordered (no nans)
-  | RealUNO             -- ^ True if unordered: isnan(X) | isnan(Y)
-  | RealUEQ             -- ^ True if unordered or equal
-  | RealUGT             -- ^ True if unordered or greater than
-  | RealUGE             -- ^ True if unordered, greater than, or equal
-  | RealULT             -- ^ True if unordered or less than
-  | RealULE             -- ^ True if unordered, less than, or equal
-  | RealUNE             -- ^ True if unordered or not equal
-  | RealT               -- ^ Always true (always folded)
+data FPPredicate =
+    FPFalse           -- ^ Always false (always folded)
+  | FPOEQ             -- ^ True if ordered and equal
+  | FPOGT             -- ^ True if ordered and greater than
+  | FPOGE             -- ^ True if ordered and greater than or equal
+  | FPOLT             -- ^ True if ordered and less than
+  | FPOLE             -- ^ True if ordered and less than or equal
+  | FPONE             -- ^ True if ordered and operands are unequal
+  | FPORD             -- ^ True if ordered (no nans)
+  | FPUNO             -- ^ True if unordered: isnan(X) | isnan(Y)
+  | FPUEQ             -- ^ True if unordered or equal
+  | FPUGT             -- ^ True if unordered or greater than
+  | FPUGE             -- ^ True if unordered, greater than, or equal
+  | FPULT             -- ^ True if unordered or less than
+  | FPULE             -- ^ True if unordered, less than, or equal
+  | FPUNE             -- ^ True if unordered or not equal
+  | FPT               -- ^ Always true (always folded)
     deriving (Eq, Ord, Enum, Show)
 
-fromRealPredicate :: RealPredicate -> CInt
-fromRealPredicate p = fromIntegral (fromEnum p)
+fromFPPredicate :: FPPredicate -> CInt
+fromFPPredicate p = fromIntegral (fromEnum p)
 
 -- |Acceptable operands to comparison instructions.
 class CmpOp a b c | a b -> c where
@@ -391,8 +391,8 @@ icmp p = cmpop (flip FFI.buildICmp (fromIntPredicate p))
 -- XXX Vector
 -- | Compare floating point values.
 fcmp :: (IsFloating c, CmpOp a b c) =>
-        RealPredicate -> a -> b -> CodeGenFunction r (Value Bool)
-fcmp p = cmpop (flip FFI.buildFCmp (fromRealPredicate p))
+        FPPredicate -> a -> b -> CodeGenFunction r (Value Bool)
+fcmp p = cmpop (flip FFI.buildFCmp (fromFPPredicate p))
 
 --------------------------------------
 
@@ -632,25 +632,25 @@ instance (IsConst a) => Eq (ConstValue a)
 {-
 instance (IsConst a) => Eq (ConstValue a) where
     ConstValue x == ConstValue y  =
-        if isFloating x then ConstValue (FFI.constFCmp (fromRealPredicate RealOEQ) x y)
-                        else ConstValue (FFI.constICmp (fromIntPredicate    IntEQ) x y)
+        if isFloating x then ConstValue (FFI.constFCmp (fromFPPredicate  FPOEQ) x y)
+                        else ConstValue (FFI.constICmp (fromIntPredicate IntEQ) x y)
     ConstValue x /= ConstValue y  =
-        if isFloating x then ConstValue (FFI.constFCmp (fromRealPredicate RealONE) x y)
-                        else ConstValue (FFI.constICmp (fromIntPredicate    IntNE) x y)
+        if isFloating x then ConstValue (FFI.constFCmp (fromFPPredicate  FPONE) x y)
+                        else ConstValue (FFI.constICmp (fromIntPredicate IntNE) x y)
 
 instance (IsConst a) => Ord (ConstValue a) where
     ConstValue x <  ConstValue y  =
-        if isFloating x then ConstValue (FFI.constFCmp (fromRealPredicate RealOLT) x y)
-                        else ConstValue (FFI.constICmp (fromIntPredicate    IntLT) x y)
+        if isFloating x then ConstValue (FFI.constFCmp (fromFPPredicate  FPOLT) x y)
+                        else ConstValue (FFI.constICmp (fromIntPredicate IntLT) x y)
     ConstValue x <= ConstValue y  =
-        if isFloating x then ConstValue (FFI.constFCmp (fromRealPredicate RealOLE) x y)
-                        else ConstValue (FFI.constICmp (fromIntPredicate    IntLE) x y)
+        if isFloating x then ConstValue (FFI.constFCmp (fromFPPredicate  FPOLE) x y)
+                        else ConstValue (FFI.constICmp (fromIntPredicate IntLE) x y)
     ConstValue x >  ConstValue y  =
-        if isFloating x then ConstValue (FFI.constFCmp (fromRealPredicate RealOGT) x y)
-                        else ConstValue (FFI.constICmp (fromIntPredicate    IntGT) x y)
+        if isFloating x then ConstValue (FFI.constFCmp (fromFPPredicate  FPOGT) x y)
+                        else ConstValue (FFI.constICmp (fromIntPredicate IntGT) x y)
     ConstValue x >= ConstValue y  =
-        if isFloating x then ConstValue (FFI.constFCmp (fromRealPredicate RealOGE) x y)
-                        else ConstValue (FFI.constICmp (fromIntPredicate    IntGE) x y)
+        if isFloating x then ConstValue (FFI.constFCmp (fromFPPredicate  FPOGE) x y)
+                        else ConstValue (FFI.constICmp (fromIntPredicate IntGE) x y)
 -}
 
 instance (Num a, IsConst a) => Num (ConstValue a) where
