@@ -72,6 +72,7 @@ newtype Value a = Value { unValue :: FFI.ValueRef }
 
 newtype ConstValue a = ConstValue FFI.ValueRef
 
+-- XXX merge with IsArithmetic?
 class (IsArithmetic a) => IsConst a where
     constOf :: a -> ConstValue a
 

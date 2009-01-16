@@ -11,6 +11,7 @@ module LLVM.Util.Arithmetic(
     UnwrapArgs, toArithFunction,
     recursiveFunction
     ) where
+--import Data.TypeNumbers
 import Data.Word
 import Data.Int
 import LLVM.Core
@@ -103,7 +104,7 @@ instance (Show (TValue r a))
 instance (Eq (TValue r a))
 instance (Ord (TValue r a))
 
-instance (Cmp a, Num a, IsArithmetic a, IsConst a) => Num (TValue r a) where
+instance (Cmp a, Num a, IsConst a) => Num (TValue r a) where
     (+) = binop add
     (-) = binop sub
     (*) = binop mul
@@ -112,13 +113,13 @@ instance (Cmp a, Num a, IsArithmetic a, IsConst a) => Num (TValue r a) where
     signum x = x %< 0 ? (-1, x %> 0 ? (1, 0))
     fromInteger = return . valueOf . fromInteger
 
-instance (Cmp a, Num a, IsConst a, IsArithmetic a) => Enum (TValue r a) where
+instance (Cmp a, Num a, IsConst a) => Enum (TValue r a) where
     succ x = x + 1
     pred x = x - 1
     fromEnum _ = error "CodeGenFunction Value: fromEnum"
     toEnum = fromIntegral
 
-instance (Cmp a, Num a, IsConst a, IsArithmetic a) => Real (TValue r a) where
+instance (Cmp a, Num a, IsConst a) => Real (TValue r a) where
     toRational _ = error "CodeGenFunction Value: toRational"
 
 instance (Cmp a, Num a, IsConst a, IsInteger a) => Integral (TValue r a) where
@@ -257,4 +258,6 @@ recursiveFunction af = do
     let f' = toArithFunction f
     defineFunction f $ arithFunction (af f')
     return f
+
+-------------------------------------------
 

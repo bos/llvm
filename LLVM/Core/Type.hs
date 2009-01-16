@@ -16,7 +16,7 @@ module LLVM.Core.Type(
     IsSized,
     IsFunction,
 --    IsFunctionRet,
-    IsSequence,
+--    IsSequence,
     -- ** Others
     IsPowerOf2
     ) where
@@ -27,6 +27,10 @@ import LLVM.Core.Util(functionType)
 import LLVM.Core.Data
 import qualified LLVM.FFI.Core as FFI
 
+-- XXX
+-- IsSized should have two parameters, the second being the size and computed from the first
+
+-- Usage: vector precondition
 -- XXX This could defined inductively, but this is good enough for LLVM
 class (IsTypeNumber n) => IsPowerOf2 n
 instance IsPowerOf2 (D1 End)
@@ -51,6 +55,11 @@ instance IsPowerOf2 (D5 (D1 (D2 End)))
 class IsType a where
     typeRef :: a -> FFI.TypeRef  -- ^The argument is never evaluated
 
+-- XXX isFloating and typeName could be extracted from typeRef
+-- Usage:
+--   superclass of IsConst
+--   add, sub, mul, neg context
+--   used to get type name to call intrinsic
 -- |Arithmetic types, i.e., integral and floating types.
 class IsFirstClass a => IsArithmetic a where
     isFloating :: a -> Bool
@@ -58,23 +67,39 @@ class IsFirstClass a => IsArithmetic a where
     typeName :: a -> String -- XXX could be in IsType
 
 
+-- Usage:
+--  constI, allOnes
+--  many instructions.  XXX some need vector
+--  used to find signedness in Arithmetic
 -- |Integral types.
 class IsArithmetic a => IsInteger a where
     isSigned :: a -> Bool
 
+-- Usage:
+--  constF
+--  many instructions
 -- |Floating types.
 class IsArithmetic a => IsFloating a
 
+-- Usage:
+--  Precondition for Vector
 -- |Primitive types.
 class IsType a => IsPrimitive a
 
+-- Usage:
+--  Precondition for function args and result.
+--  Used by some instructions, like ret and phi.
+--  XXX IsSized as precondition?
 -- |First class types, i.e., the types that can be passed as arguments, etc.
 class IsType a => IsFirstClass a
 
 -- XXX use kind annotation
 -- |Sequence types, i.e., vectors and arrays
-class IsSequence c where dummy__ :: c a -> a; dummy__ = undefined
+--class IsSequence c where dummy__ :: c a -> a; dummy__ = undefined
 
+-- Usage:
+--  Context for Array being a type
+--  thus, allocation instructions
 -- |Types with a fixed size.
 class (IsType a) => IsSized a
 
@@ -154,6 +179,7 @@ instance (IsPowerOf2 n, IsPrimitive a, IsArithmetic a) => IsArithmetic (Vector n
 instance IsFloating Float
 instance IsFloating Double
 instance IsFloating FP128
+instance (IsPowerOf2 n, IsPrimitive a, IsFloating a) => IsFloating (Vector n a)
 
 instance (IsTypeNumber n) => IsInteger (IntN n) where isSigned _ = True
 instance (IsTypeNumber n) => IsInteger (WordN n) where isSigned _ = False
@@ -166,6 +192,7 @@ instance IsInteger Word8 where isSigned _ = False
 instance IsInteger Word16 where isSigned _ = False
 instance IsInteger Word32 where isSigned _ = False
 instance IsInteger Word64 where isSigned _ = False
+instance (IsPowerOf2 n, IsPrimitive a, IsInteger a) => IsInteger (Vector n a) where isSigned _ = isSigned (undefined :: a)
 
 instance IsFirstClass Float
 instance IsFirstClass Double
@@ -185,7 +212,7 @@ instance (IsPowerOf2 n, IsPrimitive a) => IsFirstClass (Vector n a)
 instance (IsType a) => IsFirstClass (Ptr a)
 instance IsFirstClass () -- XXX This isn't right, but () can be returned
 
-instance (IsTypeNumber n) => IsSequence (Array n)
+--instance (IsTypeNumber n) => IsSequence (Array n)
 --instance (IsPowerOf2 n, IsPrimitive a) => IsSequence (Vector n) a
 
 instance IsSized Float

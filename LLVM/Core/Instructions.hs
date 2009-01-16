@@ -144,8 +144,6 @@ unreachable = do
 
 --------------------------------------
 
--- XXX Vector ops not implemented
-
 type FFIBinOp = FFI.BuilderRef -> FFI.ValueRef -> FFI.ValueRef -> U.CString -> IO FFI.ValueRef
 type FFIConstBinOp = FFI.ValueRef -> FFI.ValueRef -> FFI.ValueRef
 
@@ -271,47 +269,47 @@ shufflevector (Value a) (Value b) (ConstValue mask) =
 
 -- XXX size a > size b not enforced
 -- | Truncate a value to a shorter bit width.
-trunc :: (IsInteger a, IsInteger b) => Value a -> CodeGenFunction r (Value b)
+trunc :: (IsInteger a, IsInteger b, IsPrimitive a, IsPrimitive b) => Value a -> CodeGenFunction r (Value b)
 trunc = convert FFI.buildTrunc
 
 -- XXX size a < size b not enforced
 -- | Zero extend a value to a wider width.
-zext :: (IsInteger a, IsInteger b) => Value a -> CodeGenFunction r (Value b)
+zext :: (IsInteger a, IsInteger b, IsPrimitive a, IsPrimitive b) => Value a -> CodeGenFunction r (Value b)
 zext = convert FFI.buildZExt
 
 -- XXX size a < size b not enforced
 -- | Sign extend a value to wider width.
-sext :: (IsInteger a, IsInteger b) => Value a -> CodeGenFunction r (Value b)
+sext :: (IsInteger a, IsInteger b, IsPrimitive a, IsPrimitive b) => Value a -> CodeGenFunction r (Value b)
 sext = convert FFI.buildSExt
 
 -- XXX size a > size b not enforced
 -- | Truncate a floating point value.
-fptrunc :: (IsFloating a, IsFloating b) => Value a -> CodeGenFunction r (Value b)
+fptrunc :: (IsFloating a, IsFloating b, IsPrimitive a, IsPrimitive b) => Value a -> CodeGenFunction r (Value b)
 fptrunc = convert FFI.buildFPTrunc
 
 -- XXX size a < size b not enforced
 -- | Extend a floating point value.
-fpext :: (IsFloating a, IsFloating b) => Value a -> CodeGenFunction r (Value b)
+fpext :: (IsFloating a, IsFloating b, IsPrimitive a, IsPrimitive b) => Value a -> CodeGenFunction r (Value b)
 fpext = convert FFI.buildFPExt
 
 -- | Convert a floating point value to an unsigned integer.
-fptoui :: (IsFloating a, IsInteger b) => Value a -> CodeGenFunction r (Value b)
+fptoui :: (IsFloating a, IsInteger b, IsPrimitive a, IsPrimitive b) => Value a -> CodeGenFunction r (Value b)
 fptoui = convert FFI.buildFPToUI
 
 -- | Convert a floating point value to a signed integer.
-fptosi :: (IsFloating a, IsInteger b) => Value a -> CodeGenFunction r (Value b)
+fptosi :: (IsFloating a, IsInteger b, IsPrimitive a, IsPrimitive b) => Value a -> CodeGenFunction r (Value b)
 fptosi = convert FFI.buildFPToSI
 
 -- | Convert an unsigned integer to a floating point value.
-uitofp :: (IsInteger a, IsFloating b) => Value a -> CodeGenFunction r (Value b)
+uitofp :: (IsInteger a, IsFloating b, IsPrimitive a, IsPrimitive b) => Value a -> CodeGenFunction r (Value b)
 uitofp = convert FFI.buildUIToFP
 
 -- | Convert a signed integer to a floating point value.
-sitofp :: (IsInteger a, IsFloating b) => Value a -> CodeGenFunction r (Value b)
+sitofp :: (IsInteger a, IsFloating b, IsPrimitive a, IsPrimitive b) => Value a -> CodeGenFunction r (Value b)
 sitofp = convert FFI.buildSIToFP
 
 -- | Convert a pointer to an integer.
-ptrtoint :: (IsInteger b) => Value (Ptr a) -> CodeGenFunction r (Value b)
+ptrtoint :: (IsInteger b, IsPrimitive b) => Value (Ptr a) -> CodeGenFunction r (Value b)
 ptrtoint = convert FFI.buildPtrToInt
 
 -- | Convert an integer to a pointer.
@@ -384,11 +382,13 @@ instance (IsConst a) => CmpOp a (Value a) a where
 instance (IsConst a) => CmpOp (Value a) a a where
     cmpop op a1 a2 = cmpop op a1 (valueOf a2)
 
+-- XXX Vector
 -- | Compare integers.
 icmp :: (IsInteger c, CmpOp a b c) =>
         IntPredicate -> a -> b -> CodeGenFunction r (Value Bool)
 icmp p = cmpop (flip FFI.buildICmp (fromIntPredicate p))
 
+-- XXX Vector
 -- | Compare floating point values.
 fcmp :: (IsFloating c, CmpOp a b c) =>
         RealPredicate -> a -> b -> CodeGenFunction r (Value Bool)

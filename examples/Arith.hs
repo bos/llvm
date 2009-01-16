@@ -24,6 +24,7 @@ type V = Vector (D4 End) Float
 
 mVFun :: CodeGenModule (Function (V -> IO V))
 mVFun = do
+{-
     vlogf' <- newNamedFunction ExternalLinkage "vlogf"
     let vlogf :: TValue r V -> TValue r V
         vlogf x = toArithFunction vlogf' x
@@ -32,6 +33,7 @@ mVFun = do
     let vexpf :: TValue r V -> TValue r V
 --	vexpf x = do x' <- x; call vexpf' x'
         vexpf x = toArithFunction vexpf' x
+-}
     createFunction ExternalLinkage $ arithFunction $ \ x ->
         vlogf x * vexpf x * x - 16
 
