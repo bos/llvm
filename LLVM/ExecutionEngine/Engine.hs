@@ -35,7 +35,7 @@ import LLVM.Core.Util(Module, ModuleProvider, withModuleProvider, createModule, 
 import qualified LLVM.FFI.ExecutionEngine as FFI
 import qualified LLVM.FFI.Target as FFI
 import qualified LLVM.Core.Util(Function)
-import LLVM.Core.Type(IsFirstClass, IsType(..))
+import LLVM.Core.Type(IsFirstClass, typeRef)
 
 {-
 -- |The type of the JITer.

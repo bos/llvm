@@ -7,19 +7,24 @@
 module LLVM.Core.Type(
     -- * Type classifier
     IsType(..),
+    TypeDesc(..),
     -- ** Special type classifiers
-    IsArithmetic(..),
-    IsInteger(..),
+    IsArithmetic,
+    IsInteger,
     IsFloating,
     IsPrimitive,
     IsFirstClass,
     IsSized,
     IsFunction,
---    IsFunctionRet,
---    IsSequence,
     -- ** Others
-    IsPowerOf2
+    IsPowerOf2,
+    -- ** Type tests
+    isFloating,
+    isSigned,
+    typeRef,
+    typeName
     ) where
+import Data.List(intercalate)
 import Data.Int
 import Data.Word
 import Data.TypeNumbers
@@ -53,7 +58,37 @@ instance IsPowerOf2 (D5 (D1 (D2 End)))
 
 -- |The 'IsType' class classifies all types that have an LLVM representation.
 class IsType a where
-    typeRef :: a -> FFI.TypeRef  -- ^The argument is never evaluated
+    typeDesc :: a -> TypeDesc
+
+typeRef :: (IsType a) => a -> FFI.TypeRef  -- ^The argument is never evaluated
+typeRef = code . typeDesc
+  where code TDFloat  = FFI.floatType
+  	code TDDouble = FFI.doubleType
+	code TDFP128  = FFI.fp128Type
+	code TDVoid   = FFI.voidType
+	code (TDInt _ n)  = FFI.integerType (fromInteger n)
+	code (TDArray n a) = FFI.arrayType (code a) (fromInteger n)
+	code (TDVector n a) = FFI.vectorType (code a) (fromInteger n)
+	code (TDPtr a) = FFI.pointerType (code a) 0
+	code (TDFunction as b) = functionType False (code b) (map code as)
+
+typeName :: (IsType a) => a -> String
+typeName = code . typeDesc
+  where code TDFloat  = "f32"
+  	code TDDouble = "f64"
+	code TDFP128  = "f128"
+	code TDVoid   = "void"
+	code (TDInt _ n)  = "i" ++ show n
+	code (TDArray n a) = "[" ++ show n ++ " x " ++ code a ++ "]"
+	code (TDVector n a) = "<" ++ show n ++ " x " ++ code a ++ ">"
+	code (TDPtr a) = code a ++ "*"
+	code (TDFunction as b) = code b ++ "(" ++ intercalate "," (map code as) ++ ")"
+
+-- |Type descriptor, used to convey type information through the LLVM API.
+data TypeDesc = TDFloat | TDDouble | TDFP128 | TDVoid | TDInt Bool Integer
+              | TDArray Integer TypeDesc | TDVector Integer TypeDesc
+	      | TDPtr TypeDesc | TDFunction [TypeDesc] TypeDesc
+    deriving (Eq, Ord, Show)
 
 -- XXX isFloating and typeName could be extracted from typeRef
 -- Usage:
@@ -61,25 +96,34 @@ class IsType a where
 --   add, sub, mul, neg context
 --   used to get type name to call intrinsic
 -- |Arithmetic types, i.e., integral and floating types.
-class IsFirstClass a => IsArithmetic a where
-    isFloating :: a -> Bool
-    isFloating _ = False
-    typeName :: a -> String -- XXX could be in IsType
-
+class IsFirstClass a => IsArithmetic a
 
 -- Usage:
 --  constI, allOnes
 --  many instructions.  XXX some need vector
 --  used to find signedness in Arithmetic
 -- |Integral types.
-class IsArithmetic a => IsInteger a where
-    isSigned :: a -> Bool
+class IsArithmetic a => IsInteger a
+
+isSigned :: (IsInteger a) => a -> Bool
+isSigned = is . typeDesc
+  where is (TDInt s _) = s
+  	is (TDVector _ a) = is a
+	is _ = error "isSigned got impossible input"
 
 -- Usage:
 --  constF
 --  many instructions
 -- |Floating types.
 class IsArithmetic a => IsFloating a
+
+isFloating :: (IsArithmetic a) => a -> Bool
+isFloating = is . typeDesc
+  where is TDFloat = True
+  	is TDDouble = True
+	is TDFP128 = True
+	is (TDVector _ a) = is a
+	is _ = False
 
 -- Usage:
 --  Precondition for Vector
@@ -105,94 +149,93 @@ class (IsType a) => IsSized a
 
 -- |Function type.
 class (IsType a) => IsFunction a where
-    funcType :: [FFI.TypeRef] -> a -> FFI.TypeRef
+    funcType :: [TypeDesc] -> a -> TypeDesc
 
 -- Only make instances for types that make sense in Haskell
 -- (i.e., some floating types are excluded).
 
 -- Floating point types.
-instance IsType Float  where typeRef _ = FFI.floatType
-instance IsType Double where typeRef _ = FFI.doubleType
-instance IsType FP128  where typeRef _ = FFI.fp128Type
+instance IsType Float  where typeDesc _ = TDFloat
+instance IsType Double where typeDesc _ = TDDouble
+instance IsType FP128  where typeDesc _ = TDFP128
 
 -- Void type
-instance IsType ()     where typeRef _ = FFI.voidType
+instance IsType ()     where typeDesc _ = TDVoid
 
 -- Label type
 --data Label
---instance IsType Label  where typeRef _ = FFI.labelType
+--instance IsType Label  where typeDesc _ = TDLabel
 
 -- Variable size integer types
 instance (IsTypeNumber n) => IsType (IntN n)
-    where typeRef _ = FFI.integerType (typeNumber (undefined :: n))
+    where typeDesc _ = TDInt True  (typeNumber (undefined :: n))
 
 instance (IsTypeNumber n) => IsType (WordN n)
-    where typeRef _ = FFI.integerType (typeNumber (undefined :: n))
+    where typeDesc _ = TDInt False (typeNumber (undefined :: n))
 
 -- Fixed size integer types.
-instance IsType Bool   where typeRef _ = FFI.int1Type
-instance IsType Word8  where typeRef _ = FFI.int8Type
-instance IsType Word16 where typeRef _ = FFI.int16Type
-instance IsType Word32 where typeRef _ = FFI.int32Type
-instance IsType Word64 where typeRef _ = FFI.int64Type
-instance IsType Int8   where typeRef _ = FFI.int8Type
-instance IsType Int16  where typeRef _ = FFI.int16Type
-instance IsType Int32  where typeRef _ = FFI.int32Type
-instance IsType Int64  where typeRef _ = FFI.int64Type
+instance IsType Bool   where typeDesc _ = TDInt False  1
+instance IsType Word8  where typeDesc _ = TDInt False  8
+instance IsType Word16 where typeDesc _ = TDInt False 16
+instance IsType Word32 where typeDesc _ = TDInt False 32
+instance IsType Word64 where typeDesc _ = TDInt False 64
+instance IsType Int8   where typeDesc _ = TDInt True   8
+instance IsType Int16  where typeDesc _ = TDInt True  16
+instance IsType Int32  where typeDesc _ = TDInt True  32
+instance IsType Int64  where typeDesc _ = TDInt True  64
 
 -- Sequence types
 instance (IsTypeNumber n, IsSized a) => IsType (Array n a)
-    where typeRef _ = FFI.arrayType (typeRef (undefined :: a))
-    	  	      		    (typeNumber (undefined :: n))
-
+    where typeDesc _ = TDArray (typeNumber (undefined :: n))
+    	  	               (typeDesc (undefined :: a))
 instance (IsPowerOf2 n, IsPrimitive a) => IsType (Vector n a)
-    where typeRef _ = FFI.vectorType (typeRef (undefined :: a))
-    	  	      		     (typeNumber (undefined :: n))
+    where typeDesc _ = TDVector (typeNumber (undefined :: n))
+    	  	       		(typeDesc (undefined :: a))
 
 instance (IsType a) => IsType (Ptr a) where
-    typeRef _ = FFI.pointerType (typeRef (undefined :: a)) 0
+    typeDesc _ = TDPtr (typeDesc (undefined :: a))
 
 -- Functions.
 instance (IsFirstClass a, IsFunction b) => IsType (a->b) where
-    typeRef = funcType []
+    typeDesc = funcType []
 
 instance (IsFirstClass a) => IsType (IO a) where
-    typeRef = funcType []
+    typeDesc = funcType []
 
 --- Instances to classify types
-instance IsArithmetic Float where isFloating _ = True; typeName _ = "f32"
-instance IsArithmetic Double where isFloating _ = True; typeName _ = "f64"
-instance IsArithmetic FP128 where isFloating _ = True; typeName _ = "f128"
-instance (IsTypeNumber n) => IsArithmetic (IntN n) where typeName _ = "i" ++ show (typeNumber (undefined :: n) :: Int)
-instance (IsTypeNumber n) => IsArithmetic (WordN n) where typeName _ = "i" ++ show (typeNumber (undefined :: n) :: Int)
-instance IsArithmetic Bool where typeName _ = "i1"
-instance IsArithmetic Int8 where typeName _ = "i8"
-instance IsArithmetic Int16 where typeName _ = "i16"
-instance IsArithmetic Int32 where typeName _ = "i32"
-instance IsArithmetic Int64 where typeName _ = "i64"
-instance IsArithmetic Word8 where typeName _ = "i8"
-instance IsArithmetic Word16 where typeName _ = "i16"
-instance IsArithmetic Word32 where typeName _ = "i32"
-instance IsArithmetic Word64 where typeName _ = "i64"
-instance (IsPowerOf2 n, IsPrimitive a, IsArithmetic a) => IsArithmetic (Vector n a) where typeName _ = error "vector type name"
+instance IsArithmetic Float
+instance IsArithmetic Double
+instance IsArithmetic FP128
+instance (IsTypeNumber n) => IsArithmetic (IntN n)
+instance (IsTypeNumber n) => IsArithmetic (WordN n)
+instance IsArithmetic Bool
+instance IsArithmetic Int8
+instance IsArithmetic Int16
+instance IsArithmetic Int32
+instance IsArithmetic Int64
+instance IsArithmetic Word8
+instance IsArithmetic Word16
+instance IsArithmetic Word32
+instance IsArithmetic Word64
+instance (IsPowerOf2 n, IsPrimitive a, IsArithmetic a) => IsArithmetic (Vector n a)
 
 instance IsFloating Float
 instance IsFloating Double
 instance IsFloating FP128
 instance (IsPowerOf2 n, IsPrimitive a, IsFloating a) => IsFloating (Vector n a)
 
-instance (IsTypeNumber n) => IsInteger (IntN n) where isSigned _ = True
-instance (IsTypeNumber n) => IsInteger (WordN n) where isSigned _ = False
-instance IsInteger Bool where isSigned _ = False
-instance IsInteger Int8 where isSigned _ = True
-instance IsInteger Int16 where isSigned _ = True
-instance IsInteger Int32 where isSigned _ = True
-instance IsInteger Int64 where isSigned _ = True
-instance IsInteger Word8 where isSigned _ = False
-instance IsInteger Word16 where isSigned _ = False
-instance IsInteger Word32 where isSigned _ = False
-instance IsInteger Word64 where isSigned _ = False
-instance (IsPowerOf2 n, IsPrimitive a, IsInteger a) => IsInteger (Vector n a) where isSigned _ = isSigned (undefined :: a)
+instance (IsTypeNumber n) => IsInteger (IntN n)
+instance (IsTypeNumber n) => IsInteger (WordN n)
+instance IsInteger Bool
+instance IsInteger Int8
+instance IsInteger Int16
+instance IsInteger Int32
+instance IsInteger Int64
+instance IsInteger Word8
+instance IsInteger Word16
+instance IsInteger Word32
+instance IsInteger Word64
+instance (IsPowerOf2 n, IsPrimitive a, IsInteger a) => IsInteger (Vector n a)
 
 instance IsFirstClass Float
 instance IsFirstClass Double
@@ -252,9 +295,9 @@ instance IsPrimitive ()
 
 -- Functions.
 instance (IsFirstClass a, IsFunction b) => IsFunction (a->b) where
-    funcType ts _ = funcType (typeRef (undefined :: a) : ts) (undefined :: b)
+    funcType ts _ = funcType (typeDesc (undefined :: a) : ts) (undefined :: b)
 instance (IsFirstClass a) => IsFunction (IO a) where
-    funcType ts _ = functionType False (typeRef (undefined :: a)) (reverse ts)
+    funcType ts _ = TDFunction (reverse ts) (typeDesc (undefined :: a))
 
 -- XXX Structures not implemented.  Tuples is probably an easy way.
 
