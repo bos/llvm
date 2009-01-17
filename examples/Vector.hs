@@ -7,8 +7,8 @@ import Data.Word
 
 import LLVM.Core
 import LLVM.ExecutionEngine
+import LLVM.Util.Loop
 
-import Loop
 import Convert
 
 -- Type of vector elements.

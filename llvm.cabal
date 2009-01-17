@@ -27,7 +27,6 @@ extra-source-files:
     examples/DotProd.hs
     examples/Fibonacci.hs
     examples/HelloJIT.hs
-    examples/Loop.hs
     examples/Vector.hs
     examples/Makefile
     examples/mainfib.c
@@ -73,6 +72,7 @@ library
       LLVM.FFI.Target
       LLVM.FFI.Transforms.Scalar
       LLVM.Util.Arithmetic
+      LLVM.Util.Loop
 
   other-modules:
       LLVM.Core.CodeGen

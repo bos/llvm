@@ -3,8 +3,7 @@ import Data.Word
 
 import LLVM.Core
 --import LLVM.ExecutionEngine
-
-import Loop
+import LLVM.Util.Loop
 
 cg :: CodeGenModule (Function (Double -> IO (Ptr Double)))
 cg = do

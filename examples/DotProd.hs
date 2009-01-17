@@ -7,8 +7,7 @@ import Foreign.Ptr
 import Foreign.Storable
 import LLVM.Core
 import LLVM.ExecutionEngine
-
-import Loop
+import LLVM.Util.Loop
 
 mDotProd :: forall n a . (IsPowerOf2 n, IsTypeNumber n,
 	                  IsPrimitive a, IsArithmetic a, IsFirstClass a, IsConst a, Num a,

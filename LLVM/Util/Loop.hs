@@ -1,11 +1,12 @@
 {-# LANGUAGE ScopedTypeVariables, FlexibleInstances, TypeOperators #-}
-module Loop(Phi, (:*)(..), forLoop) where
+module LLVM.Util.Loop(Phi, forLoop) where
 import LLVM.Core
 
 class Phi a where
     phis :: BasicBlock -> a -> CodeGenFunction r a
     addPhis :: BasicBlock -> a -> a -> CodeGenFunction r ()
 
+{-
 infixr 1 :*
 -- XXX should use HList if it was packaged in a nice way.
 data a :* b = a :* b
@@ -19,6 +20,7 @@ instance (IsFirstClass a, Phi b) => Phi (Value a :* b) where
     addPhis bb (a :* b) (a' :* b') = do
         addPhiInputs a [(a', bb)]
         addPhis bb b b'
+-}
 
 instance Phi () where
     phis _ _ = return ()

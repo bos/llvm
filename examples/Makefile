@@ -5,8 +5,7 @@ examples := HelloJIT Fibonacci BrainF Vector Array DotProd Arith
 
 all: $(examples)
 
-Vector:	Loop.hs Convert.hs
-Array: Loop.hs
+Vector:	Convert.hs
 
 %: %.hs
 	$(ghc) $(ghcflags) --make -o $@ -main-is $(basename $<).main $<
