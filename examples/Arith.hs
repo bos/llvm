@@ -35,7 +35,7 @@ mVFun = do
         vexpf x = toArithFunction vexpf' x
 -}
     createFunction ExternalLinkage $ arithFunction $ \ x ->
-        vlogf x * vexpf x * x - 16
+        log x * exp x * x - 16
 
 
 writeFunction :: String -> CodeGenModule a -> IO ()

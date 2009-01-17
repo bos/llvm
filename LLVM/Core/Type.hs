@@ -7,7 +7,6 @@
 module LLVM.Core.Type(
     -- * Type classifier
     IsType(..),
-    TypeDesc(..),
     -- ** Special type classifiers
     IsArithmetic,
     IsInteger,
@@ -19,6 +18,7 @@ module LLVM.Core.Type(
     -- ** Others
     IsPowerOf2,
     -- ** Type tests
+    TypeDesc(..),
     isFloating,
     isSigned,
     typeRef,
@@ -137,10 +137,6 @@ class IsType a => IsPrimitive a
 -- |First class types, i.e., the types that can be passed as arguments, etc.
 class IsType a => IsFirstClass a
 
--- XXX use kind annotation
--- |Sequence types, i.e., vectors and arrays
---class IsSequence c where dummy__ :: c a -> a; dummy__ = undefined
-
 -- Usage:
 --  Context for Array being a type
 --  thus, allocation instructions
@@ -161,10 +157,6 @@ instance IsType FP128  where typeDesc _ = TDFP128
 
 -- Void type
 instance IsType ()     where typeDesc _ = TDVoid
-
--- Label type
---data Label
---instance IsType Label  where typeDesc _ = TDLabel
 
 -- Variable size integer types
 instance (IsTypeNumber n) => IsType (IntN n)
@@ -192,6 +184,7 @@ instance (IsPowerOf2 n, IsPrimitive a) => IsType (Vector n a)
     where typeDesc _ = TDVector (typeNumber (undefined :: n))
     	  	       		(typeDesc (undefined :: a))
 
+-- Pointer type.
 instance (IsType a) => IsType (Ptr a) where
     typeDesc _ = TDPtr (typeDesc (undefined :: a))
 
@@ -199,6 +192,7 @@ instance (IsType a) => IsType (Ptr a) where
 instance (IsFirstClass a, IsFunction b) => IsType (a->b) where
     typeDesc = funcType []
 
+-- Function base type, always IO.
 instance (IsFirstClass a) => IsType (IO a) where
     typeDesc = funcType []
 
@@ -254,9 +248,6 @@ instance IsFirstClass Word64
 instance (IsPowerOf2 n, IsPrimitive a) => IsFirstClass (Vector n a)
 instance (IsType a) => IsFirstClass (Ptr a)
 instance IsFirstClass () -- XXX This isn't right, but () can be returned
-
---instance (IsTypeNumber n) => IsSequence (Array n)
---instance (IsPowerOf2 n, IsPrimitive a) => IsSequence (Vector n) a
 
 instance IsSized Float
 instance IsSized Double
