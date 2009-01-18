@@ -183,14 +183,18 @@ binop op x y = do
 callIntrinsicP1 :: forall a b r . (IsFirstClass a, IsFirstClass b, IsPrimitive a) =>
 	           String -> Value a -> TValue r b
 callIntrinsicP1 fn x = do
-    op :: Function (a -> IO b) <- externFunction ("llvm." ++ fn ++ "." ++ typeName (undefined :: a)) [ReadNoneAttribute]
-    call op x
+    op :: Function (a -> IO b) <- externFunction ("llvm." ++ fn ++ "." ++ typeName (undefined :: a))
+    r <- call op x
+    addAttributes r 0 [ReadNoneAttribute]
+    return r
 
 callIntrinsicP2 :: forall a b c r . (IsFirstClass a, IsFirstClass b, IsFirstClass c, IsPrimitive a) =>
 	           String -> Value a -> Value b -> TValue r c
 callIntrinsicP2 fn x y = do
-    op :: Function (a -> b -> IO c) <- externFunction ("llvm." ++ fn ++ "." ++ typeName (undefined :: a)) [ReadNoneAttribute]
-    call op x y
+    op :: Function (a -> b -> IO c) <- externFunction ("llvm." ++ fn ++ "." ++ typeName (undefined :: a))
+    r <- call op x y
+    addAttributes r 0 [ReadNoneAttribute]
+    return r
 
 -------------------------------------------
 
@@ -284,7 +288,10 @@ callIntrinsic2 s x y = do x' <- x; y' <- y; callIntrinsic2' s x' y'
 
 #if defined(__MACOS__)
 instance CallIntrinsic (Vector (D4 End) Float) where
-    callIntrinsic1' s x | hasVFun   = do op <- externFunction ("v" ++ s ++ "f") [ReadNoneAttribute]; call op x
+    callIntrinsic1' s x | hasVFun   = do op <- externFunction ("v" ++ s ++ "f")
+    		      	  	         r <- call op x
+					 addAttributes r 0 [ReadNoneAttribute]
+					 return r
     		        | otherwise = mapVector (callIntrinsic1' s) x
       where hasVFun = s `elem` ["sqrt", "log", "exp", "sin", "cos", "tan"]
     callIntrinsic2' s = mapVector2 (callIntrinsic2' s)
