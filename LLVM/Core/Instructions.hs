@@ -416,7 +416,7 @@ fcmp p = cmpop (flip FFI.buildFCmp (fromFPPredicate p))
 -- XXX can handle vectors, needs bool vector args
 -- XXX could do const song and dance
 -- | Select between two values depending on a boolean.
-select :: (IsFirstClass a) => Value Bool -> Value a -> Value a -> CodeGenFunction r (Value a)
+select :: (IsFirstClass a, CmpRet a b) => Value b -> Value a -> Value a -> CodeGenFunction r (Value a)
 select (Value cnd) (Value thn) (Value els) =
     liftM Value $
       withCurrentBuilder $ \ bldPtr ->
