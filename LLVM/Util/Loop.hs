@@ -1,5 +1,6 @@
-{-# LANGUAGE ScopedTypeVariables, FlexibleInstances, TypeOperators #-}
-module LLVM.Util.Loop(Phi, forLoop) where
+{-# LANGUAGE ScopedTypeVariables, FlexibleInstances, TypeOperators, FlexibleContexts #-}
+module LLVM.Util.Loop(Phi, forLoop, mapVector, mapVector2) where
+import Data.TypeNumbers
 import LLVM.Core
 
 class Phi a where
@@ -55,7 +56,7 @@ instance (Phi a, Phi b, Phi c) => Phi (a, b, c) where
 
 -- Loop the index variable from low to high.  The state in the loop starts as start, and is modified
 -- by incr in each iteration.
-forLoop :: forall i a r . (Phi a, Num i, IsConst i, IsInteger i, IsFirstClass i) =>
+forLoop :: forall i a r . (Phi a, Num i, IsConst i, IsInteger i, IsFirstClass i, CmpRet i Bool) =>
            Value i -> Value i -> a -> (Value i -> a -> CodeGenFunction r a) -> CodeGenFunction r a
 forLoop low high start incr = do
     top <- getCurrentBasicBlock
@@ -83,3 +84,26 @@ forLoop low high start incr = do
     defineBasicBlock exit
 
     return vars
+
+--------------------------------------
+
+mapVector :: forall a b n r .
+             (IsPowerOf2 n, IsPrimitive b) =>
+             (Value a -> CodeGenFunction r (Value b)) ->
+             Value (Vector n a) -> CodeGenFunction r (Value (Vector n b))
+mapVector f v =
+    forLoop (valueOf 0) (valueOf (typeNumber (undefined :: n))) (value undef) $ \ i w -> do
+        x <- extractelement v i
+        y <- f x
+        insertelement w y i
+
+mapVector2 :: forall a b c n r .
+             (IsPowerOf2 n, IsPrimitive c) =>
+             (Value a -> Value b -> CodeGenFunction r (Value c)) ->
+             Value (Vector n a) -> Value (Vector n b) -> CodeGenFunction r (Value (Vector n c))
+mapVector2 f v1 v2 =
+    forLoop (valueOf 0) (valueOf (typeNumber (undefined :: n))) (value undef) $ \ i w -> do
+        x <- extractelement v1 i
+        y <- extractelement v2 i
+        z <- f x y
+        insertelement w z i
