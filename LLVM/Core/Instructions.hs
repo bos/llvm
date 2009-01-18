@@ -36,6 +36,7 @@ module LLVM.Core.Instructions(
     bitcast,
     -- * Comparison
     IntPredicate(..), FPPredicate(..),
+    CmpRet,
     icmp, fcmp,
     select,
     -- * Other
@@ -370,28 +371,43 @@ fromFPPredicate :: FPPredicate -> CInt
 fromFPPredicate p = fromIntegral (fromEnum p)
 
 -- |Acceptable operands to comparison instructions.
-class CmpOp a b c | a b -> c where
-    cmpop :: FFIBinOp -> a -> b -> CodeGenFunction r (Value Bool)
+class CmpOp a b c d | a b -> c where
+    cmpop :: FFIBinOp -> a -> b -> CodeGenFunction r (Value d)
 
-instance CmpOp (Value a) (Value a) a where
+instance CmpOp (Value a) (Value a) a d where
     cmpop op (Value a1) (Value a2) = buildBinOp op a1 a2
 
-instance (IsConst a) => CmpOp a (Value a) a where
+instance (IsConst a) => CmpOp a (Value a) a d where
     cmpop op a1 a2 = cmpop op (valueOf a1) a2
 
-instance (IsConst a) => CmpOp (Value a) a a where
+instance (IsConst a) => CmpOp (Value a) a a d where
     cmpop op a1 a2 = cmpop op a1 (valueOf a2)
+
+class CmpRet a b | a -> b
+instance CmpRet Float Bool
+instance CmpRet Double Bool
+instance CmpRet FP128 Bool
+instance CmpRet Bool Bool
+instance CmpRet Word8 Bool
+instance CmpRet Word16 Bool
+instance CmpRet Word32 Bool
+instance CmpRet Word64 Bool
+instance CmpRet Int8 Bool
+instance CmpRet Int16 Bool
+instance CmpRet Int32 Bool
+instance CmpRet Int64 Bool
+instance CmpRet (Vector n a) (Vector n Bool)
 
 -- XXX Vector
 -- | Compare integers.
-icmp :: (IsInteger c, CmpOp a b c) =>
-        IntPredicate -> a -> b -> CodeGenFunction r (Value Bool)
+icmp :: (IsInteger c, CmpOp a b c d, CmpRet c d) =>
+        IntPredicate -> a -> b -> CodeGenFunction r (Value d)
 icmp p = cmpop (flip FFI.buildICmp (fromIntPredicate p))
 
 -- XXX Vector
 -- | Compare floating point values.
-fcmp :: (IsFloating c, CmpOp a b c) =>
-        FPPredicate -> a -> b -> CodeGenFunction r (Value Bool)
+fcmp :: (IsFloating c, CmpOp a b c d, CmpRet c d) =>
+        FPPredicate -> a -> b -> CodeGenFunction r (Value d)
 fcmp p = cmpop (flip FFI.buildFCmp (fromFPPredicate p))
 
 --------------------------------------
