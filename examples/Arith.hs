@@ -30,19 +30,13 @@ mFib = recursiveFunction $ \ rfib n -> n %< 2 ? (1, rfib (n-1) + rfib (n-2))
 
 type V = Vector (D4 End) Float
 
---mVFun :: CodeGenModule (Function (V -> IO V))
 mVFun :: CodeGenModule (Function (Ptr V -> Ptr V -> IO ()))
 mVFun = do
     fn :: Function (V -> IO V)
        <- createFunction ExternalLinkage $ arithFunction $ \ x ->
             log x * exp x * x - 16
 
-    createFunction ExternalLinkage $ \ px py -> do
-        x <- load px
-        y <- call fn x
-        store y py
-	ret ()
-
+    vectorToPtr fn
 
 writeFunction :: String -> CodeGenModule a -> IO ()
 writeFunction name f = do
@@ -53,7 +47,7 @@ writeFunction name f = do
 
 main :: IO ()
 main = do
-{-
+
     let mSomeFn' = mSomeFn
     ioSomeFn <- simpleFunction mSomeFn'
     let someFn :: Double -> Double
@@ -68,20 +62,27 @@ main = do
 
     fib <- simpleFunction mFib
     fib 22 >>= print
--}
+
 
     writeFunction "VArith.bc" mVFun
 
     ioVFun <- simpleFunction mVFun
-    let --vfun = unsafePurify ioVFun
-        v :: V
-        v = mkVector (1,2,3,4)
+    let v = mkVector (1,2,3,4)
 
---    print $ vfun v
-    r <- with v $ \ aPtr ->
-           F.alloca $ \ bPtr -> do
-             ioVFun aPtr bPtr
-             peek bPtr
+    r <- vectorPtrWrap ioVFun v
     print r
 
-    return ()
+vectorToPtr :: Function (V -> IO V) -> CodeGenModule (Function (Ptr V -> Ptr V -> IO ()))
+vectorToPtr f =
+    createFunction ExternalLinkage $ \ px py -> do
+        x <- load px
+        y <- call f x
+        store y py
+	ret ()
+
+vectorPtrWrap :: (Ptr V -> Ptr V -> IO ()) -> V -> IO V
+vectorPtrWrap f v =
+    with v $ \ aPtr ->
+        F.alloca $ \ bPtr -> do
+             f aPtr bPtr
+             peek bPtr
