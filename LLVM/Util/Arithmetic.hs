@@ -1,5 +1,5 @@
 {-# OPTIONS_GHC -fno-warn-orphans #-}
-{-# LANGUAGE FlexibleInstances, ScopedTypeVariables, FlexibleContexts, UndecidableInstances, TypeSynonymInstances, MultiParamTypeClasses, FunctionalDependencies #-}
+{-# LANGUAGE CPP, FlexibleInstances, ScopedTypeVariables, FlexibleContexts, UndecidableInstances, TypeSynonymInstances, MultiParamTypeClasses, FunctionalDependencies, OverlappingInstances #-}
 module LLVM.Util.Arithmetic(
     TValue,
     Cmp,
@@ -9,12 +9,14 @@ module LLVM.Util.Arithmetic(
     retrn, set,
     ArithFunction, arithFunction,
     UnwrapArgs, toArithFunction,
-    recursiveFunction
+    recursiveFunction,
+    CallIntrinsic,
     ) where
---import Data.TypeNumbers
+import Data.TypeNumbers
 import Data.Word
 import Data.Int
 import LLVM.Core
+import LLVM.Util.Loop(mapVector, mapVector2)
 
 -- |Synonym for @CodeGenFunction r (Value a)@.
 type TValue r a = CodeGenFunction r (Value a)
@@ -34,8 +36,6 @@ instance Cmp Int64 where cmp = icmp . adjSigned
 instance Cmp Float where cmp = fcmp . adjFloat
 instance Cmp Double where cmp = fcmp . adjFloat
 instance Cmp FP128 where cmp = fcmp . adjFloat
-
-instance (Cmp a) => Cmp (Vector n a)
 
 adjSigned :: IntPredicate -> IntPredicate
 adjSigned IntUGT = IntSGT
@@ -104,38 +104,42 @@ instance (Show (TValue r a))
 instance (Eq (TValue r a))
 instance (Ord (TValue r a))
 
-instance (Cmp a, Num a, IsConst a) => Num (TValue r a) where
+instance (Num a, IsConst a) => Num (TValue r a) where
     (+) = binop add
     (-) = binop sub
     (*) = binop mul
     negate = (>>= neg)
+    abs _ = error "Num TValue: abs"
+    signum _ = error "Num TValue: signum"
+{-
     abs x = x %< 0 ? (-x, x)
     signum x = x %< 0 ? (-1, x %> 0 ? (1, 0))
+-}
     fromInteger = return . valueOf . fromInteger
 
-instance (Cmp a, Num a, IsConst a) => Enum (TValue r a) where
+instance (Num a, IsConst a) => Enum (TValue r a) where
     succ x = x + 1
     pred x = x - 1
     fromEnum _ = error "CodeGenFunction Value: fromEnum"
     toEnum = fromIntegral
 
-instance (Cmp a, Num a, IsConst a) => Real (TValue r a) where
+instance (Num a, IsConst a) => Real (TValue r a) where
     toRational _ = error "CodeGenFunction Value: toRational"
 
-instance (Cmp a, Num a, IsConst a, IsInteger a) => Integral (TValue r a) where
+instance (Num a, IsConst a, IsInteger a) => Integral (TValue r a) where
     quot = binop (if (isSigned (undefined :: a)) then sdiv else udiv)
     rem  = binop (if (isSigned (undefined :: a)) then srem else urem)
     quotRem x y = (quot x y, rem x y)
     toInteger _ = error "CodeGenFunction Value: toInteger"
 
-instance (Cmp a, Fractional a, IsConst a, IsFloating a) => Fractional (TValue r a) where
+instance (Fractional a, IsConst a, IsFloating a) => Fractional (TValue r a) where
     (/) = binop fdiv
     fromRational = return . valueOf . fromRational
 
-instance (Cmp a, Fractional a, IsConst a, IsFloating a) => RealFrac (TValue r a) where
+instance (Fractional a, IsConst a, IsFloating a) => RealFrac (TValue r a) where
     properFraction _ = error "CodeGenFunction Value: properFraction"
 
-instance (Cmp a, Floating a, IsConst a, IsFloating a) => Floating (TValue r a) where
+instance (CallIntrinsic a, Floating a, IsConst a, IsFloating a) => Floating (TValue r a) where
     pi = return $ valueOf pi
     sqrt = callIntrinsic1 "sqrt"
     sin = callIntrinsic1 "sin"
@@ -154,7 +158,7 @@ instance (Cmp a, Floating a, IsConst a, IsFloating a) => Floating (TValue r a) w
     acosh x          = log (x + sqrt (x*x - 1))
     atanh x          = (log (1 + x) - log (1 - x)) / 2
 
-instance (Cmp a, RealFloat a, IsConst a, IsFloating a) => RealFloat (TValue r a) where
+instance (CallIntrinsic a, RealFloat a, IsConst a, IsFloating a) => RealFloat (TValue r a) where
     floatRadix _ = floatRadix (undefined :: a)
     floatDigits _ = floatDigits (undefined :: a)
     floatRange _ = floatRange (undefined :: a)
@@ -176,22 +180,17 @@ binop op x y = do
     y' <- y
     op x' y'
 
-callIntrinsic1 :: forall a b r . (IsArithmetic a, IsFirstClass b) =>
-	          String -> TValue r a -> TValue r b
-callIntrinsic1 fn x = do
-    x' <- x
-    op <- externFunction ("llvm." ++ fn ++ "." ++ typeName (undefined :: a))
-    let _ = op :: Function (a -> IO b)
-    call op x'
+callIntrinsicP1 :: forall a b r . (IsFirstClass a, IsFirstClass b, IsPrimitive a) =>
+	           String -> Value a -> TValue r b
+callIntrinsicP1 fn x = do
+    op :: Function (a -> IO b) <- externFunction ("llvm." ++ fn ++ "." ++ typeName (undefined :: a))
+    call op x
 
-callIntrinsic2 :: forall a b c r . (IsArithmetic a, IsFirstClass b, IsFirstClass c) =>
-	          String -> TValue r a -> TValue r b -> TValue r c
-callIntrinsic2 fn x y = do
-    x' <- x
-    y' <- y
-    op <- externFunction ("llvm." ++ fn ++ "." ++ typeName (undefined :: a))
-    let _ = op :: Function (a -> b -> IO c)
-    call op x' y'
+callIntrinsicP2 :: forall a b c r . (IsFirstClass a, IsFirstClass b, IsFirstClass c, IsPrimitive a) =>
+	           String -> Value a -> Value b -> TValue r c
+callIntrinsicP2 fn x y = do
+    op :: Function (a -> b -> IO c) <- externFunction ("llvm." ++ fn ++ "." ++ typeName (undefined :: a))
+    call op x y
 
 -------------------------------------------
 
@@ -260,4 +259,34 @@ recursiveFunction af = do
     return f
 
 -------------------------------------------
+
+class CallIntrinsic a where
+    callIntrinsic1' :: String -> Value a -> TValue r a
+    callIntrinsic2' :: String -> Value a -> Value a -> TValue r a
+
+instance CallIntrinsic Float where
+    callIntrinsic1' = callIntrinsicP1
+    callIntrinsic2' = callIntrinsicP2
+
+instance CallIntrinsic Double where
+    callIntrinsic1' = callIntrinsicP1
+    callIntrinsic2' = callIntrinsicP2
+
+instance (IsPowerOf2 n, IsPrimitive a, CallIntrinsic a) => CallIntrinsic (Vector n a) where
+    callIntrinsic1' s = mapVector (callIntrinsic1' s)
+    callIntrinsic2' s = mapVector2 (callIntrinsic2' s)
+
+callIntrinsic1 :: (CallIntrinsic a) => String -> TValue r a -> TValue r a
+callIntrinsic1 s x = do x' <- x; callIntrinsic1' s x'
+
+callIntrinsic2 :: (CallIntrinsic a) => String -> TValue r a -> TValue r a -> TValue r a
+callIntrinsic2 s x y = do x' <- x; y' <- y; callIntrinsic2' s x' y'
+
+#if defined(__MACOS__)
+instance CallIntrinsic (Vector (D4 End) Float) where
+    callIntrinsic1' s x | hasVFun   = do op <- externFunction ("v" ++ s ++ "f"); call op x
+    		        | otherwise = mapVector (callIntrinsic1' s) x
+      where hasVFun = s `elem` ["sqrt", "log", "exp", "sin", "cos", "tan"]
+    callIntrinsic2' s = mapVector2 (callIntrinsic2' s)
+#endif
 
