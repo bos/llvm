@@ -7,6 +7,8 @@ module LLVM.Core.CodeGen(
     Linkage(..),
     -- * Function creation
     Function, newFunction, newNamedFunction, defineFunction, createFunction, createNamedFunction,
+    addFunctionAttributes,
+    FFI.Attribute(..),
     externFunction,
     FunctionArgs, FunctionRet,
     TFunction,
@@ -188,6 +190,10 @@ createNamedFunction linkage name body = do
     defineFunction f body
     return f
 
+addFunctionAttributes :: Function a -> [FFI.Attribute] -> CodeGenModule ()
+addFunctionAttributes (Value f) as =
+    liftIO $ mapM_ (FFI.addAttribute f . FFI.fromAttribute) as
+
 -- XXX This is ugly, it must be possible to make it simpler
 -- Convert a function of type f = t1->t2->...-> IO r to
 -- g = Value t1 -> Value t2 -> ... CodeGenFunction r ()
@@ -261,8 +267,8 @@ getCurrentBasicBlock = do
 --------------------------------------
 
 -- |Create a reference to an external function while code generating for a function.
-externFunction :: forall a r . (IsFunction a) => String -> CodeGenFunction r (Function a)
-externFunction name = do
+externFunction :: forall a r . (IsFunction a) => String -> [FFI.Attribute] -> CodeGenFunction r (Function a)
+externFunction name as = do
     es <- getExterns
     case lookup name es of
         Just f -> return $ Value f
@@ -271,6 +277,7 @@ externFunction name = do
             modul <- getFunctionModule
             let typ = typeRef (undefined :: a)
             f <- liftIO $ U.addFunction modul (fromIntegral $ fromEnum linkage) name typ
+	    liftIO $ mapM_ (FFI.addAttribute f . FFI.fromAttribute) as
             putExterns ((name, f) : es)
 	    return $ Value f
 

@@ -293,6 +293,7 @@ fptrunc = convert FFI.buildFPTrunc
 fpext :: (IsFloating a, IsFloating b, IsPrimitive a, IsPrimitive b) => Value a -> CodeGenFunction r (Value b)
 fpext = convert FFI.buildFPExt
 
+-- XXX The fp<->i conversion can handle vectors.
 -- | Convert a floating point value to an unsigned integer.
 fptoui :: (IsFloating a, IsInteger b, IsPrimitive a, IsPrimitive b) => Value a -> CodeGenFunction r (Value b)
 fptoui = convert FFI.buildFPToUI
@@ -412,6 +413,7 @@ fcmp p = cmpop (flip FFI.buildFCmp (fromFPPredicate p))
 
 --------------------------------------
 
+-- XXX can handle vectors, needs bool vector args
 -- XXX could do const song and dance
 -- | Select between two values depending on a boolean.
 select :: (IsFirstClass a) => Value Bool -> Value a -> Value a -> CodeGenFunction r (Value a)

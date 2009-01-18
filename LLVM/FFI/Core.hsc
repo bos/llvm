@@ -343,6 +343,9 @@ module LLVM.FFI.Core
     , removeAttribute
     , setInstrParamAlignment
     , setParamAlignment
+    , Attribute(..)
+    , fromAttribute
+    , toAttribute
 
     -- * Pass manager
     , PassManager
@@ -576,7 +579,7 @@ data CallingConvention = C
                        | Cold
                        | X86StdCall
                        | X86FastCall
-                         deriving (Eq, Show)
+                         deriving (Show, Eq, Ord, Enum, Bounded)
 
 fromCallingConvention :: CallingConvention -> CUInt
 fromCallingConvention C = (#const LLVMCCallConv)
@@ -1023,22 +1026,48 @@ foreign import ccall unsafe "LLVMSetTarget" setTarget
 foreign import ccall unsafe "LLVMSizeOf" sizeOf
     :: TypeRef -> IO ValueRef
 
-{-
-typedef enum {
-    LLVMZExtAttribute       = 1<<0,
-    LLVMSExtAttribute       = 1<<1,
-    LLVMNoReturnAttribute   = 1<<2,
-    LLVMInRegAttribute      = 1<<3,
-    LLVMStructRetAttribute  = 1<<4,
-    LLVMNoUnwindAttribute   = 1<<5,
-    LLVMNoAliasAttribute    = 1<<6,
-    LLVMByValAttribute      = 1<<7,
-    LLVMNestAttribute       = 1<<8,
-    LLVMReadNoneAttribute   = 1<<9,
-    LLVMReadOnlyAttribute   = 1<<10
-} LLVMAttribute;
--}
-type Attribute = CInt
+data Attribute
+    = ZExtAttribute
+    | SExtAttribute
+    | NoReturnAttribute
+    | InRegAttribute
+    | StructRetAttribute
+    | NoUnwindAttribute
+    | NoAliasAttribute
+    | ByValAttribute
+    | NestAttribute
+    | ReadNoneAttribute
+    | ReadOnlyAttribute
+    deriving (Show, Eq, Ord, Enum, Bounded)
+
+fromAttribute :: Attribute -> CAttribute
+fromAttribute ZExtAttribute = (#const LLVMZExtAttribute)
+fromAttribute SExtAttribute = (#const LLVMSExtAttribute)
+fromAttribute NoReturnAttribute = (#const LLVMNoReturnAttribute)
+fromAttribute InRegAttribute = (#const LLVMInRegAttribute)
+fromAttribute StructRetAttribute = (#const LLVMStructRetAttribute)
+fromAttribute NoUnwindAttribute = (#const LLVMNoUnwindAttribute)
+fromAttribute NoAliasAttribute = (#const LLVMNoAliasAttribute)
+fromAttribute ByValAttribute = (#const LLVMByValAttribute)
+fromAttribute NestAttribute = (#const LLVMNestAttribute)
+fromAttribute ReadNoneAttribute = (#const LLVMReadNoneAttribute)
+fromAttribute ReadOnlyAttribute = (#const LLVMReadOnlyAttribute)
+
+toAttribute :: CAttribute -> Attribute
+toAttribute c | c == (#const LLVMZExtAttribute) = ZExtAttribute
+toAttribute c | c == (#const LLVMSExtAttribute) = SExtAttribute
+toAttribute c | c == (#const LLVMNoReturnAttribute) = NoReturnAttribute
+toAttribute c | c == (#const LLVMInRegAttribute) = InRegAttribute
+toAttribute c | c == (#const LLVMStructRetAttribute) = StructRetAttribute
+toAttribute c | c == (#const LLVMNoUnwindAttribute) = NoUnwindAttribute
+toAttribute c | c == (#const LLVMNoAliasAttribute) = NoAliasAttribute
+toAttribute c | c == (#const LLVMByValAttribute) = ByValAttribute
+toAttribute c | c == (#const LLVMNestAttribute) = NestAttribute
+toAttribute c | c == (#const LLVMReadNoneAttribute) = ReadNoneAttribute
+toAttribute c | c == (#const LLVMReadOnlyAttribute) = ReadOnlyAttribute
+toAttribute _ = error "toAttribute: bad value"
+
+type CAttribute = CInt
 
 data PassManager
 type PassManagerRef = Ptr PassManager
@@ -1122,15 +1151,15 @@ foreign import ccall unsafe "LLVMSetInstrParamAlignment" setInstrParamAlignment
 foreign import ccall unsafe "LLVMSetParamAlignment" setParamAlignment
     :: ValueRef -> CUInt -> IO ()
 foreign import ccall unsafe "LLVMAddAttribute" addAttribute
-    :: ValueRef -> Attribute -> IO ()
+    :: ValueRef -> CAttribute -> IO ()
 foreign import ccall unsafe "LLVMAddInstrAttribute" addInstrAttribute
-    :: ValueRef -> CUInt -> Attribute -> IO ()
+    :: ValueRef -> CUInt -> CAttribute -> IO ()
 foreign import ccall unsafe "LLVMIsTailCall" isTailCall
     :: ValueRef -> IO CInt
 foreign import ccall unsafe "LLVMRemoveAttribute" removeAttribute
-    :: ValueRef -> Attribute -> IO ()
+    :: ValueRef -> CAttribute -> IO ()
 foreign import ccall unsafe "LLVMRemoveInstrAttribute" removeInstrAttribute
-    :: ValueRef -> CUInt -> Attribute -> IO ()
+    :: ValueRef -> CUInt -> CAttribute -> IO ()
 foreign import ccall unsafe "LLVMSetTailCall" setTailCall
     :: ValueRef -> CInt -> IO ()
 {-

@@ -49,6 +49,7 @@ module LLVM.Core(
     CodeGenFunction, CodeGenModule,
     -- * Functions
     Function, newFunction, newNamedFunction, defineFunction, createFunction, createNamedFunction,
+    addFunctionAttributes, Attribute(..),
     TFunction,
     -- * Global variable creation
     Global, newGlobal, newNamedGlobal, defineGlobal, createGlobal, createNamedGlobal,
