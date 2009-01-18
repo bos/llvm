@@ -2,12 +2,12 @@
 module DotProd where
 import Data.Word
 import Data.TypeNumbers
-import Foreign.Marshal.Array(allocaArray, pokeArray)
 import Foreign.Ptr
 import Foreign.Storable
 import LLVM.Core
 import LLVM.ExecutionEngine
 import LLVM.Util.Loop
+import LLVM.Util.Foreign
 
 mDotProd :: forall n a . (IsPowerOf2 n, IsTypeNumber n,
 	                  IsPrimitive a, IsArithmetic a, IsFirstClass a, IsConst a, Num a,
@@ -45,8 +45,6 @@ main = do
          unsafePurify $
          withArrayLen a $ \ aLen aPtr ->
          withArrayLen b $ \ bLen bPtr ->
--- XXX something weird is going on here.  Without that putStr the result is wrong.
-         putStr "" >>
          ioDotProd (fromIntegral (aLen `min` bLen)) aPtr bPtr
 
 
@@ -60,14 +58,6 @@ writeFunction name f = do
     m <- newModule
     defineModule m f
     writeBitcodeToFile name m
-
-withArrayLen :: (Storable a) => [a] -> (Int -> Ptr a -> IO b) -> IO b
-withArrayLen xs act =
-    let l = length xs in
-    allocaArray (l+1) $ \ p -> do
-    let p' = alignPtr p (alignment (head xs))
-    pokeArray p' xs
-    act l p'
 
 class Vectorize n a where
     vectorize :: a -> [a] -> [Vector n a]

@@ -6,8 +6,16 @@ import Data.TypeNumbers
 import LLVM.Core
 import LLVM.ExecutionEngine
 import LLVM.Util.Arithmetic
+import LLVM.Util.Foreign as F
 
-mSomeFn :: forall a . (IsConst a, Floating a, IsFloating a, Cmp a,
+import Foreign.Storable
+{-
+import Foreign.Ptr
+import Foreign.Marshal.Utils
+import Foreign.Marshal.Alloc as F
+-}
+
+mSomeFn :: forall a . (IsConst a, Floating a, IsFloating a, CallIntrinsic a,
 	      FunctionRet a
 	     ) => CodeGenModule (Function (a -> IO a))
 mSomeFn = do
@@ -22,20 +30,18 @@ mFib = recursiveFunction $ \ rfib n -> n %< 2 ? (1, rfib (n-1) + rfib (n-2))
 
 type V = Vector (D4 End) Float
 
-mVFun :: CodeGenModule (Function (V -> IO V))
+--mVFun :: CodeGenModule (Function (V -> IO V))
+mVFun :: CodeGenModule (Function (Ptr V -> Ptr V -> IO ()))
 mVFun = do
-{-
-    vlogf' <- newNamedFunction ExternalLinkage "vlogf"
-    let vlogf :: TValue r V -> TValue r V
-        vlogf x = toArithFunction vlogf' x
---        vlogf x = do x' <- x; call vlogf' x'
-    vexpf' <- newNamedFunction ExternalLinkage "vexpf"
-    let vexpf :: TValue r V -> TValue r V
---	vexpf x = do x' <- x; call vexpf' x'
-        vexpf x = toArithFunction vexpf' x
--}
-    createFunction ExternalLinkage $ arithFunction $ \ x ->
-        log x * exp x * x - 16
+    fn :: Function (V -> IO V)
+       <- createFunction ExternalLinkage $ arithFunction $ \ x ->
+            log x * exp x * x - 16
+
+    createFunction ExternalLinkage $ \ px py -> do
+        x <- load px
+        y <- call fn x
+        store y py
+	ret ()
 
 
 writeFunction :: String -> CodeGenModule a -> IO ()
@@ -44,14 +50,14 @@ writeFunction name f = do
     defineModule m f
     writeBitcodeToFile name m
 
+
 main :: IO ()
 main = do
+{-
     let mSomeFn' = mSomeFn
     ioSomeFn <- simpleFunction mSomeFn'
     let someFn :: Double -> Double
         someFn = unsafePurify ioSomeFn
-
-    writeFunction "VArith.bc" mVFun
 
     writeFunction "Arith.bc" mSomeFn'
 
@@ -62,3 +68,20 @@ main = do
 
     fib <- simpleFunction mFib
     fib 22 >>= print
+-}
+
+    writeFunction "VArith.bc" mVFun
+
+    ioVFun <- simpleFunction mVFun
+    let --vfun = unsafePurify ioVFun
+        v :: V
+        v = mkVector (1,2,3,4)
+
+--    print $ vfun v
+    r <- with v $ \ aPtr ->
+           F.alloca $ \ bPtr -> do
+             ioVFun aPtr bPtr
+             peek bPtr
+    print r
+
+    return ()
