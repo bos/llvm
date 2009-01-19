@@ -15,9 +15,9 @@ import Foreign.Marshal.Utils
 import Foreign.Marshal.Alloc as F
 -}
 
-mSomeFn :: forall a . (IsConst a, Floating a, IsFloating a, CallIntrinsic a,
-	      FunctionRet a
-	     ) => CodeGenModule (Function (a -> IO a))
+mSomeFn :: forall a b . (IsConst a, Floating a, IsFloating a, CallIntrinsic a,
+	                 FunctionRet a, Cmp a b
+                        ) => CodeGenModule (Function (a -> IO a))
 mSomeFn = do
     foo <- createFunction InternalLinkage $ arithFunction $ \ x y -> exp (sin x) + y
     let foo' = toArithFunction foo

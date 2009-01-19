@@ -2,8 +2,6 @@
 module DotProd where
 import Data.Word
 import Data.TypeNumbers
-import Foreign.Ptr
-import Foreign.Storable
 import LLVM.Core
 import LLVM.ExecutionEngine
 import LLVM.Util.Loop

@@ -14,7 +14,6 @@ module BrainF where
 -- ]         }               End loop
 --
 import Control.Monad(when)
-import Control.Monad.Trans
 import Data.Word
 import Data.Int
 import System.Environment(getArgs)
@@ -51,7 +50,7 @@ writeFunction name f = do
     writeBitcodeToFile name m
 
 brainCompile :: Bool -> String -> Word32 -> CodeGenModule (Function (IO ()))
-brainCompile debug instrs wmemtotal = do
+brainCompile _debug instrs wmemtotal = do
     -- LLVM functions
     memset    <- newNamedFunction ExternalLinkage "llvm.memset.i32"
               :: TFunction (Ptr Word8 -> Word8 -> Word32 -> Word32 -> IO ())
