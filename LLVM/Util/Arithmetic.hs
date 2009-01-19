@@ -129,21 +129,8 @@ instance (Cmp a b, Num a, IsConst a) => Num (TValue r a) where
     (-) = binop sub
     (*) = binop mul
     negate = (>>= neg)
---    abs _ = error "Num TValue: abs"
---    signum _ = error "Num TValue: signum"
     abs x = x %< 0 ?? (-x, x)
     signum x = x %< 0 ?? (-1, x %> 0 ?? (1, 0))
-{-
-    abs x = do
-        x' <- x
-        lt0 <- cmp IntULT x' (value zero)
-        negx <- neg x'
-        select lt0 negx x'
--}
-{-
-    abs x = x %< 0 ? (-x, x)
-    signum x = x %< 0 ? (-1, x %> 0 ? (1, 0))
--}
     fromInteger = return . valueOf . fromInteger
 
 instance (Cmp a b, Num a, IsConst a) => Enum (TValue r a) where
