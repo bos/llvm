@@ -5,7 +5,7 @@ module LLVM.Util.Arithmetic(
     Cmp,
     (%==), (%/=), (%<), (%<=), (%>), (%>=),
     (%&&), (%||),
-    (?),
+    (?), (??),
     retrn, set,
     ArithFunction, arithFunction,
     UnwrapArgs, toArithFunction,
@@ -21,21 +21,33 @@ import LLVM.Util.Loop(mapVector, mapVector2)
 -- |Synonym for @CodeGenFunction r (Value a)@.
 type TValue r a = CodeGenFunction r (Value a)
 
-class Cmp a where
-    cmp :: IntPredicate -> Value a -> Value a -> TValue r Bool
+class (CmpRet a b) => Cmp a b | a -> b where
+    cmp :: IntPredicate -> Value a -> Value a -> TValue r b
 
-instance Cmp Bool where cmp = icmp
-instance Cmp Word8 where cmp = icmp
-instance Cmp Word16 where cmp = icmp
-instance Cmp Word32 where cmp = icmp
-instance Cmp Word64 where cmp = icmp
-instance Cmp Int8 where cmp = icmp . adjSigned
-instance Cmp Int16 where cmp = icmp . adjSigned
-instance Cmp Int32 where cmp = icmp . adjSigned
-instance Cmp Int64 where cmp = icmp . adjSigned
-instance Cmp Float where cmp = fcmp . adjFloat
-instance Cmp Double where cmp = fcmp . adjFloat
-instance Cmp FP128 where cmp = fcmp . adjFloat
+instance Cmp Bool Bool where cmp = icmp
+instance Cmp Word8 Bool where cmp = icmp
+instance Cmp Word16 Bool where cmp = icmp
+instance Cmp Word32 Bool where cmp = icmp
+instance Cmp Word64 Bool where cmp = icmp
+instance Cmp Int8 Bool where cmp = icmp . adjSigned
+instance Cmp Int16 Bool where cmp = icmp . adjSigned
+instance Cmp Int32 Bool where cmp = icmp . adjSigned
+instance Cmp Int64 Bool where cmp = icmp . adjSigned
+instance Cmp Float Bool where cmp = fcmp . adjFloat
+instance Cmp Double Bool where cmp = fcmp . adjFloat
+instance Cmp FP128 Bool where cmp = fcmp . adjFloat
+instance (IsPowerOf2 n) => Cmp (Vector n Bool) (Vector n Bool) where cmp = icmp
+instance (IsPowerOf2 n) => Cmp (Vector n Word8) (Vector n Bool) where cmp = icmp
+instance (IsPowerOf2 n) => Cmp (Vector n Word16) (Vector n Bool) where cmp = icmp
+instance (IsPowerOf2 n) => Cmp (Vector n Word32) (Vector n Bool) where cmp = icmp
+instance (IsPowerOf2 n) => Cmp (Vector n Word64) (Vector n Bool) where cmp = icmp
+instance (IsPowerOf2 n) => Cmp (Vector n Int8) (Vector n Bool) where cmp = icmp . adjSigned
+instance (IsPowerOf2 n) => Cmp (Vector n Int16) (Vector n Bool) where cmp = icmp . adjSigned
+instance (IsPowerOf2 n) => Cmp (Vector n Int32) (Vector n Bool) where cmp = icmp . adjSigned
+instance (IsPowerOf2 n) => Cmp (Vector n Int64) (Vector n Bool) where cmp = icmp . adjSigned
+instance (IsPowerOf2 n) => Cmp (Vector n Float) (Vector n Bool) where cmp = fcmp . adjFloat
+instance (IsPowerOf2 n) => Cmp (Vector n Double) (Vector n Bool) where cmp = fcmp . adjFloat
+instance (IsPowerOf2 n) => Cmp (Vector n FP128) (Vector n Bool) where cmp = fcmp . adjFloat
 
 adjSigned :: IntPredicate -> IntPredicate
 adjSigned IntUGT = IntSGT
@@ -55,7 +67,7 @@ adjFloat _ = error "adjFloat"
 
 infix  4  %==, %/=, %<, %<=, %>=, %>
 -- |Comparison functions.
-(%==), (%/=), (%<), (%<=), (%>), (%>=) :: (Cmp a) => TValue r a -> TValue r a -> TValue r Bool
+(%==), (%/=), (%<), (%<=), (%>), (%>=) :: (Cmp a b) => TValue r a -> TValue r a -> TValue r b
 (%==) = binop $ cmp IntEQ
 (%/=) = binop $ cmp IntNE
 (%>)  = binop $ cmp IntUGT
@@ -92,6 +104,14 @@ c ? (t, f) = do
     defineBasicBlock lj
     phi [(rt, lt'), (rf, lf')]
 
+infix 0 ??
+(??) :: (IsFirstClass a, CmpRet a b) => TValue r b -> (TValue r a, TValue r a) -> TValue r a
+c ?? (t, f) = do
+    c' <- c
+    t' <- t
+    f' <- f
+    select c' t' f'
+
 -- | Return a value from an 'arithFunction'.
 retrn :: (Ret (Value a) r) => TValue r a -> CodeGenFunction r ()
 retrn x = x >>= ret
@@ -104,42 +124,51 @@ instance (Show (TValue r a))
 instance (Eq (TValue r a))
 instance (Ord (TValue r a))
 
-instance (Num a, IsConst a) => Num (TValue r a) where
+instance (Cmp a b, Num a, IsConst a) => Num (TValue r a) where
     (+) = binop add
     (-) = binop sub
     (*) = binop mul
     negate = (>>= neg)
-    abs _ = error "Num TValue: abs"
-    signum _ = error "Num TValue: signum"
+--    abs _ = error "Num TValue: abs"
+--    signum _ = error "Num TValue: signum"
+    abs x = x %< 0 ?? (-x, x)
+    signum x = x %< 0 ?? (-1, x %> 0 ?? (1, 0))
+{-
+    abs x = do
+        x' <- x
+        lt0 <- cmp IntULT x' (value zero)
+        negx <- neg x'
+        select lt0 negx x'
+-}
 {-
     abs x = x %< 0 ? (-x, x)
     signum x = x %< 0 ? (-1, x %> 0 ? (1, 0))
 -}
     fromInteger = return . valueOf . fromInteger
 
-instance (Num a, IsConst a) => Enum (TValue r a) where
+instance (Cmp a b, Num a, IsConst a) => Enum (TValue r a) where
     succ x = x + 1
     pred x = x - 1
     fromEnum _ = error "CodeGenFunction Value: fromEnum"
     toEnum = fromIntegral
 
-instance (Num a, IsConst a) => Real (TValue r a) where
+instance (Cmp a b, Num a, IsConst a) => Real (TValue r a) where
     toRational _ = error "CodeGenFunction Value: toRational"
 
-instance (Num a, IsConst a, IsInteger a) => Integral (TValue r a) where
+instance (Cmp a b, Num a, IsConst a, IsInteger a) => Integral (TValue r a) where
     quot = binop (if (isSigned (undefined :: a)) then sdiv else udiv)
     rem  = binop (if (isSigned (undefined :: a)) then srem else urem)
     quotRem x y = (quot x y, rem x y)
     toInteger _ = error "CodeGenFunction Value: toInteger"
 
-instance (Fractional a, IsConst a, IsFloating a) => Fractional (TValue r a) where
+instance (Cmp a b, Fractional a, IsConst a, IsFloating a) => Fractional (TValue r a) where
     (/) = binop fdiv
     fromRational = return . valueOf . fromRational
 
-instance (Fractional a, IsConst a, IsFloating a) => RealFrac (TValue r a) where
+instance (Cmp a b, Fractional a, IsConst a, IsFloating a) => RealFrac (TValue r a) where
     properFraction _ = error "CodeGenFunction Value: properFraction"
 
-instance (CallIntrinsic a, Floating a, IsConst a, IsFloating a) => Floating (TValue r a) where
+instance (Cmp a b, CallIntrinsic a, Floating a, IsConst a, IsFloating a) => Floating (TValue r a) where
     pi = return $ valueOf pi
     sqrt = callIntrinsic1 "sqrt"
     sin = callIntrinsic1 "sin"
@@ -158,7 +187,7 @@ instance (CallIntrinsic a, Floating a, IsConst a, IsFloating a) => Floating (TVa
     acosh x          = log (x + sqrt (x*x - 1))
     atanh x          = (log (1 + x) - log (1 - x)) / 2
 
-instance (CallIntrinsic a, RealFloat a, IsConst a, IsFloating a) => RealFloat (TValue r a) where
+instance (Cmp a b, CallIntrinsic a, RealFloat a, IsConst a, IsFloating a) => RealFloat (TValue r a) where
     floatRadix _ = floatRadix (undefined :: a)
     floatDigits _ = floatDigits (undefined :: a)
     floatRange _ = floatRange (undefined :: a)
