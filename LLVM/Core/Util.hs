@@ -25,7 +25,7 @@ module LLVM.Core.Util(
     CString, withArrayLen,
     withEmptyCString,
     functionType, buildEmptyPhi, addPhiIns,
-    showTypeOf,
+    showTypeOf, getValueNameU,
     -- * Transformation passes
     addCFGSimplificationPass, addConstantPropagationPass, addDemoteMemoryToRegisterPass,
     addGVNPass, addInstructionCombiningPass, addPromoteMemoryToRegisterPass, addReassociatePass,
@@ -399,3 +399,9 @@ constArray t n xs = unsafePerformIO $ do
     withArrayLen xs' $ \ len ptr ->
         return $ FFI.constArray t ptr (fromIntegral len)
 
+--------------------------------------
+
+getValueNameU :: Value -> IO String
+getValueNameU a = do
+    cs <- FFI.getValueName a
+    peekCString cs

@@ -61,7 +61,7 @@ module LLVM.Core(
     -- * Misc
     addAttributes, Attribute(..),
     -- * Debugging
-    dumpValue, dumpType,
+    dumpValue, dumpType, getValueName,
     -- * Transformations
     addCFGSimplificationPass, addConstantPropagationPass, addDemoteMemoryToRegisterPass,
     addGVNPass, addInstructionCombiningPass, addPromoteMemoryToRegisterPass, addReassociatePass,
@@ -83,6 +83,10 @@ dumpValue (Value v) = FFI.dumpValue v
 
 dumpType :: Value a -> IO ()
 dumpType (Value v) = showTypeOf v >>= putStrLn
+
+-- |Get the name of a 'Value'.
+getValueName :: Value a -> IO String
+getValueName (Value a) = getValueNameU a
 
 -- TODO for types:
 -- Enforce free is only called on malloc memory.  (Enforce only one free?)
