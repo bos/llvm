@@ -81,6 +81,7 @@ import LLVM.Core.Vector
 dumpValue :: Value a -> IO ()
 dumpValue (Value v) = FFI.dumpValue v
 
+-- |Print a type.
 dumpType :: Value a -> IO ()
 dumpType (Value v) = showTypeOf v >>= putStrLn
 
