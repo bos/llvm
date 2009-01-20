@@ -67,7 +67,7 @@ main = do
     writeFunction "VArith.bc" mVFun
 
     ioVFun <- simpleFunction mVFun
-    let v = mkVector (1,2,3,4)
+    let v = toVector (1,2,3,4)
 
     r <- vectorPtrWrap ioVFun v
     print r

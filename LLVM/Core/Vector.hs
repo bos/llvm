@@ -14,21 +14,28 @@ import System.IO.Unsafe(unsafePerformIO)
 
 -- XXX Should these really be here?
 class (IsPowerOf2 n, IsPrimitive a) => MkVector va n a | va -> n a, n a -> va where
-    mkVector :: va -> Vector n a
+    toVector :: va -> Vector n a
+    fromVector :: Vector n a -> va
 
 {-
 instance (IsPrimitive a) => MkVector (Value a) (D1 End) (Value a) where
-    mkVector a = Vector [a]
+    toVector a = Vector [a]
 -}
 
 instance (IsPrimitive a) => MkVector (a, a) (D2 End) a where
-    mkVector (a1, a2) = Vector [a1, a2]
+    toVector (a1, a2) = Vector [a1, a2]
+    fromVector (Vector [a1, a2]) = (a1, a2)
+    fromVector _ = error "fromVector: impossible"
 
 instance (IsPrimitive a) => MkVector (a, a, a, a) (D4 End) a where
-    mkVector (a1, a2, a3, a4) = Vector [a1, a2, a3, a4]
+    toVector (a1, a2, a3, a4) = Vector [a1, a2, a3, a4]
+    fromVector (Vector [a1, a2, a3, a4]) = (a1, a2, a3, a4)
+    fromVector _ = error "fromVector: impossible"
 
 instance (IsPrimitive a) => MkVector (a, a, a, a, a, a, a, a) (D8 End) a where
-    mkVector (a1, a2, a3, a4, a5, a6, a7, a8) = Vector [a1, a2, a3, a4, a5, a6, a7, a8]
+    toVector (a1, a2, a3, a4, a5, a6, a7, a8) = Vector [a1, a2, a3, a4, a5, a6, a7, a8]
+    fromVector (Vector [a1, a2, a3, a4, a5, a6, a7, a8]) = (a1, a2, a3, a4, a5, a6, a7, a8)
+    fromVector _ = error "fromVector: impossible"
 
 instance (Storable a, IsTypeNumber n) => Storable (Vector n a) where
     sizeOf _ = sizeOf (undefined :: a) * typeNumber (undefined :: n)

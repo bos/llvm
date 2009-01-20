@@ -44,7 +44,7 @@ module LLVM.Core(
     zero, allOnes, undef,
     createString, createStringNul,
     constVector, constArray,
-    mkVector,
+    toVector, fromVector,
     -- * Code generation
     CodeGenFunction, CodeGenModule,
     -- * Functions

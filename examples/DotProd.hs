@@ -63,20 +63,20 @@ class Vectorize n a where
 {-
 instance (IsPrimitive a) => Vectorize (D1 End) a where
     vectorize _ [] = []
-    vectorize x (x1:xs) = mkVector x1 : vectorize x xs
+    vectorize x (x1:xs) = toVector x1 : vectorize x xs
 -}
 
 instance (IsPrimitive a) => Vectorize (D2 End) a where
     vectorize _ [] = []
-    vectorize x (x1:x2:xs) = mkVector (x1, x2) : vectorize x xs
+    vectorize x (x1:x2:xs) = toVector (x1, x2) : vectorize x xs
     vectorize x xs = vectorize x $ xs ++ [x]
 
 instance (IsPrimitive a) => Vectorize (D4 End) a where
     vectorize _ [] = []
-    vectorize x (x1:x2:x3:x4:xs) = mkVector (x1, x2, x3, x4) : vectorize x xs
+    vectorize x (x1:x2:x3:x4:xs) = toVector (x1, x2, x3, x4) : vectorize x xs
     vectorize x xs = vectorize x $ xs ++ [x]
 
 instance (IsPrimitive a) => Vectorize (D8 End) a where
     vectorize _ [] = []
-    vectorize x (x1:x2:x3:x4:x5:x6:x7:x8:xs) = mkVector (x1, x2, x3, x4, x5, x6, x7, x8) : vectorize x xs
+    vectorize x (x1:x2:x3:x4:x5:x6:x7:x8:xs) = toVector (x1, x2, x3, x4, x5, x6, x7, x8) : vectorize x xs
     vectorize x xs = vectorize x $ xs ++ [x]
