@@ -150,7 +150,7 @@ getExecutionEngineTargetData = do
     liftIO $ FFI.getExecutionEngineTargetData eePtr
 
 #if HAS_GETPOINTERTOGLOBAL
-getPointerToFunction :: Function f -> IO (FunPtr f)
+getPointerToFunction :: Function f -> EngineAccess (FunPtr f)
 getPointerToFunction (Value f) = do
     eePtr <- gets ea_engine
     liftIO $ FFI.getPointerToGlobal eePtr f
