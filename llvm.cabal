@@ -55,7 +55,7 @@ library
     build-depends: base >= 2.0 && < 2.2
     cpp-options:   -DBYTESTRING_IN_BASE
   else
-    build-depends: base < 2.0 || >= 2.2, bytestring >= 0.9, mtl
+    build-depends: base < 2.0 || >= 2.2, bytestring >= 0.9, mtl, directory, process
 
   ghc-options: -Wall
 --  cpp-options: -DHAS_GETPOINTERTOGLOBAL=1
@@ -77,6 +77,7 @@ library
       LLVM.FFI.Target
       LLVM.FFI.Transforms.Scalar
       LLVM.Util.Arithmetic
+      LLVM.Util.File
       LLVM.Util.Foreign
       LLVM.Util.Loop
 
