@@ -1,0 +1,4 @@
+ghc-options: -I@llvm_path@/include  -D_DEBUG  -D_GNU_SOURCE -D__STDC_LIMIT_MACROS -pgml g++
+ld-options: -L@llvm_path@/lib @llvm_path@/lib/LLVMX86AsmPrinter.o -lLLVMAsmPrinter @llvm_path@/lib/LLVMX86CodeGen.o -lLLVMSelectionDAG @llvm_path@/lib/LLVMExecutionEngine.o @llvm_path@/lib/LLVMInterpreter.o @llvm_path@/lib/LLVMJIT.o -lLLVMCodeGen -lLLVMipo -lLLVMScalarOpts -lLLVMTransformUtils -lLLVMipa -lLLVMAnalysis -lLLVMTarget -lLLVMCore -lLLVMSupport -lLLVMSystem -lpsapi -limagehlp -lstdc++
+include-dirs: @llvm_path@/include
+extra-libraries: LLVMAnalysis LLVMBitWriter LLVMBitReader LLVMCore LLVMTarget LLVMSupport LLVMSystem
