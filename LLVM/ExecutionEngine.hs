@@ -21,7 +21,9 @@ module LLVM.ExecutionEngine(
     unsafePurify,
     -- * Simplified interface.
     simpleFunction,
-    unsafeGenerateFunction
+    unsafeGenerateFunction,
+    -- * Target information
+    module LLVM.ExecutionEngine.Target
     ) where
 import System.IO.Unsafe (unsafePerformIO)
 
@@ -29,6 +31,7 @@ import LLVM.ExecutionEngine.Engine
 import LLVM.FFI.Core(ValueRef)
 import LLVM.Core.CodeGen(Value(..))
 import LLVM.Core
+import LLVM.ExecutionEngine.Target
 --import LLVM.Core.Util(runFunctionPassManager, initializeFunctionPassManager, finalizeFunctionPassManager)
 
 -- |Class of LLVM function types that can be translated to the corresponding
