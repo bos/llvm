@@ -1,5 +1,5 @@
 module LLVM.ExecutionEngine.Target(TargetData(..), ourTargetData) where
-import Data.Word
+--import Data.Word
 import System.IO.Unsafe(unsafePerformIO)
 
 --import LLVM.Core
@@ -11,18 +11,18 @@ import qualified LLVM.FFI.Target as FFI
 type Type = FFI.TypeRef
 
 data TargetData = TargetData {
-    aBIAlignmentOfType         :: Type -> Word32,
-    aBISizeOfType              :: Type -> Word32,
+    aBIAlignmentOfType         :: Type -> Int,
+    aBISizeOfType              :: Type -> Int,
     littleEndian               :: Bool,
-    callFrameAlignmentOfType   :: Type -> Word32,
---  elementAtOffset            :: Type -> Word64 -> Word32,
+    callFrameAlignmentOfType   :: Type -> Int,
+--  elementAtOffset            :: Type -> Word64 -> Int,
     intPtrType                 :: Type,
---  offsetOfElements           :: Word32 -> Word64,
-    pointerSize                :: Word32,
---  preferredAlignmentOfGlobal :: Value a -> Word32,
-    preferredAlignmentOfType   :: Type -> Word32,
-    sizeOfTypeInBits           :: Type -> Word32,
-    storeSizeOfType            :: Type -> Word32
+--  offsetOfElements           :: Int -> Word64,
+    pointerSize                :: Int,
+--  preferredAlignmentOfGlobal :: Value a -> Int,
+    preferredAlignmentOfType   :: Type -> Int,
+    sizeOfTypeInBits           :: Type -> Int,
+    storeSizeOfType            :: Type -> Int
     }
 
 un :: IO a -> a
