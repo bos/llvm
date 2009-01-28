@@ -1,5 +1,6 @@
-module LLVM.ExecutionEngine.Target(TargetData(..), ourTargetData) where
+module LLVM.ExecutionEngine.Target(TargetData(..), ourTargetData, targetDataFromString) where
 --import Data.Word
+import Foreign.C.String
 import System.IO.Unsafe(unsafePerformIO)
 
 --import LLVM.Core
@@ -51,3 +52,6 @@ makeTargetData r = TargetData {
 
 ourTargetData :: TargetData
 ourTargetData = makeTargetData ourEngineTargetDataRef
+
+targetDataFromString :: String -> TargetData
+targetDataFromString s = makeTargetData $ un $ withCString s FFI.createTargetData
