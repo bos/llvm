@@ -8,7 +8,7 @@ import Foreign.Ptr (Ptr)
 import LLVM.FFI.Core
 
 -- enum { LLVMBigEndian, LLVMLittleEndian };
-type ByteOrdering = CInt;
+type ByteOrdering = CInt
 
 data TargetData
 type TargetDataRef = Ptr TargetData
