@@ -38,9 +38,6 @@ module LLVM.FFI.ExecutionEngine
 import Foreign.C.String (CString)
 import Foreign.C.Types (CDouble, CInt, CUInt, CULLong)
 import Foreign.Ptr (Ptr, FunPtr)
-#if HAS_GETPOINTERTOGLOBAL
-import Foreign.Ptr (FunPtr)
-#endif
 
 import LLVM.FFI.Core (ModuleRef, ModuleProviderRef, TypeRef, ValueRef)
 import LLVM.FFI.Target(TargetDataRef)
