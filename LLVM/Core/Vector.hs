@@ -7,6 +7,7 @@ import LLVM.Core.Type
 import LLVM.Core.Data
 import LLVM.Core.CodeGen(IsConst(..), ConstValue(..))
 import LLVM.FFI.Core(constVector)
+import LLVM.ExecutionEngine.Target
 import Foreign.Ptr(Ptr, castPtr)
 import Foreign.Storable(Storable(..))
 import Foreign.Marshal.Array(peekArray, pokeArray, withArrayLen)
@@ -37,9 +38,9 @@ instance (IsPrimitive a) => MkVector (a, a, a, a, a, a, a, a) (D8 End) a where
     fromVector (Vector [a1, a2, a3, a4, a5, a6, a7, a8]) = (a1, a2, a3, a4, a5, a6, a7, a8)
     fromVector _ = error "fromVector: impossible"
 
-instance (Storable a, IsTypeNumber n) => Storable (Vector n a) where
-    sizeOf _ = sizeOf (undefined :: a) * typeNumber (undefined :: n)
-    alignment _ = alignment (undefined :: a) * typeNumber (undefined :: n)
+instance (Storable a, IsPowerOf2 n, IsPrimitive a) => Storable (Vector n a) where
+    sizeOf a = storeSizeOfType ourTargetData (typeRef a)
+    alignment a = aBIAlignmentOfType ourTargetData (typeRef a)
     peek p = fmap Vector $ peekArray (typeNumber (undefined :: n)) (castPtr p :: Ptr a)
     poke p (Vector vs) = pokeArray (castPtr p :: Ptr a) vs
 
