@@ -1,4 +1,4 @@
-{-# LANGUAGE ScopedTypeVariables, EmptyDataDecls, FlexibleInstances, FlexibleContexts, UndecidableInstances, IncoherentInstances #-}
+{-# LANGUAGE ScopedTypeVariables, EmptyDataDecls, FlexibleInstances, FlexibleContexts, UndecidableInstances, MultiParamTypeClasses, FunctionalDependencies, TypeSynonymInstances, IncoherentInstances #-}
 -- |The LLVM type system is captured with a number of Haskell type classes.
 -- In general, an LLVM type @T@ is represented as @Value T@, where @T@ is some Haskell type.
 -- The various types @T@ are classified by various type classes, e.g., 'IsFirstClass' for
@@ -32,11 +32,7 @@ import LLVM.Core.Util(functionType)
 import LLVM.Core.Data
 import qualified LLVM.FFI.Core as FFI
 
--- XXX
--- IsSized should have two parameters, the second being the size and computed from the first
-
 -- Usage: vector precondition
--- XXX This could defined inductively, but this is good enough for LLVM
 class (Pos n) => IsPowerOf2 n
 instance (LogBaseF D2 n l True, Pos n) => IsPowerOf2 n
 
@@ -132,7 +128,7 @@ class IsType a => IsFirstClass a
 --  Context for Array being a type
 --  thus, allocation instructions
 -- |Types with a fixed size.
-class (IsType a) => IsSized a
+class (IsType a, Pos s) => IsSized a s | a -> s
 
 -- |Function type.
 class (IsType a) => IsFunction a where
@@ -168,7 +164,7 @@ instance IsType Int32  where typeDesc _ = TDInt True  32
 instance IsType Int64  where typeDesc _ = TDInt True  64
 
 -- Sequence types
-instance (Nat n, IsSized a) => IsType (Array n a)
+instance (Nat n, IsSized a s) => IsType (Array n a)
     where typeDesc _ = TDArray (toNum (undefined :: n))
     	  	               (typeDesc (undefined :: a))
 instance (IsPowerOf2 n, IsPrimitive a) => IsType (Vector n a)
@@ -240,23 +236,23 @@ instance (IsPowerOf2 n, IsPrimitive a) => IsFirstClass (Vector n a)
 instance (IsType a) => IsFirstClass (Ptr a)
 instance IsFirstClass () -- XXX This isn't right, but () can be returned
 
-instance IsSized Float
-instance IsSized Double
-instance IsSized FP128
-instance (Pos n) => IsSized (IntN n)
-instance (Pos n) => IsSized (WordN n)
-instance IsSized Bool
-instance IsSized Int8
-instance IsSized Int16
-instance IsSized Int32
-instance IsSized Int64
-instance IsSized Word8
-instance IsSized Word16
-instance IsSized Word32
-instance IsSized Word64
-instance (Nat n, IsSized a) => IsSized (Array n a)
-instance (IsPowerOf2 n, IsPrimitive a) => IsSized (Vector n a)
-instance (IsType a) => IsSized (Ptr a)
+instance IsSized Float D32
+instance IsSized Double D64
+instance IsSized FP128 D128
+instance (Pos n) => IsSized (IntN n) n
+instance (Pos n) => IsSized (WordN n) n
+instance IsSized Bool D1
+instance IsSized Int8 D8
+instance IsSized Int16 D16
+instance IsSized Int32 D32
+instance IsSized Int64 D64
+instance IsSized Word8 D8
+instance IsSized Word16 D16
+instance IsSized Word32 D32
+instance IsSized Word64 D64
+instance (Nat n, IsSized a s, Mul n s ns, Pos ns) => IsSized (Array n a) ns
+instance (IsPowerOf2 n, IsPrimitive a, IsSized a s, Mul n s ns, Pos ns) => IsSized (Vector n a) ns
+instance (IsType a, Pos s) => IsSized (Ptr a) s  -- XXX
 
 instance IsPrimitive Float
 instance IsPrimitive Double

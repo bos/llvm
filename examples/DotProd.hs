@@ -1,7 +1,7 @@
 {-# LANGUAGE ScopedTypeVariables, FlexibleContexts, MultiParamTypeClasses, FlexibleInstances #-}
 module DotProd where
 import Data.Word
-import Data.TypeLevel.Num((:*), D2, D4, D8, toNum)
+import Data.TypeLevel.Num(D2, D4, D8, toNum)
 import LLVM.Core
 import LLVM.ExecutionEngine
 import LLVM.Util.Loop

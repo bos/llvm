@@ -2,7 +2,7 @@
 module Vector where
 import System.Process(system)
 import Control.Monad
-import Data.TypeLevel.Num((:*), D1, D6, toNum)
+import Data.TypeLevel.Num(D16, toNum)
 import Data.Word
 
 import LLVM.Core
@@ -15,7 +15,7 @@ import Convert
 type T = Float
 
 -- Number of vector elements.
-type N = D1 :* D6
+type N = D16
 
 cgvec :: CodeGenModule (Function (T -> IO T))
 cgvec = do

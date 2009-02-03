@@ -497,7 +497,7 @@ instance AllocArg Word32 where
 
 -- XXX What's the type returned by malloc
 -- | Allocate heap memory.
-malloc :: forall a r . (IsSized a) => CodeGenFunction r (Value (Ptr a))
+malloc :: forall a r s . (IsSized a s) => CodeGenFunction r (Value (Ptr a))
 malloc =
     liftM Value $
     withCurrentBuilder $ \ bldPtr ->
@@ -505,7 +505,7 @@ malloc =
 
 -- XXX What's the type returned by arrayMalloc?
 -- | Allocate heap (array) memory.
-arrayMalloc :: forall a r s . (IsSized a, AllocArg s) =>
+arrayMalloc :: forall a n r s . (IsSized a n, AllocArg s) =>
                s -> CodeGenFunction r (Value (Ptr a)) -- XXX
 arrayMalloc s =
     liftM Value $
@@ -515,7 +515,7 @@ arrayMalloc s =
 
 -- XXX What's the type returned by malloc
 -- | Allocate stack memory.
-alloca :: forall a r . (IsSized a) => CodeGenFunction r (Value (Ptr a))
+alloca :: forall a r s . (IsSized a s) => CodeGenFunction r (Value (Ptr a))
 alloca =
     liftM Value $
     withCurrentBuilder $ \ bldPtr ->
@@ -523,7 +523,7 @@ alloca =
 
 -- XXX What's the type returned by arrayAlloca?
 -- | Allocate stack (array) memory.
-arrayAlloca :: forall a r s . (IsSized a, AllocArg s) =>
+arrayAlloca :: forall a n r s . (IsSized a n, AllocArg s) =>
                s -> CodeGenFunction r (Value (Ptr a))
 arrayAlloca s =
     liftM Value $
