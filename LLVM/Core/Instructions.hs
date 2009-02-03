@@ -1,4 +1,4 @@
-{-# LANGUAGE MultiParamTypeClasses, FunctionalDependencies, FlexibleInstances, UndecidableInstances, TypeSynonymInstances, ScopedTypeVariables, OverlappingInstances, FlexibleContexts #-}
+{-# LANGUAGE MultiParamTypeClasses, FunctionalDependencies, FlexibleInstances, UndecidableInstances, TypeSynonymInstances, ScopedTypeVariables, OverlappingInstances, FlexibleContexts, TypeOperators #-}
 module LLVM.Core.Instructions(
     -- * Terminator instructions
     ret,
@@ -53,7 +53,7 @@ import Control.Monad(liftM)
 import Data.Int
 import Data.Word
 import Foreign.C(CInt)
---import Data.TypeNumbers
+import Data.TypeLevel((:<:), (:>:), (:==:))
 import qualified LLVM.FFI.Core as FFI
 import LLVM.Core.Data
 import LLVM.Core.Type
@@ -270,27 +270,32 @@ shufflevector (Value a) (Value b) (ConstValue mask) =
 
 -- XXX size a > size b not enforced
 -- | Truncate a value to a shorter bit width.
-trunc :: (IsInteger a, IsInteger b, IsPrimitive a, IsPrimitive b) => Value a -> CodeGenFunction r (Value b)
+trunc :: (IsInteger a, IsInteger b, IsPrimitive a, IsPrimitive b, IsSized a sa, IsSized b sb, sa :>: sb)
+      => Value a -> CodeGenFunction r (Value b)
 trunc = convert FFI.buildTrunc
 
 -- XXX size a < size b not enforced
 -- | Zero extend a value to a wider width.
-zext :: (IsInteger a, IsInteger b, IsPrimitive a, IsPrimitive b) => Value a -> CodeGenFunction r (Value b)
+zext :: (IsInteger a, IsInteger b, IsPrimitive a, IsPrimitive b, IsSized a sa, IsSized b sb, sa :<: sb)
+     => Value a -> CodeGenFunction r (Value b)
 zext = convert FFI.buildZExt
 
 -- XXX size a < size b not enforced
 -- | Sign extend a value to wider width.
-sext :: (IsInteger a, IsInteger b, IsPrimitive a, IsPrimitive b) => Value a -> CodeGenFunction r (Value b)
+sext :: (IsInteger a, IsInteger b, IsPrimitive a, IsPrimitive b, IsSized a sa, IsSized b sb, sa :<: sb)
+     => Value a -> CodeGenFunction r (Value b)
 sext = convert FFI.buildSExt
 
 -- XXX size a > size b not enforced
 -- | Truncate a floating point value.
-fptrunc :: (IsFloating a, IsFloating b, IsPrimitive a, IsPrimitive b) => Value a -> CodeGenFunction r (Value b)
+fptrunc :: (IsFloating a, IsFloating b, IsPrimitive a, IsPrimitive b, IsSized a sa, IsSized b sb, sa :>: sb)
+        => Value a -> CodeGenFunction r (Value b)
 fptrunc = convert FFI.buildFPTrunc
 
 -- XXX size a < size b not enforced
 -- | Extend a floating point value.
-fpext :: (IsFloating a, IsFloating b, IsPrimitive a, IsPrimitive b) => Value a -> CodeGenFunction r (Value b)
+fpext :: (IsFloating a, IsFloating b, IsPrimitive a, IsPrimitive b, IsSized a sa, IsSized b sb, sa :<: sb)
+      => Value a -> CodeGenFunction r (Value b)
 fpext = convert FFI.buildFPExt
 
 -- XXX The fp<->i conversion can handle vectors.
@@ -320,7 +325,8 @@ inttoptr = convert FFI.buildIntToPtr
 
 -- XXX a and b must use the same space, and there are also pointer restrictions
 -- | Convert between to values of the same size by just copying the bit pattern.
-bitcast :: (IsFirstClass a, IsFirstClass b) => Value a -> CodeGenFunction r (Value b)
+bitcast :: (IsFirstClass a, IsFirstClass b, IsSized a sa, IsSized b sb, sa :==: sb)
+        => Value a -> CodeGenFunction r (Value b)
 bitcast = convert FFI.buildBitCast
 
 type FFIConvert = FFI.BuilderRef -> FFI.ValueRef -> FFI.TypeRef -> U.CString -> IO FFI.ValueRef
