@@ -38,7 +38,7 @@ import qualified LLVM.FFI.Core as FFI
 -- Usage: vector precondition
 -- XXX This could defined inductively, but this is good enough for LLVM
 class (Pos n) => IsPowerOf2 n
-instance (LogBase D2 n l, Pos n) => IsPowerOf2 n
+instance (LogBaseF D2 n l True, Pos n) => IsPowerOf2 n
 
 -- TODO:
 -- Move IntN, WordN to a special module that implements those types
