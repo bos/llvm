@@ -1,7 +1,7 @@
 ghc := ghc
 ghcflags := -Wall -optl -w
 # -DHAS_GETPOINTERTOGLOBAL=1
-examples := HelloJIT Fibonacci BrainF Vector Array DotProd Arith Align Compare Bad
+examples := HelloJIT Fibonacci BrainF Vector Array DotProd Arith Align
 
 all: $(examples)
 
