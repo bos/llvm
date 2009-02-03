@@ -52,10 +52,10 @@ flag bytestring-in-base
 library
   if flag(bytestring-in-base)
     -- bytestring was in base-2.0 and 2.1.1
-    build-depends: base >= 2.0 && < 2.2
+    build-depends: base >= 2.0 && < 2.2, type-level
     cpp-options:   -DBYTESTRING_IN_BASE
   else
-    build-depends: base < 2.0 || >= 2.2, bytestring >= 0.9, mtl, directory, process
+    build-depends: base < 2.0 || >= 2.2, bytestring >= 0.9, mtl, directory, process, type-level
 
   ghc-options: -Wall
 --  cpp-options: -DHAS_GETPOINTERTOGLOBAL=1
@@ -66,7 +66,6 @@ library
 
 
   exposed-modules:
-      Data.TypeNumbers
       LLVM.Core
       LLVM.ExecutionEngine
       LLVM.FFI.Analysis

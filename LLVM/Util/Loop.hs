@@ -1,6 +1,6 @@
 {-# LANGUAGE ScopedTypeVariables, FlexibleInstances, TypeOperators, FlexibleContexts #-}
 module LLVM.Util.Loop(Phi, forLoop, mapVector, mapVector2) where
-import Data.TypeNumbers
+import Data.TypeLevel hiding (Bool)
 import LLVM.Core
 
 class Phi a where
@@ -92,7 +92,7 @@ mapVector :: forall a b n r .
              (Value a -> CodeGenFunction r (Value b)) ->
              Value (Vector n a) -> CodeGenFunction r (Value (Vector n b))
 mapVector f v =
-    forLoop (valueOf 0) (valueOf (typeNumber (undefined :: n))) (value undef) $ \ i w -> do
+    forLoop (valueOf 0) (valueOf (toNum (undefined :: n))) (value undef) $ \ i w -> do
         x <- extractelement v i
         y <- f x
         insertelement w y i
@@ -102,7 +102,7 @@ mapVector2 :: forall a b c n r .
              (Value a -> Value b -> CodeGenFunction r (Value c)) ->
              Value (Vector n a) -> Value (Vector n b) -> CodeGenFunction r (Value (Vector n c))
 mapVector2 f v1 v2 =
-    forLoop (valueOf 0) (valueOf (typeNumber (undefined :: n))) (value undef) $ \ i w -> do
+    forLoop (valueOf 0) (valueOf (toNum (undefined :: n))) (value undef) $ \ i w -> do
         x <- extractelement v1 i
         y <- extractelement v2 i
         z <- f x y

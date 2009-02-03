@@ -2,7 +2,7 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 module Arith where
 import Data.Int
-import Data.TypeNumbers
+import Data.TypeLevel(D4)
 import LLVM.Core
 import LLVM.ExecutionEngine
 import LLVM.Util.Arithmetic
@@ -28,7 +28,7 @@ mSomeFn = do
 mFib :: CodeGenModule (Function (Int32 -> IO Int32))
 mFib = recursiveFunction $ \ rfib n -> n %< 2 ? (1, rfib (n-1) + rfib (n-2))
 
-type V = Vector (D4 End) Float
+type V = Vector D4 Float
 
 mVFun :: CodeGenModule (Function (Ptr V -> Ptr V -> IO ()))
 mVFun = do

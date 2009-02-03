@@ -28,7 +28,7 @@ module LLVM.Core.CodeGen(
 import Control.Monad(liftM, when)
 import Data.Int
 import Data.Word
-import Data.TypeNumbers
+import Data.TypeLevel hiding (Bool, Eq, (+))
 import LLVM.Core.CodeGenMonad
 import qualified LLVM.FFI.Core as FFI
 import qualified LLVM.Core.Util as U
@@ -214,9 +214,9 @@ type FA a = CodeGenFunction a ()
 instance FunctionArgs (IO Float)        (FA Float)        (FA Float)        where apArgs _ _ g = g
 instance FunctionArgs (IO Double)       (FA Double)       (FA Double)       where apArgs _ _ g = g
 instance FunctionArgs (IO FP128)        (FA FP128)        (FA FP128)        where apArgs _ _ g = g
-instance (IsTypeNumber n) => 
+instance (Pos n) => 
          FunctionArgs (IO (IntN n))     (FA (IntN n))     (FA (IntN n))     where apArgs _ _ g = g
-instance (IsTypeNumber n) =>
+instance (Pos n) =>
          FunctionArgs (IO (WordN n))    (FA (WordN n))    (FA (WordN n))    where apArgs _ _ g = g
 instance FunctionArgs (IO Bool)         (FA Bool)         (FA Bool)         where apArgs _ _ g = g
 instance FunctionArgs (IO Int8)         (FA Int8)         (FA Int8)         where apArgs _ _ g = g
@@ -228,7 +228,7 @@ instance FunctionArgs (IO Word16)       (FA Word16)       (FA Word16)       wher
 instance FunctionArgs (IO Word32)       (FA Word32)       (FA Word32)       where apArgs _ _ g = g
 instance FunctionArgs (IO Word64)       (FA Word64)       (FA Word64)       where apArgs _ _ g = g
 instance FunctionArgs (IO ())           (FA ())           (FA ())           where apArgs _ _ g = g
-instance (IsTypeNumber n, IsPrimitive a) =>
+instance (Pos n, IsPrimitive a) =>
          FunctionArgs (IO (Vector n a)) (FA (Vector n a)) (FA (Vector n a)) where apArgs _ _ g = g
 instance (IsType a) => 
          FunctionArgs (IO (Ptr a))      (FA (Ptr a))      (FA (Ptr a))      where apArgs _ _ g = g
@@ -381,11 +381,11 @@ data VisibilityTypes
 --------------------------------------
 
 -- |Make a constant vector.  Replicates or truncates the list to get length /n/.
-constVector :: forall a n . (IsTypeNumber n) => [ConstValue a] -> ConstValue (Vector n a)
+constVector :: forall a n . (Pos n) => [ConstValue a] -> ConstValue (Vector n a)
 constVector xs =
-    ConstValue $ U.constVector (typeNumber (undefined :: n)) [ v | ConstValue v <- xs ]
+    ConstValue $ U.constVector (toNum (undefined :: n)) [ v | ConstValue v <- xs ]
 
 -- |Make a constant array.  Replicates or truncates the list to get length /n/.
-constArray :: forall a n . (IsSized a, IsTypeNumber n) => [ConstValue a] -> ConstValue (Array n a)
+constArray :: forall a n . (IsSized a, Nat n) => [ConstValue a] -> ConstValue (Array n a)
 constArray xs =
-    ConstValue $ U.constArray (typeRef (undefined :: Array n a)) (typeNumber (undefined :: n)) [ v | ConstValue v <- xs ]
+    ConstValue $ U.constArray (typeRef (undefined :: Array n a)) (toNum (undefined :: n)) [ v | ConstValue v <- xs ]

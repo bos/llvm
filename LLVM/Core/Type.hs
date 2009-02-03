@@ -1,4 +1,4 @@
-{-# LANGUAGE ScopedTypeVariables, EmptyDataDecls, FlexibleInstances, IncoherentInstances #-}
+{-# LANGUAGE ScopedTypeVariables, EmptyDataDecls, FlexibleInstances, FlexibleContexts, UndecidableInstances, IncoherentInstances #-}
 -- |The LLVM type system is captured with a number of Haskell type classes.
 -- In general, an LLVM type @T@ is represented as @Value T@, where @T@ is some Haskell type.
 -- The various types @T@ are classified by various type classes, e.g., 'IsFirstClass' for
@@ -27,7 +27,7 @@ module LLVM.Core.Type(
 import Data.List(intercalate)
 import Data.Int
 import Data.Word
-import Data.TypeNumbers
+import Data.TypeLevel hiding (Bool, Eq)
 import LLVM.Core.Util(functionType)
 import LLVM.Core.Data
 import qualified LLVM.FFI.Core as FFI
@@ -37,17 +37,8 @@ import qualified LLVM.FFI.Core as FFI
 
 -- Usage: vector precondition
 -- XXX This could defined inductively, but this is good enough for LLVM
-class (IsTypeNumber n) => IsPowerOf2 n
-instance IsPowerOf2 (D1 End)
-instance IsPowerOf2 (D2 End)
-instance IsPowerOf2 (D4 End)
-instance IsPowerOf2 (D8 End)
-instance IsPowerOf2 (D1 (D6 End))
-instance IsPowerOf2 (D3 (D2 End))
-instance IsPowerOf2 (D6 (D4 End))
-instance IsPowerOf2 (D1 (D2 (D8 End)))
-instance IsPowerOf2 (D2 (D5 (D6 End)))
-instance IsPowerOf2 (D5 (D1 (D2 End)))
+class (Pos n) => IsPowerOf2 n
+instance (LogBase D2 n l, Pos n) => IsPowerOf2 n
 
 -- TODO:
 -- Move IntN, WordN to a special module that implements those types
@@ -159,11 +150,11 @@ instance IsType FP128  where typeDesc _ = TDFP128
 instance IsType ()     where typeDesc _ = TDVoid
 
 -- Variable size integer types
-instance (IsTypeNumber n) => IsType (IntN n)
-    where typeDesc _ = TDInt True  (typeNumber (undefined :: n))
+instance (Pos n) => IsType (IntN n)
+    where typeDesc _ = TDInt True  (toNum (undefined :: n))
 
-instance (IsTypeNumber n) => IsType (WordN n)
-    where typeDesc _ = TDInt False (typeNumber (undefined :: n))
+instance (Pos n) => IsType (WordN n)
+    where typeDesc _ = TDInt False (toNum (undefined :: n))
 
 -- Fixed size integer types.
 instance IsType Bool   where typeDesc _ = TDInt False  1
@@ -177,11 +168,11 @@ instance IsType Int32  where typeDesc _ = TDInt True  32
 instance IsType Int64  where typeDesc _ = TDInt True  64
 
 -- Sequence types
-instance (IsTypeNumber n, IsSized a) => IsType (Array n a)
-    where typeDesc _ = TDArray (typeNumber (undefined :: n))
+instance (Nat n, IsSized a) => IsType (Array n a)
+    where typeDesc _ = TDArray (toNum (undefined :: n))
     	  	               (typeDesc (undefined :: a))
 instance (IsPowerOf2 n, IsPrimitive a) => IsType (Vector n a)
-    where typeDesc _ = TDVector (typeNumber (undefined :: n))
+    where typeDesc _ = TDVector (toNum (undefined :: n))
     	  	       		(typeDesc (undefined :: a))
 
 -- Pointer type.
@@ -200,8 +191,8 @@ instance (IsFirstClass a) => IsType (IO a) where
 instance IsArithmetic Float
 instance IsArithmetic Double
 instance IsArithmetic FP128
-instance (IsTypeNumber n) => IsArithmetic (IntN n)
-instance (IsTypeNumber n) => IsArithmetic (WordN n)
+instance (Pos n) => IsArithmetic (IntN n)
+instance (Pos n) => IsArithmetic (WordN n)
 instance IsArithmetic Bool
 instance IsArithmetic Int8
 instance IsArithmetic Int16
@@ -218,8 +209,8 @@ instance IsFloating Double
 instance IsFloating FP128
 instance (IsPowerOf2 n, IsPrimitive a, IsFloating a) => IsFloating (Vector n a)
 
-instance (IsTypeNumber n) => IsInteger (IntN n)
-instance (IsTypeNumber n) => IsInteger (WordN n)
+instance (Pos n) => IsInteger (IntN n)
+instance (Pos n) => IsInteger (WordN n)
 instance IsInteger Bool
 instance IsInteger Int8
 instance IsInteger Int16
@@ -234,8 +225,8 @@ instance (IsPowerOf2 n, IsPrimitive a, IsInteger a) => IsInteger (Vector n a)
 instance IsFirstClass Float
 instance IsFirstClass Double
 instance IsFirstClass FP128
-instance (IsTypeNumber n) => IsFirstClass (IntN n)
-instance (IsTypeNumber n) => IsFirstClass (WordN n)
+instance (Pos n) => IsFirstClass (IntN n)
+instance (Pos n) => IsFirstClass (WordN n)
 instance IsFirstClass Bool
 instance IsFirstClass Int8
 instance IsFirstClass Int16
@@ -252,8 +243,8 @@ instance IsFirstClass () -- XXX This isn't right, but () can be returned
 instance IsSized Float
 instance IsSized Double
 instance IsSized FP128
-instance (IsTypeNumber n) => IsSized (IntN n)
-instance (IsTypeNumber n) => IsSized (WordN n)
+instance (Pos n) => IsSized (IntN n)
+instance (Pos n) => IsSized (WordN n)
 instance IsSized Bool
 instance IsSized Int8
 instance IsSized Int16
@@ -263,15 +254,15 @@ instance IsSized Word8
 instance IsSized Word16
 instance IsSized Word32
 instance IsSized Word64
-instance (IsTypeNumber n, IsSized a) => IsSized (Array n a)
+instance (Nat n, IsSized a) => IsSized (Array n a)
 instance (IsPowerOf2 n, IsPrimitive a) => IsSized (Vector n a)
 instance (IsType a) => IsSized (Ptr a)
 
 instance IsPrimitive Float
 instance IsPrimitive Double
 instance IsPrimitive FP128
-instance (IsTypeNumber n) => IsPrimitive (IntN n)
-instance (IsTypeNumber n) => IsPrimitive (WordN n)
+instance (Pos n) => IsPrimitive (IntN n)
+instance (Pos n) => IsPrimitive (WordN n)
 instance IsPrimitive Bool
 instance IsPrimitive Int8
 instance IsPrimitive Int16

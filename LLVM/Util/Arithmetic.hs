@@ -12,7 +12,7 @@ module LLVM.Util.Arithmetic(
     recursiveFunction,
     CallIntrinsic,
     ) where
-import Data.TypeNumbers
+import Data.TypeLevel hiding (Bool, Eq, (+),(-),(*))
 import Data.Word
 import Data.Int
 import LLVM.Core
@@ -303,7 +303,7 @@ callIntrinsic2 :: (CallIntrinsic a) => String -> TValue r a -> TValue r a -> TVa
 callIntrinsic2 s x y = do x' <- x; y' <- y; callIntrinsic2' s x' y'
 
 #if defined(__MACOS__)
-instance CallIntrinsic (Vector (D4 End) Float) where
+instance CallIntrinsic (Vector D4 Float) where
     callIntrinsic1' s x | hasVFun   = do op <- externFunction ("v" ++ s ++ "f")
     		      	  	         r <- call op x
 					 addAttributes r 0 [ReadNoneAttribute]

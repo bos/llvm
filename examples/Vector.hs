@@ -1,8 +1,8 @@
-{-# LANGUAGE CPP #-}
+{-# LANGUAGE CPP, TypeOperators #-}
 module Vector where
 import System.Process(system)
 import Control.Monad
-import Data.TypeNumbers
+import Data.TypeLevel.Num((:*), D1, D6, toNum)
 import Data.Word
 
 import LLVM.Core
@@ -15,7 +15,7 @@ import Convert
 type T = Float
 
 -- Number of vector elements.
-type N = D1 (D6 End)
+type N = D1 :* D6
 
 cgvec :: CodeGenModule (Function (T -> IO T))
 cgvec = do
@@ -32,7 +32,7 @@ cgvec = do
     f <- createNamedFunction ExternalLinkage "vectest" $ \ x -> do
 
         let v = value (zero :: ConstValue (Vector N T))
-	    n = typeNumber (undefined :: N) :: Word32
+	    n = toNum (undefined :: N) :: Word32
 
         -- Fill the vector with x, x+1, x+2, ...
         (_, v1) <- forLoop (valueOf 0) (valueOf n) (x, v) $ \ i (x1, v1) -> do

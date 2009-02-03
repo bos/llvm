@@ -2,7 +2,7 @@
 {-# LANGUAGE MultiParamTypeClasses, FunctionalDependencies, FlexibleInstances, ScopedTypeVariables #-}
 module LLVM.Core.Vector(MkVector(..)) where
 import Data.Function
-import Data.TypeNumbers
+import Data.TypeLevel hiding (Eq, (+), (==), (-), (*), succ, pred, div, mod, divMod, logBase)
 import LLVM.Core.Type
 import LLVM.Core.Data
 import LLVM.Core.CodeGen(IsConst(..), ConstValue(..))
@@ -19,21 +19,21 @@ class (IsPowerOf2 n, IsPrimitive a) => MkVector va n a | va -> n a, n a -> va wh
     fromVector :: Vector n a -> va
 
 {-
-instance (IsPrimitive a) => MkVector (Value a) (D1 End) (Value a) where
+instance (IsPrimitive a) => MkVector (Value a) D1 (Value a) where
     toVector a = Vector [a]
 -}
 
-instance (IsPrimitive a) => MkVector (a, a) (D2 End) a where
+instance (IsPrimitive a) => MkVector (a, a) D2 a where
     toVector (a1, a2) = Vector [a1, a2]
     fromVector (Vector [a1, a2]) = (a1, a2)
     fromVector _ = error "fromVector: impossible"
 
-instance (IsPrimitive a) => MkVector (a, a, a, a) (D4 End) a where
+instance (IsPrimitive a) => MkVector (a, a, a, a) D4 a where
     toVector (a1, a2, a3, a4) = Vector [a1, a2, a3, a4]
     fromVector (Vector [a1, a2, a3, a4]) = (a1, a2, a3, a4)
     fromVector _ = error "fromVector: impossible"
 
-instance (IsPrimitive a) => MkVector (a, a, a, a, a, a, a, a) (D8 End) a where
+instance (IsPrimitive a) => MkVector (a, a, a, a, a, a, a, a) D8 a where
     toVector (a1, a2, a3, a4, a5, a6, a7, a8) = Vector [a1, a2, a3, a4, a5, a6, a7, a8]
     fromVector (Vector [a1, a2, a3, a4, a5, a6, a7, a8]) = (a1, a2, a3, a4, a5, a6, a7, a8)
     fromVector _ = error "fromVector: impossible"
@@ -41,7 +41,7 @@ instance (IsPrimitive a) => MkVector (a, a, a, a, a, a, a, a) (D8 End) a where
 instance (Storable a, IsPowerOf2 n, IsPrimitive a) => Storable (Vector n a) where
     sizeOf a = storeSizeOfType ourTargetData (typeRef a)
     alignment a = aBIAlignmentOfType ourTargetData (typeRef a)
-    peek p = fmap Vector $ peekArray (typeNumber (undefined :: n)) (castPtr p :: Ptr a)
+    peek p = fmap Vector $ peekArray (toNum (undefined :: n)) (castPtr p :: Ptr a)
     poke p (Vector vs) = pokeArray (castPtr p :: Ptr a) vs
 
 instance (IsPowerOf2 n, IsPrimitive a, IsConst a) => IsConst (Vector n a) where
@@ -67,25 +67,25 @@ instance (Eq a) => Eq (Vector n a) where
 instance (Ord a) => Ord (Vector n a) where
     compare = compare `on` unVector
 
-instance (Num a, IsTypeNumber n) => Num (Vector n a) where
+instance (Num a, Pos n) => Num (Vector n a) where
     (+) = binop (+)
     (-) = binop (-)
     (*) = binop (*)
     negate = unop negate
     abs = unop abs
     signum = unop signum
-    fromInteger = Vector . replicate (typeNumber (undefined :: n)) . fromInteger
+    fromInteger = Vector . replicate (toNum (undefined :: n)) . fromInteger
 
-instance (Enum a, IsTypeNumber n) => Enum (Vector n a) where
+instance (Enum a, Pos n) => Enum (Vector n a) where
     succ = unop succ
     pred = unop pred
     fromEnum = error "Vector fromEnum"
-    toEnum = Vector . map toEnum . replicate (typeNumber (undefined :: n))
+    toEnum = Vector . map toEnum . replicate (toNum (undefined :: n))
 
-instance (Real a, IsTypeNumber n) => Real (Vector n a) where
+instance (Real a, Pos n) => Real (Vector n a) where
     toRational = error "Vector toRational"
 
-instance (Integral a, IsTypeNumber n) => Integral (Vector n a) where
+instance (Integral a, Pos n) => Integral (Vector n a) where
     quot = binop quot
     rem  = binop rem
     div  = binop div
@@ -94,15 +94,15 @@ instance (Integral a, IsTypeNumber n) => Integral (Vector n a) where
     divMod  (Vector xs) (Vector ys) = (Vector qs, Vector rs) where (qs, rs) = unzip $ zipWith divMod  xs ys
     toInteger = error "Vector toInteger"
 
-instance (Fractional a, IsTypeNumber n) => Fractional (Vector n a) where
+instance (Fractional a, Pos n) => Fractional (Vector n a) where
     (/) = binop (/)
-    fromRational = Vector . replicate (typeNumber (undefined :: n)) . fromRational
+    fromRational = Vector . replicate (toNum (undefined :: n)) . fromRational
 
-instance (RealFrac a, IsTypeNumber n) => RealFrac (Vector n a) where
+instance (RealFrac a, Pos n) => RealFrac (Vector n a) where
     properFraction = error "Vector properFraction"
 
-instance (Floating a, IsTypeNumber n) => Floating (Vector n a) where
-    pi = Vector $ replicate (typeNumber (undefined :: n)) pi
+instance (Floating a, Pos n) => Floating (Vector n a) where
+    pi = Vector $ replicate (toNum (undefined :: n)) pi
     sqrt = unop sqrt
     log = unop log
     logBase = binop logBase
@@ -121,7 +121,7 @@ instance (Floating a, IsTypeNumber n) => Floating (Vector n a) where
     acosh = unop acosh
     atanh = unop atanh
 
-instance (RealFloat a, IsTypeNumber n) => RealFloat (Vector n a) where
+instance (RealFloat a, Pos n) => RealFloat (Vector n a) where
     floatRadix = floatRadix . head . unVector
     floatDigits = floatDigits . head . unVector
     floatRange = floatRange . head . unVector
