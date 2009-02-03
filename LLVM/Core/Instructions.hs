@@ -268,31 +268,26 @@ shufflevector (Value a) (Value b) (ConstValue mask) =
 
 -- XXX should allows constants
 
--- XXX size a > size b not enforced
 -- | Truncate a value to a shorter bit width.
 trunc :: (IsInteger a, IsInteger b, IsPrimitive a, IsPrimitive b, IsSized a sa, IsSized b sb, sa :>: sb)
       => Value a -> CodeGenFunction r (Value b)
 trunc = convert FFI.buildTrunc
 
--- XXX size a < size b not enforced
 -- | Zero extend a value to a wider width.
 zext :: (IsInteger a, IsInteger b, IsPrimitive a, IsPrimitive b, IsSized a sa, IsSized b sb, sa :<: sb)
      => Value a -> CodeGenFunction r (Value b)
 zext = convert FFI.buildZExt
 
--- XXX size a < size b not enforced
 -- | Sign extend a value to wider width.
 sext :: (IsInteger a, IsInteger b, IsPrimitive a, IsPrimitive b, IsSized a sa, IsSized b sb, sa :<: sb)
      => Value a -> CodeGenFunction r (Value b)
 sext = convert FFI.buildSExt
 
--- XXX size a > size b not enforced
 -- | Truncate a floating point value.
 fptrunc :: (IsFloating a, IsFloating b, IsPrimitive a, IsPrimitive b, IsSized a sa, IsSized b sb, sa :>: sb)
         => Value a -> CodeGenFunction r (Value b)
 fptrunc = convert FFI.buildFPTrunc
 
--- XXX size a < size b not enforced
 -- | Extend a floating point value.
 fpext :: (IsFloating a, IsFloating b, IsPrimitive a, IsPrimitive b, IsSized a sa, IsSized b sb, sa :<: sb)
       => Value a -> CodeGenFunction r (Value b)
@@ -323,7 +318,6 @@ ptrtoint = convert FFI.buildPtrToInt
 inttoptr :: (IsInteger a, IsType b) => Value (Ptr a) -> CodeGenFunction r (Value (Ptr b))
 inttoptr = convert FFI.buildIntToPtr
 
--- XXX a and b must use the same space, and there are also pointer restrictions
 -- | Convert between to values of the same size by just copying the bit pattern.
 bitcast :: (IsFirstClass a, IsFirstClass b, IsSized a sa, IsSized b sb, sa :==: sb)
         => Value a -> CodeGenFunction r (Value b)
@@ -405,13 +399,11 @@ instance CmpRet Int32 Bool
 instance CmpRet Int64 Bool
 instance CmpRet (Vector n a) (Vector n Bool)
 
--- XXX Vector
 -- | Compare integers.
 icmp :: (IsInteger c, CmpOp a b c d, CmpRet c d) =>
         IntPredicate -> a -> b -> CodeGenFunction r (Value d)
 icmp p = cmpop (flip FFI.buildICmp (fromIntPredicate p))
 
--- XXX Vector
 -- | Compare floating point values.
 fcmp :: (IsFloating c, CmpOp a b c d, CmpRet c d) =>
         FPPredicate -> a -> b -> CodeGenFunction r (Value d)
@@ -419,7 +411,6 @@ fcmp p = cmpop (flip FFI.buildFCmp (fromFPPredicate p))
 
 --------------------------------------
 
--- XXX can handle vectors, needs bool vector args
 -- XXX could do const song and dance
 -- | Select between two values depending on a boolean.
 select :: (IsFirstClass a, CmpRet a b) => Value b -> Value a -> Value a -> CodeGenFunction r (Value a)
