@@ -22,7 +22,8 @@ module LLVM.Core.Type(
     isFloating,
     isSigned,
     typeRef,
-    typeName
+    typeName,
+    VarArgs, CastVarArgs
     ) where
 import Data.List(intercalate)
 import Data.Int
@@ -57,7 +58,7 @@ typeRef = code . typeDesc
 	code (TDArray n a) = FFI.arrayType (code a) (fromInteger n)
 	code (TDVector n a) = FFI.vectorType (code a) (fromInteger n)
 	code (TDPtr a) = FFI.pointerType (code a) 0
-	code (TDFunction as b) = functionType False (code b) (map code as)
+	code (TDFunction va as b) = functionType va (code b) (map code as)
 
 typeName :: (IsType a) => a -> String
 typeName = code . typeDesc
@@ -69,12 +70,12 @@ typeName = code . typeDesc
 	code (TDArray n a) = "[" ++ show n ++ " x " ++ code a ++ "]"
 	code (TDVector n a) = "<" ++ show n ++ " x " ++ code a ++ ">"
 	code (TDPtr a) = code a ++ "*"
-	code (TDFunction as b) = code b ++ "(" ++ intercalate "," (map code as) ++ ")"
+	code (TDFunction _ as b) = code b ++ "(" ++ intercalate "," (map code as) ++ ")"
 
 -- |Type descriptor, used to convey type information through the LLVM API.
 data TypeDesc = TDFloat | TDDouble | TDFP128 | TDVoid | TDInt Bool Integer
               | TDArray Integer TypeDesc | TDVector Integer TypeDesc
-	      | TDPtr TypeDesc | TDFunction [TypeDesc] TypeDesc
+	      | TDPtr TypeDesc | TDFunction Bool [TypeDesc] TypeDesc
     deriving (Eq, Ord, Show)
 
 -- XXX isFloating and typeName could be extracted from typeRef
@@ -275,7 +276,24 @@ instance IsPrimitive ()
 instance (IsFirstClass a, IsFunction b) => IsFunction (a->b) where
     funcType ts _ = funcType (typeDesc (undefined :: a) : ts) (undefined :: b)
 instance (IsFirstClass a) => IsFunction (IO a) where
-    funcType ts _ = TDFunction (reverse ts) (typeDesc (undefined :: a))
+    funcType ts _ = TDFunction False (reverse ts) (typeDesc (undefined :: a))
+instance (IsFirstClass a) => IsFunction (VarArgs a) where
+    funcType ts _ = TDFunction True  (reverse ts) (typeDesc (undefined :: a))
+
+-- |The 'VarArgs' type is a placeholder for the real 'IO' type that
+-- cen be obtained with 'castVarArgs'.
+data VarArgs a
+instance IsType (VarArgs a) where
+    typeDesc _ = error "typeDesc: Dummy type VarArgs used incorrectly"
+
+-- |Define what vararg types are permissible.
+class CastVarArgs a b
+instance (CastVarArgs b c) => CastVarArgs (a -> b) (a -> c)
+instance CastVarArgs (VarArgs a) (IO a)
+instance (IsFirstClass a, CastVarArgs (VarArgs b) c) => CastVarArgs (VarArgs b) (a -> c)
+
+
+
 
 -- XXX Structures not implemented.  Tuples is probably an easy way.
 

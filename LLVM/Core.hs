@@ -60,6 +60,7 @@ module LLVM.Core(
     BasicBlock, newBasicBlock, newNamedBasicBlock, defineBasicBlock, createBasicBlock, getCurrentBasicBlock,
     -- * Misc
     addAttributes, Attribute(..),
+    castVarArgs,
     -- * Debugging
     dumpValue, dumpType, getValueName,
     -- * Transformations
@@ -88,6 +89,10 @@ dumpType (Value v) = showTypeOf v >>= putStrLn
 -- |Get the name of a 'Value'.
 getValueName :: Value a -> IO String
 getValueName (Value a) = getValueNameU a
+
+-- |Convert a varargs function to a regular function.
+castVarArgs :: (CastVarArgs a b) => Function a -> Function b
+castVarArgs (Value a) = Value a
 
 -- TODO for types:
 -- Enforce free is only called on malloc memory.  (Enforce only one free?)
