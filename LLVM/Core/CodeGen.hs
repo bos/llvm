@@ -22,6 +22,7 @@ module LLVM.Core.CodeGen(
     constVector, constArray,
     -- * Basic blocks
     BasicBlock(..), newBasicBlock, newNamedBasicBlock, defineBasicBlock, createBasicBlock, getCurrentBasicBlock,
+    fromLabel, toLabel,
     -- * Misc
     withCurrentBuilder
     ) where
@@ -265,6 +266,12 @@ getCurrentBasicBlock :: CodeGenFunction r BasicBlock
 getCurrentBasicBlock = do
     bld <- getBuilder
     liftIO $ liftM BasicBlock $ U.getInsertBlock bld
+
+toLabel :: BasicBlock -> Value Label
+toLabel (BasicBlock ptr) = Value (FFI.basicBlockAsValue ptr)
+
+fromLabel :: Value Label -> BasicBlock
+fromLabel (Value ptr) = BasicBlock (FFI.valueAsBasicBlock ptr)
 
 --------------------------------------
 

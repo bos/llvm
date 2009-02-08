@@ -58,6 +58,7 @@ module LLVM.Core(
     Linkage(..),
     -- * Basic blocks
     BasicBlock, newBasicBlock, newNamedBasicBlock, defineBasicBlock, createBasicBlock, getCurrentBasicBlock,
+    fromLabel, toLabel,
     -- * Misc
     addAttributes, Attribute(..),
     castVarArgs,

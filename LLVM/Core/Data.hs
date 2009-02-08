@@ -1,5 +1,6 @@
+{-# LANGUAGE EmptyDataDecls #-}
 module LLVM.Core.Data(IntN(..), WordN(..), FP128(..),
-       		      Array(..), Vector(..), Ptr) where
+       		      Array(..), Vector(..), Ptr, Label) where
 import Foreign.Ptr(Ptr)
 import Data.TypeLevel
 
@@ -30,3 +31,5 @@ newtype (Nat n) => Array n a = Array [a]
 newtype Vector n a = Vector [a]
     deriving (Show)
 
+-- |Label type, produced by a basic block.
+data Label

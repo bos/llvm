@@ -59,6 +59,7 @@ typeRef = code . typeDesc
 	code (TDVector n a) = FFI.vectorType (code a) (fromInteger n)
 	code (TDPtr a) = FFI.pointerType (code a) 0
 	code (TDFunction va as b) = functionType va (code b) (map code as)
+	code TDLabel = FFI.labelType
 
 typeName :: (IsType a) => a -> String
 typeName = code . typeDesc
@@ -75,7 +76,7 @@ typeName = code . typeDesc
 -- |Type descriptor, used to convey type information through the LLVM API.
 data TypeDesc = TDFloat | TDDouble | TDFP128 | TDVoid | TDInt Bool Integer
               | TDArray Integer TypeDesc | TDVector Integer TypeDesc
-	      | TDPtr TypeDesc | TDFunction Bool [TypeDesc] TypeDesc
+	      | TDPtr TypeDesc | TDFunction Bool [TypeDesc] TypeDesc | TDLabel
     deriving (Eq, Ord, Show)
 
 -- XXX isFloating and typeName could be extracted from typeRef
@@ -145,6 +146,9 @@ instance IsType FP128  where typeDesc _ = TDFP128
 
 -- Void type
 instance IsType ()     where typeDesc _ = TDVoid
+
+-- Label type
+instance IsType Label  where typeDesc _ = TDLabel
 
 -- Variable size integer types
 instance (Pos n) => IsType (IntN n)
@@ -235,6 +239,7 @@ instance IsFirstClass Word32
 instance IsFirstClass Word64
 instance (IsPowerOf2 n, IsPrimitive a) => IsFirstClass (Vector n a)
 instance (IsType a) => IsFirstClass (Ptr a)
+instance IsFirstClass Label
 instance IsFirstClass () -- XXX This isn't right, but () can be returned
 
 instance IsSized Float D32
@@ -253,7 +258,10 @@ instance IsSized Word32 D32
 instance IsSized Word64 D64
 instance (Nat n, IsSized a s, Mul n s ns, Pos ns) => IsSized (Array n a) ns
 instance (IsPowerOf2 n, IsPrimitive a, IsSized a s, Mul n s ns, Pos ns) => IsSized (Vector n a) ns
-instance (IsType a, Pos s) => IsSized (Ptr a) s  -- XXX
+instance (IsType a) => IsSized (Ptr a) PtrSize
+-- instance IsSized Label PtrSize -- labels are not quite first classed
+
+type PtrSize = D32   -- XXX this is wrong!
 
 instance IsPrimitive Float
 instance IsPrimitive Double
@@ -269,7 +277,7 @@ instance IsPrimitive Word8
 instance IsPrimitive Word16
 instance IsPrimitive Word32
 instance IsPrimitive Word64
---instance IsPrimitive Label
+instance IsPrimitive Label
 instance IsPrimitive ()
 
 -- Functions.

@@ -1137,9 +1137,9 @@ foreign import ccall unsafe "LLVMGetPreviousParam" getPreviousParam
 foreign import ccall unsafe "LLVMInitializeFunctionPassManager" initializeFunctionPassManager
     :: PassManagerRef -> IO CInt
 foreign import ccall unsafe "LLVMLabelType" labelType
-    :: IO TypeRef
+    :: TypeRef
 foreign import ccall unsafe "LLVMOpaqueType" opaqueType
-    :: IO TypeRef
+    :: TypeRef
 foreign import ccall unsafe "LLVMPositionBuilder" positionBuilder
     :: BuilderRef -> BasicBlockRef -> ValueRef -> IO ()
 foreign import ccall unsafe "LLVMRunFunctionPassManager" runFunctionPassManager
