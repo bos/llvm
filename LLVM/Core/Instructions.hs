@@ -315,7 +315,7 @@ ptrtoint :: (IsInteger b, IsPrimitive b) => Value (Ptr a) -> CodeGenFunction r (
 ptrtoint = convert FFI.buildPtrToInt
 
 -- | Convert an integer to a pointer.
-inttoptr :: (IsInteger a, IsType b) => Value (Ptr a) -> CodeGenFunction r (Value (Ptr b))
+inttoptr :: (IsInteger a, IsType b) => Value a -> CodeGenFunction r (Value (Ptr b))
 inttoptr = convert FFI.buildIntToPtr
 
 -- | Convert between to values of the same size by just copying the bit pattern.
