@@ -12,7 +12,9 @@ module LLVM.Util.Arithmetic(
     recursiveFunction,
     CallIntrinsic,
     ) where
---import Data.TypeLevel hiding (Bool, Eq, (+),(-),(*))
+#if defined(__MACOS__)
+import Data.TypeLevel hiding (Bool, Eq, (+),(-),(*))
+#endif
 import Data.Word
 import Data.Int
 import LLVM.Core
