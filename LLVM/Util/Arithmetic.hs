@@ -12,7 +12,7 @@ module LLVM.Util.Arithmetic(
     recursiveFunction,
     CallIntrinsic,
     ) where
-import Data.TypeLevel hiding (Bool, Eq, (+),(-),(*))
+--import Data.TypeLevel hiding (Bool, Eq, (+),(-),(*))
 import Data.Word
 import Data.Int
 import LLVM.Core

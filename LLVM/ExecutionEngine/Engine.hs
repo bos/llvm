@@ -94,11 +94,13 @@ createExecutionEngine prov =
         alloca $ \errPtr -> do
           ret <- FFI.createExecutionEngine eePtr provPtr errPtr
           if ret == 1
-            then do err <- peek errPtr
-                    errStr <- peekCString err
-                    free err
-                    ioError . userError $ errStr
-            else do peek eePtr
+            then do
+                err <- peek errPtr
+                errStr <- peekCString err
+                free err
+                ioError . userError $ errStr
+            else
+                peek eePtr
 
 getTheEngine :: IO (Ptr FFI.ExecutionEngine)
 getTheEngine = do
@@ -122,7 +124,7 @@ newtype EngineAccess a = EA (StateT EAState IO a)
 
 -- |The LLVM execution engine is encapsulated so it cannot be accessed directly.
 -- The reason is that (currently) there must only ever be one engine,
--- so access to it is wrapped ina monad.
+-- so access to it is wrapped in a monad.
 runEngineAccess :: EngineAccess a -> IO a
 runEngineAccess (EA body) = do
     eePtr <- getTheEngine

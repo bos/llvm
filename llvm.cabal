@@ -1,16 +1,17 @@
 name: llvm
-version: 0.6.5.0
+version: 0.6.6.0
 license: BSD3
 license-file: LICENSE
-synopsis: Bindings to the LLVM compiler toolkit
-description: Bindings to the LLVM compiler toolkit
-	     New in 0.6.5.0: Adapted to LLVM 2.5
+synopsis: Bindings to the LLVM compiler toolkit.
+description: Bindings to the LLVM compiler toolkit.
+             New in 0.6.6.0: Bug fixes;
+	     New in 0.6.5.0: Adapted to LLVM 2.5;
 author: Bryan O'Sullivan, Lennart Augustsson
 maintainer: Bryan O'Sullivan <bos@serpentine.com>, Lennart Augustsson <lennart@augustsson.net>
 homepage: http://darcs.serpentine.com/llvm/
 stability: experimental
 category: Compilers/Interpreters, Code Generation
-tested-with: GHC == 6.10.1
+tested-with: GHC == 6.10.2
 cabal-version: >= 1.2.3
 build-type: Custom
 
@@ -47,26 +48,14 @@ extra-tmp-files:
     config.status
     llvm.buildinfo
 
-flag bytestring-in-base
-  description: bytestring was part of the base library in ghc-6.6
-               days. The bytestring low level interface is in
-               Data.ByteString.Internal and Data.Bytestring.Unsafe not
-               Data.ByteString.Base
-
 library
-  if flag(bytestring-in-base)
-    -- bytestring was in base-2.0 and 2.1.1
-    build-depends: base >= 2.0 && < 2.2, type-level
-    cpp-options:   -DBYTESTRING_IN_BASE
-  else
-    build-depends: base < 2.0 || >= 2.2, bytestring >= 0.9, mtl, directory, process, type-level
+  build-depends: base >= 3 && < 5, bytestring >= 0.9, mtl, directory, process, type-level
 
   ghc-options: -Wall
 
   if os(darwin)
     ld-options: -w /System/Library/Frameworks/vecLib.framework/Versions/A/vecLib
     cpp-options: -D__MACOS__
-
 
   exposed-modules:
       LLVM.Core

@@ -397,10 +397,11 @@ instance CmpRet Int8 Bool
 instance CmpRet Int16 Bool
 instance CmpRet Int32 Bool
 instance CmpRet Int64 Bool
+instance CmpRet (Ptr a) Bool
 instance CmpRet (Vector n a) (Vector n Bool)
 
 -- | Compare integers.
-icmp :: (IsInteger c, CmpOp a b c d, CmpRet c d) =>
+icmp :: (IsIntegerOrPointer c, CmpOp a b c d, CmpRet c d) =>
         IntPredicate -> a -> b -> CodeGenFunction r (Value d)
 icmp p = cmpop (flip FFI.buildICmp (fromIntPredicate p))
 

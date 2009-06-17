@@ -34,7 +34,7 @@ module LLVM.Core.Util(
 import Data.List(intercalate)
 import Control.Monad(liftM, when)
 import Foreign.C.String (withCString, withCStringLen, CString, peekCString)
-import Foreign.ForeignPtr (ForeignPtr, newForeignPtr, withForeignPtr)
+import Foreign.ForeignPtr (ForeignPtr, newForeignPtr, newForeignPtr_, withForeignPtr)
 import Foreign.Ptr (nullPtr)
 import Foreign.Marshal.Array (withArrayLen, withArray, allocaArray, peekArray)
 import Foreign.Marshal.Alloc (alloca)
@@ -59,21 +59,6 @@ functionType varargs retType paramTypes = unsafePerformIO $
 
 --------------------------------------
 -- Handle modules
-{-
-newtype Module = Module {
-      fromModule :: ForeignPtr FFI.Module
-    }
---    deriving (Typeable)
-
-withModule :: Module -> (FFI.ModuleRef -> IO a) -> IO a
-withModule modul = withForeignPtr (fromModule modul)
-
-createModule :: String -> IO Module
-createModule name =
-    withCString name $ \namePtr -> do
-      ptr <- FFI.moduleCreateWithName namePtr
-      liftM Module $ newForeignPtr FFI.ptrDisposeModule ptr
--}
 
 -- Don't use a finalizer for the module, but instead provide an
 -- explicit destructor.  This is because handing a module to
@@ -84,6 +69,7 @@ createModule name =
 newtype Module = Module {
       fromModule :: FFI.ModuleRef
     }
+    deriving (Show)
 
 withModule :: Module -> (FFI.ModuleRef -> IO a) -> IO a
 withModule modul f = f (fromModule modul)
@@ -209,7 +195,8 @@ createModuleProviderForExistingModule :: Module -> IO ModuleProvider
 createModuleProviderForExistingModule modul =
     withModule modul $ \modulPtr -> do
         ptr <- FFI.createModuleProviderForExistingModule modulPtr
-        liftM ModuleProvider $ newForeignPtr FFI.ptrDisposeModuleProvider ptr
+        -- MPs given to the EE get taken over, so we should not GC them.
+        liftM ModuleProvider $ newForeignPtr_ {-FFI.ptrDisposeModuleProvider-} ptr
 
 
 --------------------------------------
@@ -218,6 +205,7 @@ createModuleProviderForExistingModule modul =
 newtype Builder = Builder {
       fromBuilder :: ForeignPtr FFI.Builder
     }
+    deriving (Show)
 
 withBuilder :: Builder -> (FFI.BuilderRef -> IO a) -> IO a
 withBuilder = withForeignPtr . fromBuilder
@@ -329,6 +317,7 @@ addPhiIns inst incoming = do
 newtype PassManager = PassManager {
       fromPassManager :: ForeignPtr FFI.PassManager
     }
+    deriving (Show)
 
 withPassManager :: PassManager -> (FFI.PassManagerRef -> IO a)
                    -> IO a

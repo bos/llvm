@@ -61,6 +61,7 @@ createModule cgm = newModule >>= \ m -> defineModule m cgm
 --------------------------------------
 
 newtype ModuleValue = ModuleValue FFI.ValueRef
+    deriving (Show)
 
 getModuleValues :: U.Module -> IO [(String, ModuleValue)]
 getModuleValues = liftM (map (\ (s,p) -> (s, ModuleValue p))) . U.getModuleValues
@@ -72,8 +73,10 @@ castModuleValue (ModuleValue f) =
 --------------------------------------
 
 newtype Value a = Value { unValue :: FFI.ValueRef }
+    deriving (Show)
 
 newtype ConstValue a = ConstValue FFI.ValueRef
+    deriving (Show)
 
 -- XXX merge with IsArithmetic?
 class (IsArithmetic a) => IsConst a where
@@ -242,6 +245,7 @@ instance (FunctionArgs (IO a) (CodeGenFunction a ()) (CodeGenFunction a ())) => 
 
 -- |A basic block is a sequence of non-branching instructions, terminated by a control flow instruction.
 newtype BasicBlock = BasicBlock FFI.BasicBlockRef
+    deriving (Show)
 
 createBasicBlock :: CodeGenFunction r BasicBlock
 createBasicBlock = do

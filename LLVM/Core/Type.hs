@@ -10,6 +10,7 @@ module LLVM.Core.Type(
     -- ** Special type classifiers
     IsArithmetic,
     IsInteger,
+    IsIntegerOrPointer,
     IsFloating,
     IsPrimitive,
     IsFirstClass,
@@ -72,6 +73,7 @@ typeName = code . typeDesc
 	code (TDVector n a) = "<" ++ show n ++ " x " ++ code a ++ ">"
 	code (TDPtr a) = code a ++ "*"
 	code (TDFunction _ as b) = code b ++ "(" ++ intercalate "," (map code as) ++ ")"
+        code TDLabel = "label"
 
 -- |Type descriptor, used to convey type information through the LLVM API.
 data TypeDesc = TDFloat | TDDouble | TDFP128 | TDVoid | TDInt Bool Integer
@@ -92,7 +94,12 @@ class IsFirstClass a => IsArithmetic a
 --  many instructions.  XXX some need vector
 --  used to find signedness in Arithmetic
 -- |Integral types.
-class IsArithmetic a => IsInteger a
+class (IsArithmetic a, IsIntegerOrPointer a) => IsInteger a
+
+-- Usage:
+--  icmp
+-- |Integral or pointer type.
+class IsIntegerOrPointer a
 
 isSigned :: (IsInteger a) => a -> Bool
 isSigned = is . typeDesc
@@ -223,6 +230,20 @@ instance IsInteger Word32
 instance IsInteger Word64
 instance (IsPowerOf2 n, IsPrimitive a, IsInteger a) => IsInteger (Vector n a)
 
+instance (Pos n) => IsIntegerOrPointer (IntN n)
+instance (Pos n) => IsIntegerOrPointer (WordN n)
+instance IsIntegerOrPointer Bool
+instance IsIntegerOrPointer Int8
+instance IsIntegerOrPointer Int16
+instance IsIntegerOrPointer Int32
+instance IsIntegerOrPointer Int64
+instance IsIntegerOrPointer Word8
+instance IsIntegerOrPointer Word16
+instance IsIntegerOrPointer Word32
+instance IsIntegerOrPointer Word64
+instance (IsPowerOf2 n, IsPrimitive a, IsInteger a) => IsIntegerOrPointer (Vector n a)
+instance (IsType a) => IsIntegerOrPointer (Ptr a)
+
 instance IsFirstClass Float
 instance IsFirstClass Double
 instance IsFirstClass FP128
@@ -289,7 +310,7 @@ instance (IsFirstClass a) => IsFunction (VarArgs a) where
     funcType ts _ = TDFunction True  (reverse ts) (typeDesc (undefined :: a))
 
 -- |The 'VarArgs' type is a placeholder for the real 'IO' type that
--- cen be obtained with 'castVarArgs'.
+-- can be obtained with 'castVarArgs'.
 data VarArgs a
 instance IsType (VarArgs a) where
     typeDesc _ = error "typeDesc: Dummy type VarArgs used incorrectly"
