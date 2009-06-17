@@ -1,6 +1,6 @@
-{-# LANGUAGE CPP, TypeOperators #-}
+{-# LANGUAGE TypeOperators #-}
 module Vector where
-import System.Process(system)
+import System.Cmd(system)
 import Control.Monad
 import Data.TypeLevel.Num(D16, toNum)
 import Data.Word
@@ -74,12 +74,10 @@ main = do
     m <- newModule
     iovec <- defineModule m cgvec
 
-#if HAS_GETPOINTERTOGLOBAL
     fptr <- runEngineAccess $ do addModule m; getPointerToFunction iovec
     let fvec = convert fptr
 
     fvec 10 >>= print
-#endif
 
     vec <- runEngineAccess $ do addModule m; generateFunction iovec
 

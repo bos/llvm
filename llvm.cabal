@@ -1,15 +1,16 @@
 name: llvm
-version: 0.6.4.0
+version: 0.6.5.0
 license: BSD3
 license-file: LICENSE
 synopsis: Bindings to the LLVM compiler toolkit
 description: Bindings to the LLVM compiler toolkit
+	     New in 0.6.5.0: Adapted to LLVM 2.5
 author: Bryan O'Sullivan, Lennart Augustsson
 maintainer: Bryan O'Sullivan <bos@serpentine.com>, Lennart Augustsson <lennart@augustsson.net>
 homepage: http://darcs.serpentine.com/llvm/
 stability: experimental
 category: Compilers/Interpreters, Code Generation
-tested-with: GHC == 6.8.2, GHC == 6.10.1
+tested-with: GHC == 6.10.1
 cabal-version: >= 1.2.3
 build-type: Custom
 
@@ -21,6 +22,7 @@ extra-source-files:
     configure
     configure.ac
     examples/Arith.hs
+    examples/Align.hs
     examples/Array.hs
     examples/BrainF.hs
     examples/Convert.hs
@@ -32,8 +34,10 @@ extra-source-files:
     examples/mainfib.c
     tests/Makefile
     tests/TestValue.hs
-    tools/Makefile
+    tools/DiffFFI.hs
+    tools/FunctionMangler.hs
     tools/IntrinsicMangler.hs
+    tools/Makefile
     llvm.buildinfo.in
     llvm.buildinfo.windows.in
 
@@ -58,7 +62,6 @@ library
     build-depends: base < 2.0 || >= 2.2, bytestring >= 0.9, mtl, directory, process, type-level
 
   ghc-options: -Wall
---  cpp-options: -DHAS_GETPOINTERTOGLOBAL=1
 
   if os(darwin)
     ld-options: -w /System/Library/Frameworks/vecLib.framework/Versions/A/vecLib

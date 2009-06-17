@@ -10,15 +10,9 @@ Prerequisites
 -------------
 
 Firstly, you'll need to have LLVM.  I recommend installing LLVM
-version 2.4 (from llvm.org) which is what it's been tested with.
-Do A or B.
+version 2.5 (from llvm.org) which is what it's been tested with.
 
-A) Install from a binary package.  Follow the LLVM instructions.
-The binary package at llvm.org for Windows only contains executable
-files and no libraries.  You can find a complete Windows binary package
-at ???.
-
-B) Install from source.
+Install from source.:
 Build this and install it somewhere.  Follow the LLVM instructions,
 or use this:
 
@@ -28,6 +22,8 @@ or use this:
   make install
 
 It's a good idea to have $SOMEWHERE/bin is in your path.
+
+Installing from source on Windows requires MinGW.
 
 
 Building

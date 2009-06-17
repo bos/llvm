@@ -1,4 +1,4 @@
-{-# LANGUAGE CPP, ForeignFunctionInterface, FlexibleInstances, UndecidableInstances, OverlappingInstances, ScopedTypeVariables, GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE ForeignFunctionInterface, FlexibleInstances, UndecidableInstances, OverlappingInstances, ScopedTypeVariables, GeneralizedNewtypeDeriving #-}
 module LLVM.ExecutionEngine.Engine(
        EngineAccess,
        runEngineAccess,
@@ -8,9 +8,7 @@ module LLVM.ExecutionEngine.Engine(
        createExecutionEngine, addModuleProvider, addModule,
        {- runStaticConstructors, runStaticDestructors, -}
        getExecutionEngineTargetData,
-#if HAS_GETPOINTERTOGLOBAL
        getPointerToFunction,
-#endif
        runFunction, getRunFunction,
        GenericValue, Generic(..)
        ) where
@@ -24,10 +22,8 @@ import Foreign.ForeignPtr (ForeignPtr, newForeignPtr, withForeignPtr)
 import Foreign.Marshal.Utils (fromBool)
 import Foreign.C.String (peekCString)
 import Foreign.Ptr (Ptr)
-#if HAS_GETPOINTERTOGLOBAL
 import Foreign.Ptr (FunPtr)
 import LLVM.Core.CodeGen(Value(..), Function)
-#endif
 import Foreign.Storable (peek)
 import System.IO.Unsafe (unsafePerformIO)
 
@@ -78,12 +74,10 @@ runStaticDestructors ee = withExecutionEngine ee FFI.runStaticDestructors
 getExecutionEngineTargetData :: ExecutionEngine -> IO FFI.TargetDataRef
 getExecutionEngineTargetData ee = withExecutionEngine ee FFI.getExecutionEngineTargetData
 
-#if HAS_GETPOINTERTOGLOBAL
 getPointerToFunction :: ExecutionEngine -> Function f -> IO (FunPtr f)
 getPointerToFunction ee (Value f) =
     withExecutionEngine ee $ \ eePtr ->
       FFI.getPointerToGlobal eePtr f
-#endif
 -}
 
 -- This global variable holds the one and only execution engine.
@@ -149,12 +143,10 @@ getExecutionEngineTargetData = do
     eePtr <- gets ea_engine
     liftIO $ FFI.getExecutionEngineTargetData eePtr
 
-#if HAS_GETPOINTERTOGLOBAL
 getPointerToFunction :: Function f -> EngineAccess (FunPtr f)
 getPointerToFunction (Value f) = do
     eePtr <- gets ea_engine
     liftIO $ FFI.getPointerToGlobal eePtr f
-#endif
 
 addModule :: Module -> EngineAccess ()
 addModule m = do

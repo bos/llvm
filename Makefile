@@ -51,6 +51,7 @@ clean:
 	-./setup clean
 	-rm -f setup setup.exe setup.exe.manifest
 	-rm *~
+	-rm -rf dist
 
 distclean: clean
 	-rm -f setup configure

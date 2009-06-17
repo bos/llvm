@@ -2,7 +2,7 @@
 {-# LANGUAGE CPP, FlexibleInstances, ScopedTypeVariables, FlexibleContexts, UndecidableInstances, TypeSynonymInstances, MultiParamTypeClasses, FunctionalDependencies, OverlappingInstances #-}
 module LLVM.Util.Arithmetic(
     TValue,
-    Cmp,
+    Cmp(..),
     (%==), (%/=), (%<), (%<=), (%>), (%>=),
     (%&&), (%||),
     (?), (??),
@@ -36,6 +36,7 @@ instance Cmp Int64 Bool where cmp = icmp . adjSigned
 instance Cmp Float Bool where cmp = fcmp . adjFloat
 instance Cmp Double Bool where cmp = fcmp . adjFloat
 instance Cmp FP128 Bool where cmp = fcmp . adjFloat
+{-
 instance (IsPowerOf2 n) => Cmp (Vector n Bool) (Vector n Bool) where cmp = icmp
 instance (IsPowerOf2 n) => Cmp (Vector n Word8) (Vector n Bool) where cmp = icmp
 instance (IsPowerOf2 n) => Cmp (Vector n Word16) (Vector n Bool) where cmp = icmp
@@ -48,6 +49,11 @@ instance (IsPowerOf2 n) => Cmp (Vector n Int64) (Vector n Bool) where cmp = icmp
 instance (IsPowerOf2 n) => Cmp (Vector n Float) (Vector n Bool) where cmp = fcmp . adjFloat
 instance (IsPowerOf2 n) => Cmp (Vector n Double) (Vector n Bool) where cmp = fcmp . adjFloat
 instance (IsPowerOf2 n) => Cmp (Vector n FP128) (Vector n Bool) where cmp = fcmp . adjFloat
+-}
+instance (IsPowerOf2 n) => Cmp (Vector n Float) (Vector n Bool) where
+    cmp op = mapVector2 (fcmp (adjFloat op))
+instance (IsPowerOf2 n) => Cmp (Vector n Word32) (Vector n Bool) where
+    cmp op = mapVector2 (cmp op)
 
 adjSigned :: IntPredicate -> IntPredicate
 adjSigned IntUGT = IntSGT
