@@ -16,9 +16,11 @@ module LLVM.Core.Util(
     -- * Functions
     Function,
     addFunction, getParam,
+    -- * Structs
+    structType,
     -- * Globals
     addGlobal,
-    constString, constStringNul, constVector, constArray,
+    constString, constStringNul, constVector, constArray, constStruct,
     -- * Instructions
     makeCall, makeInvoke,
     -- * Misc
@@ -57,6 +59,12 @@ functionType varargs retType paramTypes = unsafePerformIO $
     withArrayLen paramTypes $ \ len ptr ->
         return $ FFI.functionType retType ptr (fromIntegral len)
 	       	 		  (fromBool varargs)
+
+-- unsafePerformIO just to wrap the non-effecting withArrayLen call
+structType :: [Type] -> Bool -> Type
+structType types packed = unsafePerformIO $
+    withArrayLen types $ \ len ptr ->
+        return $ FFI.structType ptr (fromIntegral len) (if packed then 1 else 0)
 
 --------------------------------------
 -- Handle modules
@@ -389,6 +397,12 @@ constArray t n xs = unsafePerformIO $ do
     let xs' = take n (cycle xs) 
     withArrayLen xs' $ \ len ptr ->
         return $ FFI.constArray t ptr (fromIntegral len)
+
+-- The unsafePerformIO is just for the non-effecting withArrayLen
+constStruct :: [Value] -> Bool -> Value
+constStruct xs packed = unsafePerformIO $ do
+    withArrayLen xs $ \ len ptr ->
+        return $ FFI.constStruct ptr (fromIntegral len) (if packed then 1 else 0)
 
 --------------------------------------
 

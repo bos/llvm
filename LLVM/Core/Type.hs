@@ -31,7 +31,7 @@ import Data.List(intercalate)
 import Data.Int
 import Data.Word
 import Data.TypeLevel hiding (Bool, Eq)
-import LLVM.Core.Util(functionType)
+import LLVM.Core.Util(functionType, structType)
 import LLVM.Core.Data
 import qualified LLVM.FFI.Core as FFI
 
@@ -62,6 +62,7 @@ typeRef = code . typeDesc
 	code (TDPtr a) = FFI.pointerType (code a) 0
 	code (TDFunction va as b) = functionType va (code b) (map code as)
 	code TDLabel = FFI.labelType
+        code (TDStruct ts packed) = structType (map code ts) packed
 
 typeName :: (IsType a) => a -> String
 typeName = code . typeDesc
@@ -75,6 +76,9 @@ typeName = code . typeDesc
 	code (TDPtr a) = code a ++ "*"
 	code (TDFunction _ as b) = code b ++ "(" ++ intercalate "," (map code as) ++ ")"
         code TDLabel = "label"
+        code (TDStruct as packed) = (if packed then "<{" else "{") ++
+                                    intercalate "," (map code as) ++
+                                    (if packed then "}>" else "}")
 
 -- |Type descriptor, used to convey type information through the LLVM API.
 data TypeDesc = TDFloat | TDDouble | TDFP128 | TDVoid | TDInt Bool Integer
@@ -197,6 +201,29 @@ instance (IsFirstClass a, IsFunction b) => IsType (a->b) where
 instance (IsFirstClass a) => IsType (IO a) where
     typeDesc = funcType []
 
+-- Struct types, basically a list of component types.
+instance (StructFields a) => IsType (Struct a) where
+    typeDesc ~(Struct a) = TDStruct (fieldTypes a) False
+
+instance (StructFields a) => IsType (PackedStruct a) where
+    typeDesc ~(PackedStruct a) = TDStruct (fieldTypes a) True
+
+-- Use a nested tuples for struct fields.
+class StructFields as where
+    fieldTypes :: as -> [TypeDesc]
+
+instance (IsSized a sa, StructFields as) => StructFields (a :& as) where
+    fieldTypes ~(a, as) = typeDesc a : fieldTypes as
+instance StructFields () where
+    fieldTypes _ = []
+
+-- An alias for pairs to make structs look nicer
+infixr :&
+type (:&) a as = (a, as)
+infixr &
+(&) :: a -> as -> a :& as
+a & as = (a, as)
+
 --- Instances to classify types
 instance IsArithmetic Float
 instance IsArithmetic Double
@@ -264,6 +291,7 @@ instance (IsPowerOf2 n, IsPrimitive a) => IsFirstClass (Vector n a)
 instance (IsType a) => IsFirstClass (Ptr a)
 instance IsFirstClass Label
 instance IsFirstClass () -- XXX This isn't right, but () can be returned
+instance (StructFields as) => IsFirstClass (Struct as)
 
 instance IsSized Float D32
 instance IsSized Double D64
@@ -283,7 +311,11 @@ instance (Nat n, IsSized a s, Mul n s ns, Pos ns) => IsSized (Array n a) ns
 instance (IsPowerOf2 n, IsPrimitive a, IsSized a s, Mul n s ns, Pos ns) => IsSized (Vector n a) ns
 instance (IsType a) => IsSized (Ptr a) PtrSize
 -- instance IsSized Label PtrSize -- labels are not quite first classed
+-- We cannot compute the sizes statically :(
+instance (StructFields as) => IsSized (Struct as) UnknownSize
+instance (StructFields as) => IsSized (PackedStruct as) UnknownSize
 
+type UnknownSize = D99   -- XXX this is wrong!
 type PtrSize = D32   -- XXX this is wrong!
 
 instance IsPrimitive Float

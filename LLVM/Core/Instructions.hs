@@ -627,6 +627,17 @@ instance (GetElementPtr o i n, IsIndexArg a) => GetElementPtr (Array k o) (a, i)
 instance (GetElementPtr o i n, IsIndexArg a) => GetElementPtr (Vector k o) (a, i) n where
     getIxList _ (v, i) = getArg v : getIxList (undefined :: o) i
 
+-- Index in Struct and PackedStruct.
+-- The index has to be a type level integer to statically determine the record field type
+instance (GetElementPtr o i n, GetField fs a o, Nat a) => GetElementPtr (Struct fs) (a, i) n where
+    getIxList _ (v, i) = unConst (constOf (toNum v :: Word32)) : getIxList (undefined :: o) i
+instance (GetElementPtr o i n, GetField fs a o, Nat a) => GetElementPtr (PackedStruct fs) (a, i) n where
+    getIxList _ (v, i) = unConst (constOf (toNum v :: Word32)) : getIxList (undefined :: o) i
+
+class GetField as i a | as i -> a
+instance GetField (a, as) D0 a
+instance (GetField as i b, Succ i i') => GetField (a, as) i' b
+
 -- | Address arithmetic.  See LLVM description.
 -- The index is a nested tuple of the form @(i1,(i2,( ... ())))@.
 -- (This is without a doubt the most confusing LLVM instruction, but the types help.)

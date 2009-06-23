@@ -1,6 +1,7 @@
 {-# LANGUAGE EmptyDataDecls, DeriveDataTypeable #-}
 module LLVM.Core.Data(IntN(..), WordN(..), FP128(..),
-       		      Array(..), Vector(..), Ptr, Label) where
+       		      Array(..), Vector(..), Ptr, Label, Struct(..), PackedStruct(..)) where
+import Data.Typeable
 import Foreign.Ptr(Ptr)
 import Data.TypeLevel
 
@@ -33,3 +34,11 @@ newtype Vector n a = Vector [a]
 
 -- |Label type, produced by a basic block.
 data Label
+    deriving (Typeable)
+
+-- |Struct types; a list (nested tuple) of component types.
+newtype Struct a = Struct a
+    deriving (Show, Typeable)
+newtype PackedStruct a = PackedStruct a
+    deriving (Show, Typeable)
+
