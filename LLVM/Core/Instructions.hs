@@ -54,7 +54,7 @@ import Control.Monad(liftM)
 import Data.Int
 import Data.Word
 import Foreign.C(CInt)
-import Data.TypeLevel((:<:), (:>:), (:==:))
+import Data.TypeLevel((:<:), (:>:), (:==:), D0, toNum, Succ, Nat)
 import qualified LLVM.FFI.Core as FFI
 import LLVM.Core.Data
 import LLVM.Core.Type
