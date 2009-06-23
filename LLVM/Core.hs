@@ -43,6 +43,7 @@ module LLVM.Core(
     Value, ConstValue, valueOf, constOf, value,
     zero, allOnes, undef,
     createString, createStringNul,
+    --constString, constStringNul,
     constVector, constArray,
     toVector, fromVector,
     -- * Code generation
