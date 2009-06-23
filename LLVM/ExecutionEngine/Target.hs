@@ -36,28 +36,26 @@ withIntPtrType f = reifyIntegral sz (\ n -> f (g n))
         sz = pointerSize $ unsafePerformIO getTargetData
 
 -- Gets the target data for the JIT target.
--- This is really constant, so unsafePerformIO is safe.
-ourEngineTargetDataRef :: FFI.TargetDataRef
-ourEngineTargetDataRef = un $
-    runEngineAccess getExecutionEngineTargetData
+getEngineTargetDataRef :: IO FFI.TargetDataRef
+getEngineTargetDataRef = runEngineAccess getExecutionEngineTargetData
 
 -- Normally the TargetDataRef never changes, so the operation
 -- are really pure functions.
 makeTargetData :: FFI.TargetDataRef -> TargetData
 makeTargetData r = TargetData {
-    aBIAlignmentOfType       = fromIntegral . un . FFI.aBIAlignmentOfType r,
-    aBISizeOfType            = fromIntegral . un . FFI.aBISizeOfType r,
-    littleEndian             = un (FFI.byteOrder r) /= 0,
-    callFrameAlignmentOfType = fromIntegral . un . FFI.callFrameAlignmentOfType r,
-    intPtrType               = un $ FFI.intPtrType r,
-    pointerSize              = fromIntegral $ un $ FFI.pointerSize r,
-    preferredAlignmentOfType = fromIntegral . un . FFI.preferredAlignmentOfType r,
-    sizeOfTypeInBits         = fromIntegral . un . FFI.sizeOfTypeInBits r,
-    storeSizeOfType          = fromIntegral . un . FFI.storeSizeOfType r
+    aBIAlignmentOfType       = fromIntegral . FFI.aBIAlignmentOfType r,
+    aBISizeOfType            = fromIntegral . FFI.aBISizeOfType r,
+    littleEndian             = FFI.byteOrder r /= 0,
+    callFrameAlignmentOfType = fromIntegral . FFI.callFrameAlignmentOfType r,
+    intPtrType               = FFI.intPtrType r,
+    pointerSize              = fromIntegral $ FFI.pointerSize r,
+    preferredAlignmentOfType = fromIntegral . FFI.preferredAlignmentOfType r,
+    sizeOfTypeInBits         = fromIntegral . FFI.sizeOfTypeInBits r,
+    storeSizeOfType          = fromIntegral . FFI.storeSizeOfType r
     }
 
-ourTargetData :: TargetData
-ourTargetData = makeTargetData ourEngineTargetDataRef
+getTargetData :: IO TargetData
+getTargetData = fmap makeTargetData getEngineTargetDataRef
 
 targetDataFromString :: String -> TargetData
-targetDataFromString s = makeTargetData $ un $ withCString s FFI.createTargetData
+targetDataFromString s = makeTargetData $ unsafePerformIO $ withCString s FFI.createTargetData
