@@ -132,7 +132,7 @@ instance (Show (TValue r a))
 instance (Eq (TValue r a))
 instance (Ord (TValue r a))
 
-instance (Cmp a b, Num a, IsConst a) => Num (TValue r a) where
+instance (IsArithmetic a, Cmp a b, Num a, IsConst a) => Num (TValue r a) where
     (+) = binop add
     (-) = binop sub
     (*) = binop mul
@@ -141,13 +141,13 @@ instance (Cmp a b, Num a, IsConst a) => Num (TValue r a) where
     signum x = x %< 0 ?? (-1, x %> 0 ?? (1, 0))
     fromInteger = return . valueOf . fromInteger
 
-instance (Cmp a b, Num a, IsConst a) => Enum (TValue r a) where
+instance (IsArithmetic a, Cmp a b, Num a, IsConst a) => Enum (TValue r a) where
     succ x = x + 1
     pred x = x - 1
     fromEnum _ = error "CodeGenFunction Value: fromEnum"
     toEnum = fromIntegral
 
-instance (Cmp a b, Num a, IsConst a) => Real (TValue r a) where
+instance (IsArithmetic a, Cmp a b, Num a, IsConst a) => Real (TValue r a) where
     toRational _ = error "CodeGenFunction Value: toRational"
 
 instance (Cmp a b, Num a, IsConst a, IsInteger a) => Integral (TValue r a) where
