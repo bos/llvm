@@ -26,7 +26,7 @@ module LLVM.Core.Type(
     isSigned,
     typeRef,
     typeName,
-    VarArgs, CastVarArgs
+    VarArgs, CastVarArgs,
     ) where
 import Data.Typeable
 import Data.List(intercalate)
@@ -39,7 +39,7 @@ import qualified LLVM.FFI.Core as FFI
 
 -- Usage: vector precondition
 class (Pos n) => IsPowerOf2 n
-instance (LogBaseF D2 n l True, Pos n) => IsPowerOf2 n
+instance (LogBase D2 n l, ExpBase D2 l n) => IsPowerOf2 n
 
 -- TODO:
 -- Move IntN, WordN to a special module that implements those types
