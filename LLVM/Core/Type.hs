@@ -18,6 +18,8 @@ module LLVM.Core.Type(
     IsFunction,
     -- ** Others
     IsPowerOf2,
+    -- ** Structs
+    (:&), (&),
     -- ** Type tests
     TypeDesc(..),
     isFloating,
