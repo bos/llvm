@@ -964,13 +964,13 @@ foreign import ccall unsafe "LLVMSetInstructionCallConv" setInstructionCallConv
     :: ValueRef -> CUInt -> IO ()
 
 foreign import ccall unsafe "LLVMStructType" structType
-    :: (Ptr TypeRef) -> CUInt -> CInt -> IO TypeRef
+    :: Ptr TypeRef -> CUInt -> CInt -> TypeRef
 foreign import ccall unsafe "LLVMCountStructElementTypes"
-    countStructElementTypes :: TypeRef -> IO CUInt
+    countStructElementTypes :: TypeRef -> CUInt
 foreign import ccall unsafe "LLVMGetStructElementTypes" getStructElementTypes
-    :: TypeRef -> (Ptr TypeRef) -> IO ()
+    :: TypeRef -> Ptr TypeRef -> IO ()
 foreign import ccall unsafe "LLVMIsPackedStruct" isPackedStruct
-    :: TypeRef -> IO CInt
+    :: TypeRef -> CInt
 
 data MemoryBuffer
     deriving (Typeable)
