@@ -26,7 +26,7 @@ module LLVM.Core.Instructions(
     free,
     load,
     store,
-    getElementPtr,
+    getElementPtr, getElementPtr0,
     -- * Conversions
     trunc, zext, sext,
     fptrunc, fpext,
@@ -651,6 +651,12 @@ getElementPtr (Value ptr) (a, ixs) =
         U.withEmptyCString $
           FFI.buildGEP bldPtr ptr idxPtr (fromIntegral idxLen)
 
+-- | Like getElementPtr, but with an initial index that is 0.
+-- This is useful since any pointer first need to be indexed off the pointer, and then into
+-- its actual value.  This first indexing is often with 0.
+getElementPtr0 :: (GetElementPtr o i n) =>
+                  Value (Ptr o) -> i -> CodeGenFunction r (Value (Ptr n))
+getElementPtr0 p i = getElementPtr p (0::Word32, i)
 
 --------------------------------------
 {-
