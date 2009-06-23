@@ -400,4 +400,4 @@ constVector xs =
 -- |Make a constant array.  Replicates or truncates the list to get length /n/.
 constArray :: forall a n s . (IsSized a s, Nat n) => [ConstValue a] -> ConstValue (Array n a)
 constArray xs =
-    ConstValue $ U.constArray (typeRef (undefined :: Array n a)) (toNum (undefined :: n)) [ v | ConstValue v <- xs ]
+    ConstValue $ U.constArray (typeRef (undefined :: a)) (toNum (undefined :: n)) [ v | ConstValue v <- xs ]
