@@ -80,7 +80,7 @@ newtype ConstValue a = ConstValue { unConstValue :: FFI.ValueRef }
     deriving (Show, Typeable)
 
 -- XXX merge with IsArithmetic?
-class (IsArithmetic a) => IsConst a where
+class IsConst a where
     constOf :: a -> ConstValue a
 
 instance IsConst Bool   where constOf = constEnum (typeRef True)
