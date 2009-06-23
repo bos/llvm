@@ -10,7 +10,7 @@ bldGreet = do
     puts <- newNamedFunction ExternalLinkage "puts" :: TFunction (Ptr Word8 -> IO Word32)
     greetz <- createStringNul "Hello, JIT!"
     func <- createFunction ExternalLinkage $ do
-      tmp <- getElementPtr greetz (0::Word32, (0::Word32, ()))
+      tmp <- getElementPtr0 greetz (0::Word32, ())
       call puts tmp -- Throw away return value.
       ret ()
     return func
