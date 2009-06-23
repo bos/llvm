@@ -7,6 +7,7 @@ import LLVM.Core
 import LLVM.ExecutionEngine
 import LLVM.Util.Arithmetic
 import LLVM.Util.Foreign as F
+import LLVM.Util.File(writeCodeGenModule)
 
 import Foreign.Storable
 {-
@@ -38,12 +39,6 @@ mVFun = do
 
     vectorToPtr fn
 
-writeFunction :: String -> CodeGenModule a -> IO ()
-writeFunction name f = do
-    m <- newModule
-    defineModule m f
-    writeBitcodeToFile name m
-
 
 main :: IO ()
 main = do
@@ -53,24 +48,25 @@ main = do
     let someFn :: Double -> Double
         someFn = unsafePurify ioSomeFn
 
-    writeFunction "Arith.bc" mSomeFn'
+    writeCodeGenModule "Arith.bc" mSomeFn'
 
     print (someFn 10)
     print (someFn 2)
 
-    writeFunction "ArithFib.bc" mFib
+    writeCodeGenModule "ArithFib.bc" mFib
 
     fib <- simpleFunction mFib
     fib 22 >>= print
 
-
-    writeFunction "VArith.bc" mVFun
+{-
+    writeCodeGenModule "VArith.bc" mVFun
 
     ioVFun <- simpleFunction mVFun
     let v = toVector (1,2,3,4)
 
     r <- vectorPtrWrap ioVFun v
     print r
+-}
 
 vectorToPtr :: Function (V -> IO V) -> CodeGenModule (Function (Ptr V -> Ptr V -> IO ()))
 vectorToPtr f =

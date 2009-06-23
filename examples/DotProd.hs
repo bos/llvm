@@ -5,6 +5,7 @@ import Data.TypeLevel.Num(D2, D4, D8, toNum)
 import LLVM.Core
 import LLVM.ExecutionEngine
 import LLVM.Util.Loop
+import LLVM.Util.File(writeCodeGenModule)
 import LLVM.Util.Foreign
 
 mDotProd :: forall n a . (IsPowerOf2 n,
@@ -35,7 +36,7 @@ type T = Vector D4 R
 main :: IO ()
 main = do
     let mDotProd' = mDotProd
-    writeFunction "DotProd.bc" mDotProd'
+    writeCodeGenModule "DotProd.bc" mDotProd'
 
     ioDotProd <- simpleFunction mDotProd'
     let dotProd :: [T] -> [T] -> R
@@ -50,12 +51,6 @@ main = do
         b = [4 .. 11]
     print $ dotProd (vectorize 0 a) (vectorize 0 b)
     print $ sum $ zipWith (*) a b
-
-writeFunction :: String -> CodeGenModule a -> IO ()
-writeFunction name f = do
-    m <- newModule
-    defineModule m f
-    writeBitcodeToFile name m
 
 class Vectorize n a where
     vectorize :: a -> [a] -> [Vector n a]

@@ -19,6 +19,7 @@ import Data.Int
 import System.Environment(getArgs)
 
 import LLVM.Core
+import LLVM.Util.File(writeCodeGenModule)
 import LLVM.ExecutionEngine
 
 main :: IO ()
@@ -36,18 +37,12 @@ main = do
     prog <- if length args == 1 then readFile (head args) else return text
 
     when (debug) $
-        writeFunction "BrainF.bc" $ brainCompile debug prog 65536
+        writeCodeGenModule "BrainF.bc" $ brainCompile debug prog 65536
 
     bfprog <- simpleFunction $ brainCompile debug prog 65536
     when (prog == text) $
         putStrLn "Should print '!\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGH' on the next line:"
     bfprog
-
-writeFunction :: String -> CodeGenModule a -> IO ()
-writeFunction name f = do
-    m <- newModule
-    defineModule m f
-    writeBitcodeToFile name m
 
 brainCompile :: Bool -> String -> Word32 -> CodeGenModule (Function (IO ()))
 brainCompile _debug instrs wmemtotal = do
