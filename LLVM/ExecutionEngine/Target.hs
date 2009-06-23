@@ -5,7 +5,7 @@ import Data.TypeLevel(Nat, reifyIntegral)
 import Foreign.C.String
 import System.IO.Unsafe(unsafePerformIO)
 
---import LLVM.Core
+import LLVM.Core.Data(WordN)
 import LLVM.ExecutionEngine.Engine(runEngineAccess, getExecutionEngineTargetData)
 
 import qualified LLVM.FFI.Core as FFI
@@ -29,8 +29,11 @@ data TargetData = TargetData {
     }
     deriving (Typeable)
 
-un :: IO a -> a
-un = unsafePerformIO
+withIntPtrType :: (forall n . (Nat n) => WordN n -> a) -> a
+withIntPtrType f = reifyIntegral sz (\ n -> f (g n))
+  where g :: n -> WordN n
+        g _ = error "withIntPtrType: argument used"
+        sz = pointerSize $ unsafePerformIO getTargetData
 
 -- Gets the target data for the JIT target.
 -- This is really constant, so unsafePerformIO is safe.
