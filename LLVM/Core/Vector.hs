@@ -5,12 +5,10 @@ import Data.Function
 import Data.TypeLevel hiding (Eq, (+), (==), (-), (*), succ, pred, div, mod, divMod, logBase)
 import LLVM.Core.Type
 import LLVM.Core.Data
-import LLVM.Core.CodeGen(IsConst(..), ConstValue(..))
-import LLVM.FFI.Core(constVector)
 import LLVM.ExecutionEngine.Target
 import Foreign.Ptr(Ptr, castPtr)
 import Foreign.Storable(Storable(..))
-import Foreign.Marshal.Array(peekArray, pokeArray, withArrayLen)
+import Foreign.Marshal.Array(peekArray, pokeArray)
 import System.IO.Unsafe(unsafePerformIO)
 
 -- XXX Should these really be here?
@@ -44,11 +42,9 @@ instance (Storable a, IsPowerOf2 n, IsPrimitive a) => Storable (Vector n a) wher
     peek p = fmap Vector $ peekArray (toNum (undefined :: n)) (castPtr p :: Ptr a)
     poke p (Vector vs) = pokeArray (castPtr p :: Ptr a) vs
 
-instance (IsPowerOf2 n, IsPrimitive a, IsConst a) => IsConst (Vector n a) where
-    constOf (Vector vs) =
-        unsafePerformIO $
-        withArrayLen [ c | v <- vs, let ConstValue c = constOf v ]  $ \ len ptr ->
-        return $ ConstValue $ constVector ptr (fromIntegral len)
+-- XXX The JITer target data.  This isn't really right.
+ourTargetData :: TargetData
+ourTargetData = unsafePerformIO getTargetData
 
 --------------------------------------
 
