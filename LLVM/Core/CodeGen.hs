@@ -97,12 +97,24 @@ instance IsConst Float  where constOf = constF
 instance IsConst Double where constOf = constF
 --instance IsConst FP128  where constOf = constF
 
-{-
-instance IsConst (Array n a) where
-    constOf (Array xs) = 
-      withArrayLen xs $ \ len ptr ->
-        constArray (typeRef (undefined :: a)) ??? len
--}
+instance (IsPrimitive a, IsConst a, IsPowerOf2 n) => IsConst (Vector n a) where
+    constOf (Vector xs) = constVector (map constOf xs)
+
+instance (IsConst a, IsSized a s, Nat n) => IsConst (Array n a) where
+    constOf (Array xs) = constArray (map constOf xs)
+
+instance (IsConstFields a) => IsConst (Struct a) where
+    constOf (Struct a) = ConstValue $ U.constStruct (constFieldsOf a) False
+instance (IsConstFields a) => IsConst (PackedStruct a) where
+    constOf (PackedStruct a) = ConstValue $ U.constStruct (constFieldsOf a) True
+
+class IsConstFields a where
+    constFieldsOf :: a -> [FFI.ValueRef]
+
+instance (IsConst a, IsConstFields as) => IsConstFields (a, as) where
+    constFieldsOf (a, as) = unConstValue (constOf a) : constFieldsOf as
+instance IsConstFields () where
+    constFieldsOf _ = []
 
 constEnum :: (Enum a) => FFI.TypeRef -> a -> ConstValue a
 constEnum t i = ConstValue $ FFI.constInt t (fromIntegral $ fromEnum i) 0
