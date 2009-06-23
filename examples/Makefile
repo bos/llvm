@@ -1,16 +1,19 @@
 ghc := ghc
 ghcflags := -Wall -optl -w
 # -DHAS_GETPOINTERTOGLOBAL=1
-examples := HelloJIT Fibonacci BrainF Vector Array DotProd Arith Align
+examples := HelloJIT Fibonacci BrainF Vector Array DotProd Arith Align Struct
 
-all: $(examples)
+all: $(examples:%=%.exe)
 
 Vector:	Convert.hs
 
-%: %.hs
-	$(ghc) $(ghcflags) --make -o $@ -main-is $(basename $<).main $<
+%.exe: %.hs
+	$(ghc) $(ghcflags) --make -o $(basename $<).exe -main-is $(basename $<).main $<
 
-%.run: %
+Struct.exe:	Struct.hs structCheck.c
+	$(ghc) $(ghcflags) --make -o Struct.exe -main-is Struct.main Struct.hs structCheck.c
+
+%.run: %.exe
 	./$<
 
 run:	$(examples:%=%.run)
