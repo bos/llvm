@@ -1,4 +1,4 @@
-{-# LANGUAGE ForeignFunctionInterface, EmptyDataDecls #-}
+{-# LANGUAGE ForeignFunctionInterface, EmptyDataDecls, DeriveDataTypeable #-}
 
 module LLVM.FFI.ExecutionEngine
     (
@@ -32,7 +32,7 @@ module LLVM.FFI.ExecutionEngine
     , genericValueToPointer
     , ptrDisposeGenericValue
     ) where
-
+import Data.Typeable
 import Foreign.C.String (CString)
 import Foreign.C.Types (CDouble, CInt, CUInt, CULLong)
 import Foreign.Ptr (Ptr, FunPtr)
@@ -41,6 +41,7 @@ import LLVM.FFI.Core (ModuleRef, ModuleProviderRef, TypeRef, ValueRef)
 import LLVM.FFI.Target(TargetDataRef)
 
 data ExecutionEngine
+    deriving (Typeable)
 type ExecutionEngineRef = Ptr ExecutionEngine
 
 foreign import ccall unsafe "LLVMCreateExecutionEngine" createExecutionEngine
@@ -58,6 +59,7 @@ foreign import ccall unsafe "LLVMRunStaticDestructors" runStaticDestructors
 
 
 data GenericValue
+    deriving (Typeable)
 type GenericValueRef = Ptr GenericValue
 
 foreign import ccall unsafe "LLVMCreateGenericValueOfInt"

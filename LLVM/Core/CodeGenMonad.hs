@@ -1,4 +1,4 @@
-{-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE GeneralizedNewtypeDeriving, DeriveDataTypeable #-}
 module LLVM.Core.CodeGenMonad(
     -- * Module code generation
     CodeGenModule, runCodeGenModule, genMSym, getModule,
@@ -7,6 +7,7 @@ module LLVM.Core.CodeGenMonad(
     -- * Reexport
     liftIO
     ) where
+import Data.Typeable
 import Control.Monad.State
 
 import LLVM.Core.Util(Module, Builder, Function)
@@ -18,8 +19,9 @@ data CGMState = CGMState {
     cgm_externs :: [(String, Function)],
     cgm_next :: !Int
     }
+    deriving (Show, Typeable)
 newtype CodeGenModule a = CGM (StateT CGMState IO a)
-    deriving (Functor, Monad, MonadState CGMState, MonadIO)
+    deriving (Functor, Monad, MonadState CGMState, MonadIO, Typeable)
 
 genMSym :: String -> CodeGenModule String
 genMSym prefix = do
@@ -44,8 +46,9 @@ data CGFState r = CGFState {
     cgf_function :: Function,
     cgf_next :: !Int
     }
+    deriving (Show, Typeable)
 newtype CodeGenFunction r a = CGF (StateT (CGFState r) IO a)
-    deriving (Functor, Monad, MonadState (CGFState r), MonadIO)
+    deriving (Functor, Monad, MonadState (CGFState r), MonadIO, Typeable)
 
 genFSym :: CodeGenFunction a String
 genFSym = do

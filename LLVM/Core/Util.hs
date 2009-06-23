@@ -1,4 +1,4 @@
-{-# LANGUAGE ForeignFunctionInterface, ScopedTypeVariables #-}
+{-# LANGUAGE ForeignFunctionInterface, ScopedTypeVariables, DeriveDataTypeable #-}
 module LLVM.Core.Util(
     -- * Module handling
     Module(..), withModule, createModule, destroyModule, writeBitcodeToFile, readBitcodeFromFile,
@@ -31,6 +31,7 @@ module LLVM.Core.Util(
     addGVNPass, addInstructionCombiningPass, addPromoteMemoryToRegisterPass, addReassociatePass,
     addTargetData
     ) where
+import Data.Typeable
 import Data.List(intercalate)
 import Control.Monad(liftM, when)
 import Foreign.C.String (withCString, withCStringLen, CString, peekCString)
@@ -69,7 +70,7 @@ functionType varargs retType paramTypes = unsafePerformIO $
 newtype Module = Module {
       fromModule :: FFI.ModuleRef
     }
-    deriving (Show)
+    deriving (Show, Typeable)
 
 withModule :: Module -> (FFI.ModuleRef -> IO a) -> IO a
 withModule modul f = f (fromModule modul)
@@ -185,6 +186,7 @@ showType' p = do
 newtype ModuleProvider = ModuleProvider {
       fromModuleProvider :: ForeignPtr FFI.ModuleProvider
     }
+    deriving (Show, Typeable)
 
 withModuleProvider :: ModuleProvider -> (FFI.ModuleProviderRef -> IO a)
                    -> IO a
@@ -205,7 +207,7 @@ createModuleProviderForExistingModule modul =
 newtype Builder = Builder {
       fromBuilder :: ForeignPtr FFI.Builder
     }
-    deriving (Show)
+    deriving (Show, Typeable)
 
 withBuilder :: Builder -> (FFI.BuilderRef -> IO a) -> IO a
 withBuilder = withForeignPtr . fromBuilder
@@ -317,7 +319,7 @@ addPhiIns inst incoming = do
 newtype PassManager = PassManager {
       fromPassManager :: ForeignPtr FFI.PassManager
     }
-    deriving (Show)
+    deriving (Show, Typeable)
 
 withPassManager :: PassManager -> (FFI.PassManagerRef -> IO a)
                    -> IO a

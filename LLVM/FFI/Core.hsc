@@ -1,4 +1,4 @@
-{-# LANGUAGE ForeignFunctionInterface, EmptyDataDecls #-}
+{-# LANGUAGE ForeignFunctionInterface, EmptyDataDecls, DeriveDataTypeable #-}
 
 -- |
 -- Module:      LLVM.FFI.Core
@@ -360,7 +360,7 @@ module LLVM.FFI.Core
 
     , dumpModule
     ) where
-
+import Data.Typeable(Typeable)
 import Foreign.C.String (CString)
 import Foreign.C.Types (CDouble, CInt, CUInt, CULLong)
 import Foreign.Ptr (Ptr, FunPtr)
@@ -368,6 +368,7 @@ import Foreign.Ptr (Ptr, FunPtr)
 #include <llvm-c/Core.h>
 
 data Module
+    deriving (Typeable)
 type ModuleRef = Ptr Module
 
 foreign import ccall unsafe "LLVMModuleCreateWithName" moduleCreateWithName
@@ -387,6 +388,7 @@ foreign import ccall unsafe "LLVMSetDataLayout" setDataLayout
 
 
 data ModuleProvider
+    deriving (Typeable)
 type ModuleProviderRef = Ptr ModuleProvider
 
 foreign import ccall unsafe "LLVMCreateModuleProviderForExistingModule"
@@ -398,6 +400,7 @@ foreign import ccall unsafe "&LLVMDisposeModuleProvider" ptrDisposeModuleProvide
 
 
 data Type
+    deriving (Typeable)
 type TypeRef = Ptr Type
 
 foreign import ccall unsafe "LLVMInt1Type" int1Type :: TypeRef
@@ -479,6 +482,7 @@ foreign import ccall unsafe "LLVMGetElementType" getElementType
 
 
 data Value
+    deriving (Typeable)
 type ValueRef = Ptr Value
 
 foreign import ccall unsafe "LLVMAddGlobal" addGlobal
@@ -579,7 +583,7 @@ data CallingConvention = C
                        | Cold
                        | X86StdCall
                        | X86FastCall
-                         deriving (Show, Eq, Ord, Enum, Bounded)
+                         deriving (Show, Eq, Ord, Enum, Bounded, Typeable)
 
 fromCallingConvention :: CallingConvention -> CUInt
 fromCallingConvention C = (#const LLVMCCallConv)
@@ -807,6 +811,7 @@ foreign import ccall unsafe "LLVMDeleteBasicBlock" deleteBasicBlock
     :: BasicBlockRef -> IO ()
 
 data Builder
+    deriving (Typeable)
 type BuilderRef = Ptr Builder
 
 foreign import ccall unsafe "LLVMCreateBuilder" createBuilder
@@ -968,9 +973,11 @@ foreign import ccall unsafe "LLVMIsPackedStruct" isPackedStruct
     :: TypeRef -> IO CInt
 
 data MemoryBuffer
+    deriving (Typeable)
 type MemoryBufferRef = Ptr MemoryBuffer
 
 data TypeHandle
+    deriving (Typeable)
 type TypeHandleRef = Ptr TypeHandle
 
 data TypeKind
@@ -988,7 +995,7 @@ data TypeKind
     | PointerTypeKind
     | OpaqueTypeKind
     | VectorTypeKind
-    deriving (Eq, Ord, Enum, Bounded, Show, Read)
+    deriving (Eq, Ord, Enum, Bounded, Show, Read, Typeable)
 
 getTypeKind :: TypeRef -> IO TypeKind
 getTypeKind = fmap (toEnum . fromIntegral) . getTypeKindCUInt
@@ -1038,7 +1045,7 @@ data Attribute
     | NestAttribute
     | ReadNoneAttribute
     | ReadOnlyAttribute
-    deriving (Show, Eq, Ord, Enum, Bounded)
+    deriving (Show, Eq, Ord, Enum, Bounded, Typeable)
 
 fromAttribute :: Attribute -> CAttribute
 fromAttribute ZExtAttribute = (#const LLVMZExtAttribute)
@@ -1070,6 +1077,7 @@ toAttribute _ = error "toAttribute: bad value"
 type CAttribute = CInt
 
 data PassManager
+    deriving (Typeable)
 type PassManagerRef = Ptr PassManager
 
 foreign import ccall unsafe "LLVMConstRealOfString" constRealOfString

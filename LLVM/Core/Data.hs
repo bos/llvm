@@ -1,4 +1,4 @@
-{-# LANGUAGE EmptyDataDecls #-}
+{-# LANGUAGE EmptyDataDecls, DeriveDataTypeable #-}
 module LLVM.Core.Data(IntN(..), WordN(..), FP128(..),
        		      Array(..), Vector(..), Ptr, Label) where
 import Foreign.Ptr(Ptr)
@@ -12,24 +12,24 @@ import Data.TypeLevel
 -- |Variable sized signed integer.
 -- The /n/ parameter should belong to @PosI@.
 newtype (Pos n) => IntN n = IntN Integer
-    deriving (Show)
+    deriving (Show, Typeable)
 
 -- |Variable sized unsigned integer.
 -- The /n/ parameter should belong to @PosI@.
 newtype (Pos n) => WordN n = WordN Integer
-    deriving (Show)
+    deriving (Show, Typeable)
 
 -- |128 bit floating point.
 newtype FP128 = FP128 Rational
-    deriving (Show)
+    deriving (Show, Typeable)
 
 -- |Fixed sized arrays, the array size is encoded in the /n/ parameter.
 newtype (Nat n) => Array n a = Array [a]
-    deriving (Show)
+    deriving (Show, Typeable)
 
 -- |Fixed sized vector, the array size is encoded in the /n/ parameter.
 newtype Vector n a = Vector [a]
-    deriving (Show)
+    deriving (Show, Typeable)
 
 -- |Label type, produced by a basic block.
 data Label

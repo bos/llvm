@@ -1,6 +1,7 @@
-{-# LANGUAGE ForeignFunctionInterface, EmptyDataDecls #-}
+{-# LANGUAGE ForeignFunctionInterface, EmptyDataDecls, DeriveDataTypeable #-}
 
 module LLVM.FFI.Target where
+import Data.Typeable
 import Foreign.C.String (CString)
 import Foreign.C.Types (CInt, CUInt, CULLong)
 import Foreign.Ptr (Ptr)
@@ -11,6 +12,7 @@ import LLVM.FFI.Core
 type ByteOrdering = CInt
 
 data TargetData
+    deriving (Typeable)
 type TargetDataRef = Ptr TargetData
 
 foreign import ccall unsafe "LLVMABIAlignmentOfType" aBIAlignmentOfType

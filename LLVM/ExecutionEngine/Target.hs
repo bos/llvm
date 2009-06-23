@@ -1,5 +1,7 @@
-module LLVM.ExecutionEngine.Target(TargetData(..), ourTargetData, targetDataFromString) where
---import Data.Word
+{-# LANGUAGE Rank2Types, DeriveDataTypeable #-}
+module LLVM.ExecutionEngine.Target(TargetData(..), getTargetData, targetDataFromString, withIntPtrType) where
+import Data.Typeable
+import Data.TypeLevel(Nat, reifyIntegral)
 import Foreign.C.String
 import System.IO.Unsafe(unsafePerformIO)
 
@@ -25,6 +27,7 @@ data TargetData = TargetData {
     sizeOfTypeInBits           :: Type -> Int,
     storeSizeOfType            :: Type -> Int
     }
+    deriving (Typeable)
 
 un :: IO a -> a
 un = unsafePerformIO

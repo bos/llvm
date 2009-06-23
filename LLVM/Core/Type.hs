@@ -1,4 +1,4 @@
-{-# LANGUAGE ScopedTypeVariables, EmptyDataDecls, FlexibleInstances, FlexibleContexts, UndecidableInstances, MultiParamTypeClasses, FunctionalDependencies, TypeSynonymInstances, IncoherentInstances #-}
+{-# LANGUAGE ScopedTypeVariables, EmptyDataDecls, FlexibleInstances, FlexibleContexts, UndecidableInstances, MultiParamTypeClasses, FunctionalDependencies, TypeSynonymInstances, IncoherentInstances, TypeOperators, DeriveDataTypeable #-}
 -- |The LLVM type system is captured with a number of Haskell type classes.
 -- In general, an LLVM type @T@ is represented as @Value T@, where @T@ is some Haskell type.
 -- The various types @T@ are classified by various type classes, e.g., 'IsFirstClass' for
@@ -26,6 +26,7 @@ module LLVM.Core.Type(
     typeName,
     VarArgs, CastVarArgs
     ) where
+import Data.Typeable
 import Data.List(intercalate)
 import Data.Int
 import Data.Word
@@ -79,7 +80,8 @@ typeName = code . typeDesc
 data TypeDesc = TDFloat | TDDouble | TDFP128 | TDVoid | TDInt Bool Integer
               | TDArray Integer TypeDesc | TDVector Integer TypeDesc
 	      | TDPtr TypeDesc | TDFunction Bool [TypeDesc] TypeDesc | TDLabel
-    deriving (Eq, Ord, Show)
+              | TDStruct [TypeDesc] Bool
+    deriving (Eq, Ord, Show, Typeable)
 
 -- XXX isFloating and typeName could be extracted from typeRef
 -- Usage:
@@ -312,6 +314,7 @@ instance (IsFirstClass a) => IsFunction (VarArgs a) where
 -- |The 'VarArgs' type is a placeholder for the real 'IO' type that
 -- can be obtained with 'castVarArgs'.
 data VarArgs a
+    deriving (Typeable)
 instance IsType (VarArgs a) where
     typeDesc _ = error "typeDesc: Dummy type VarArgs used incorrectly"
 

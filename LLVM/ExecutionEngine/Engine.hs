@@ -1,4 +1,4 @@
-{-# LANGUAGE ForeignFunctionInterface, FlexibleInstances, UndecidableInstances, OverlappingInstances, ScopedTypeVariables, GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE ForeignFunctionInterface, FlexibleInstances, UndecidableInstances, OverlappingInstances, ScopedTypeVariables, GeneralizedNewtypeDeriving, DeriveDataTypeable #-}
 module LLVM.ExecutionEngine.Engine(
        EngineAccess,
        runEngineAccess,
@@ -14,6 +14,7 @@ module LLVM.ExecutionEngine.Engine(
        ) where
 import Control.Monad.State
 import Control.Concurrent.MVar
+import Data.Typeable
 import Data.Int
 import Data.Word
 import Foreign.Marshal.Alloc (alloca, free)
@@ -118,6 +119,7 @@ data EAState = EAState {
     ea_engine :: Ptr FFI.ExecutionEngine,
     ea_providers :: [ModuleProvider]
     }
+    deriving (Show, Typeable)
 
 newtype EngineAccess a = EA (StateT EAState IO a)
     deriving (Functor, Monad, MonadState EAState, MonadIO)

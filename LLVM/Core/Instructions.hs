@@ -1,4 +1,4 @@
-{-# LANGUAGE MultiParamTypeClasses, FunctionalDependencies, FlexibleInstances, UndecidableInstances, TypeSynonymInstances, ScopedTypeVariables, OverlappingInstances, FlexibleContexts, TypeOperators #-}
+{-# LANGUAGE MultiParamTypeClasses, FunctionalDependencies, FlexibleInstances, UndecidableInstances, TypeSynonymInstances, ScopedTypeVariables, OverlappingInstances, FlexibleContexts, TypeOperators, DeriveDataTypeable #-}
 module LLVM.Core.Instructions(
     -- * Terminator instructions
     ret,
@@ -49,6 +49,7 @@ module LLVM.Core.Instructions(
     GetElementPtr, IsIndexArg
     ) where
 import Prelude hiding (and, or)
+import Data.Typeable
 import Control.Monad(liftM)
 import Data.Int
 import Data.Word
@@ -344,7 +345,7 @@ data IntPredicate =
   | IntSGE                      -- ^ signed greater or equal
   | IntSLT                      -- ^ signed less than
   | IntSLE                      -- ^ signed less or equal
-    deriving (Eq, Ord, Enum, Show)
+    deriving (Eq, Ord, Enum, Show, Typeable)
 
 fromIntPredicate :: IntPredicate -> CInt
 fromIntPredicate p = fromIntegral (fromEnum p + 32)
@@ -366,7 +367,7 @@ data FPPredicate =
   | FPULE             -- ^ True if unordered, less than, or equal
   | FPUNE             -- ^ True if unordered or not equal
   | FPT               -- ^ Always true (always folded)
-    deriving (Eq, Ord, Enum, Show)
+    deriving (Eq, Ord, Enum, Show, Typeable)
 
 fromFPPredicate :: FPPredicate -> CInt
 fromFPPredicate p = fromIntegral (fromEnum p)

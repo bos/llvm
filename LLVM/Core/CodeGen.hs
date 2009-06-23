@@ -1,4 +1,4 @@
-{-# LANGUAGE ScopedTypeVariables, MultiParamTypeClasses, FunctionalDependencies, FlexibleInstances, TypeSynonymInstances, UndecidableInstances, FlexibleContexts, ScopedTypeVariables #-}
+{-# LANGUAGE ScopedTypeVariables, MultiParamTypeClasses, FunctionalDependencies, FlexibleInstances, TypeSynonymInstances, UndecidableInstances, FlexibleContexts, ScopedTypeVariables, DeriveDataTypeable #-}
 module LLVM.Core.CodeGen(
     -- * Module creation
     newModule, newNamedModule, defineModule, createModule,
@@ -26,6 +26,7 @@ module LLVM.Core.CodeGen(
     -- * Misc
     withCurrentBuilder
     ) where
+import Data.Typeable
 import Control.Monad(liftM, when)
 import Data.Int
 import Data.Word
@@ -61,7 +62,7 @@ createModule cgm = newModule >>= \ m -> defineModule m cgm
 --------------------------------------
 
 newtype ModuleValue = ModuleValue FFI.ValueRef
-    deriving (Show)
+    deriving (Show, Typeable)
 
 getModuleValues :: U.Module -> IO [(String, ModuleValue)]
 getModuleValues = liftM (map (\ (s,p) -> (s, ModuleValue p))) . U.getModuleValues
@@ -73,10 +74,10 @@ castModuleValue (ModuleValue f) =
 --------------------------------------
 
 newtype Value a = Value { unValue :: FFI.ValueRef }
-    deriving (Show)
+    deriving (Show, Typeable)
 
-newtype ConstValue a = ConstValue FFI.ValueRef
-    deriving (Show)
+newtype ConstValue a = ConstValue { unConstValue :: FFI.ValueRef }
+    deriving (Show, Typeable)
 
 -- XXX merge with IsArithmetic?
 class (IsArithmetic a) => IsConst a where
@@ -245,7 +246,7 @@ instance (FunctionArgs (IO a) (CodeGenFunction a ()) (CodeGenFunction a ())) => 
 
 -- |A basic block is a sequence of non-branching instructions, terminated by a control flow instruction.
 newtype BasicBlock = BasicBlock FFI.BasicBlockRef
-    deriving (Show)
+    deriving (Show, Typeable)
 
 createBasicBlock :: CodeGenFunction r BasicBlock
 createBasicBlock = do
@@ -378,7 +379,7 @@ data Linkage
     | DLLExportLinkage    -- ^Function to be accessible from DLL
     | ExternalWeakLinkage -- ^ExternalWeak linkage description
     | GhostLinkage        -- ^Stand-in functions for streaming fns from BC files    
-    deriving (Show, Eq, Ord, Enum)
+    deriving (Show, Eq, Ord, Enum, Typeable)
 
 {-
 -- |An enumeration for the kinds of visibility of global values.
