@@ -30,7 +30,9 @@ import Data.Typeable
 import Control.Monad(liftM, when)
 import Data.Int
 import Data.Word
-import Data.TypeLevel hiding (Bool, Eq, (+))
+import Foreign.Ptr(minusPtr, nullPtr)
+import Foreign.Storable(sizeOf)
+import Data.TypeLevel hiding (Bool, Eq, (+), (==))
 import LLVM.Core.CodeGenMonad
 import qualified LLVM.FFI.Core as FFI
 import qualified LLVM.Core.Util as U
@@ -96,6 +98,18 @@ instance IsConst Int64  where constOf = constI
 instance IsConst Float  where constOf = constF
 instance IsConst Double where constOf = constF
 --instance IsConst FP128  where constOf = constF
+
+-- This instance doesn't belong here, but mutually recursive modules are painful.
+instance (IsType a) => IsConst (Ptr a) where
+    constOf p =
+        let ip = p `minusPtr` nullPtr
+            inttoptrC (ConstValue v) = ConstValue $ FFI.constIntToPtr v (typeRef (undefined :: Ptr a))
+        in  if sizeOf p == 4 then
+                inttoptrC $ constOf (fromIntegral ip :: Word32)
+            else if sizeOf p == 8 then
+                inttoptrC $ constOf (fromIntegral ip :: Word64)
+            else
+                error "constOf Ptr: pointer size not 4 or 8"
 
 instance (IsPrimitive a, IsConst a, IsPowerOf2 n) => IsConst (Vector n a) where
     constOf (Vector xs) = constVector (map constOf xs)
