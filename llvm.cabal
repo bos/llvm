@@ -1,9 +1,10 @@
 name: llvm
-version: 0.6.6.0
+version: 0.6.7.0
 license: BSD3
 license-file: LICENSE
 synopsis: Bindings to the LLVM compiler toolkit.
 description: Bindings to the LLVM compiler toolkit.
+             New in 0.6.7.0: Struct types;
              New in 0.6.6.0: Bug fixes;
 	     New in 0.6.5.0: Adapted to LLVM 2.5;
 author: Bryan O'Sullivan, Lennart Augustsson
