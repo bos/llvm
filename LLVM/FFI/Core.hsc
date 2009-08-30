@@ -107,15 +107,21 @@ module LLVM.FFI.Core
     , isUndef
 
     -- ** Global variables, functions, and aliases (globals)
-    , Linkage
-    , Visibility
-    , isDeclaration
+    , Linkage(..)
+    , fromLinkage
+    , toLinkage
     , getLinkage
     , setLinkage
-    , getSection
-    , setSection
+
+    , Visibility(..)
+    , fromVisibility
+    , toVisibility
     , getVisibility
     , setVisibility
+
+    , isDeclaration
+    , getSection
+    , setSection
     , getAlignment
     , setAlignment
       
@@ -191,6 +197,12 @@ module LLVM.FFI.Core
     , constAdd
     , constSub
     , constMul
+    , constExactSDiv
+    , constFAdd
+    , constFMul
+    , constFNeg
+    , constFPCast
+    , constFSub
     , constUDiv
     , constSDiv
     , constFDiv
@@ -271,8 +283,13 @@ module LLVM.FFI.Core
     , buildAdd
     , buildSub
     , buildMul
+    , buildFAdd
+    , buildFMul
+    , buildFPCast
+    , buildFSub
     , buildUDiv
     , buildSDiv
+    , buildExactSDiv
     , buildFDiv
     , buildURem
     , buildSRem
@@ -309,6 +326,23 @@ module LLVM.FFI.Core
     , buildPtrToInt
     , buildIntToPtr
     , buildBitCast
+    , buildPointerCast
+    , buildTruncOrBitCast
+    , buildZExtOrBitCast
+    , buildSExtOrBitCast
+
+    , buildPtrDiff
+
+    -- * Misc
+    , buildAggregateRet
+    , buildGlobalString
+    , buildGlobalStringPtr
+    , buildInBoundsGEP
+    , buildIntCast
+    , buildIsNotNull
+    , buildIsNull
+    , buildNSWAdd
+    , buildStructGEP
 
     -- ** Comparisons
     , buildICmp
@@ -337,15 +371,17 @@ module LLVM.FFI.Core
     , disposeMessage
 
     -- * Parameter passing
-    , addInstrAttribute
     , addAttribute
-    , removeInstrAttribute
-    , removeAttribute
     , setInstrParamAlignment
     , setParamAlignment
     , Attribute(..)
     , fromAttribute
     , toAttribute
+    , addInstrAttribute
+    , removeFunctionAttr
+    , removeAttribute
+    , removeInstrAttribute
+    , addFunctionAttr
 
     -- * Pass manager
     , PassManager
@@ -358,7 +394,59 @@ module LLVM.FFI.Core
     , runFunctionPassManager
     , runPassManager
 
+    -- * Context functions
+    , Context
+    , ContextRef
+
+    -- * Debug
     , dumpModule
+
+
+    -- * Misc
+    , alignOf
+    , constInBoundsGEP
+    , constIntCast
+    , constIntOfString
+    , constIntOfStringAndSize
+    , constNSWAdd
+    , constPointerCast
+    , constPointerNull
+    , constRealOfStringAndSize
+    , constSExtOrBitCast
+
+    , getTypeByName
+    , insertIntoBuilderWithName
+
+    -- * Context functions
+    , moduleCreateWithNameInContext
+    , appendBasicBlockInContext
+    , insertBasicBlockInContext
+    , createBuilderInContext
+
+    , contextDispose
+
+    , constStringInContext
+    , constStructInContext
+    , constTruncOrBitCast
+    , constZExtOrBitCast
+
+    , doubleTypeInContext
+    , fP128TypeInContext
+    , floatTypeInContext
+    , int16TypeInContext
+    , int1TypeInContext
+    , int32TypeInContext
+    , int64TypeInContext
+    , int8TypeInContext
+    , intTypeInContext
+    , labelTypeInContext
+    , opaqueTypeInContext
+    , pPCFP128TypeInContext
+    , structTypeInContext
+    , voidTypeInContext
+    , x86FP80TypeInContext
+    , getTypeContext
+
     ) where
 import Data.Typeable(Typeable)
 import Foreign.C.String (CString)
@@ -619,13 +707,65 @@ foreign import ccall unsafe "LLVMSetGC" setGC
 foreign import ccall unsafe "LLVMIsDeclaration" isDeclaration
     :: ValueRef -> IO CInt
 
-type Linkage = CUInt
+-- |An enumeration for the kinds of linkage for global values.
+data Linkage
+    = ExternalLinkage     -- ^Externally visible function
+    | AvailableExternallyLinkage 
+    | LinkOnceAnyLinkage  -- ^Keep one copy of function when linking (inline)
+    | LinkOnceODRLinkage  -- ^Same, but only replaced by something equivalent.
+    | WeakAnyLinkage      -- ^Keep one copy of named function when linking (weak)
+    | WeakODRLinkage      -- ^Same, but only replaced by something equivalent.
+    | AppendingLinkage    -- ^Special purpose, only applies to global arrays
+    | InternalLinkage     -- ^Rename collisions when linking (static functions)
+    | PrivateLinkage      -- ^Like Internal, but omit from symbol table
+    | DLLImportLinkage    -- ^Function to be imported from DLL
+    | DLLExportLinkage    -- ^Function to be accessible from DLL
+    | ExternalWeakLinkage -- ^ExternalWeak linkage description
+    | GhostLinkage        -- ^Stand-in functions for streaming fns from BC files    
+    | CommonLinkage       -- ^Tentative definitions
+    | LinkerPrivateLinkage -- ^Like Private, but linker removes.
+    deriving (Show, Eq, Ord, Enum, Typeable)
+
+fromLinkage :: Linkage -> CUInt
+fromLinkage ExternalLinkage             = (#const LLVMExternalLinkage)
+fromLinkage AvailableExternallyLinkage  = (#const LLVMAvailableExternallyLinkage )
+fromLinkage LinkOnceAnyLinkage          = (#const LLVMLinkOnceAnyLinkage)
+fromLinkage LinkOnceODRLinkage          = (#const LLVMLinkOnceODRLinkage)
+fromLinkage WeakAnyLinkage              = (#const LLVMWeakAnyLinkage)
+fromLinkage WeakODRLinkage              = (#const LLVMWeakODRLinkage)
+fromLinkage AppendingLinkage            = (#const LLVMAppendingLinkage)
+fromLinkage InternalLinkage             = (#const LLVMInternalLinkage)
+fromLinkage PrivateLinkage              = (#const LLVMPrivateLinkage)
+fromLinkage DLLImportLinkage            = (#const LLVMDLLImportLinkage)
+fromLinkage DLLExportLinkage            = (#const LLVMDLLExportLinkage)
+fromLinkage ExternalWeakLinkage         = (#const LLVMExternalWeakLinkage)
+fromLinkage GhostLinkage                = (#const LLVMGhostLinkage)
+fromLinkage CommonLinkage               = (#const LLVMCommonLinkage)
+fromLinkage LinkerPrivateLinkage        = (#const LLVMLinkerPrivateLinkage)
+
+toLinkage :: CUInt -> Linkage
+toLinkage c | c == (#const LLVMExternalLinkage)             = ExternalLinkage
+toLinkage c | c == (#const LLVMAvailableExternallyLinkage)  = AvailableExternallyLinkage 
+toLinkage c | c == (#const LLVMLinkOnceAnyLinkage)          = LinkOnceAnyLinkage
+toLinkage c | c == (#const LLVMLinkOnceODRLinkage)          = LinkOnceODRLinkage
+toLinkage c | c == (#const LLVMWeakAnyLinkage)              = WeakAnyLinkage
+toLinkage c | c == (#const LLVMWeakODRLinkage)              = WeakODRLinkage
+toLinkage c | c == (#const LLVMAppendingLinkage)            = AppendingLinkage
+toLinkage c | c == (#const LLVMInternalLinkage)             = InternalLinkage
+toLinkage c | c == (#const LLVMPrivateLinkage)              = PrivateLinkage
+toLinkage c | c == (#const LLVMDLLImportLinkage)            = DLLImportLinkage
+toLinkage c | c == (#const LLVMDLLExportLinkage)            = DLLExportLinkage
+toLinkage c | c == (#const LLVMExternalWeakLinkage)         = ExternalWeakLinkage
+toLinkage c | c == (#const LLVMGhostLinkage)                = GhostLinkage
+toLinkage c | c == (#const LLVMCommonLinkage)               = CommonLinkage
+toLinkage c | c == (#const LLVMLinkerPrivateLinkage)        = LinkerPrivateLinkage
+toLinkage _ = error "toLinkage: bad value"
 
 foreign import ccall unsafe "LLVMGetLinkage" getLinkage
-    :: ValueRef -> IO Linkage
+    :: ValueRef -> IO CUInt
 
 foreign import ccall unsafe "LLVMSetLinkage" setLinkage
-    :: ValueRef -> Linkage -> IO ()
+    :: ValueRef -> CUInt -> IO ()
 
 foreign import ccall unsafe "LLVMGetSection" getSection
     :: ValueRef -> IO CString
@@ -633,13 +773,29 @@ foreign import ccall unsafe "LLVMGetSection" getSection
 foreign import ccall unsafe "LLVMSetSection" setSection
     :: ValueRef -> CString -> IO ()
 
-type Visibility = CUInt
+-- |An enumeration for the kinds of visibility of global values.
+data Visibility
+    = DefaultVisibility   -- ^The GV is visible
+    | HiddenVisibility    -- ^The GV is hidden
+    | ProtectedVisibility -- ^The GV is protected
+    deriving (Show, Eq, Ord, Enum)
+
+fromVisibility :: Visibility -> CUInt
+fromVisibility DefaultVisibility   = (#const LLVMDefaultVisibility)
+fromVisibility HiddenVisibility    = (#const LLVMHiddenVisibility)
+fromVisibility ProtectedVisibility = (#const LLVMProtectedVisibility)
+
+toVisibility :: CUInt -> Visibility
+toVisibility c | c == (#const LLVMDefaultVisibility)   = DefaultVisibility
+toVisibility c | c == (#const LLVMHiddenVisibility)    = HiddenVisibility
+toVisibility c | c == (#const LLVMProtectedVisibility) = ProtectedVisibility
+toVisibility _ = error "toVisibility: bad value"
 
 foreign import ccall unsafe "LLVMGetVisibility" getVisibility
-    :: ValueRef -> IO Visibility
+    :: ValueRef -> IO CUInt
 
 foreign import ccall unsafe "LLVMSetVisibility" setVisibility
-    :: ValueRef -> Visibility -> IO ()
+    :: ValueRef -> CUInt -> IO ()
 
 foreign import ccall unsafe "LLVMGetAlignment" getAlignment
     :: ValueRef -> IO CUInt
@@ -1158,6 +1314,12 @@ foreign import ccall unsafe "LLVMSetInstrParamAlignment" setInstrParamAlignment
     :: ValueRef -> CUInt -> CUInt -> IO ()
 foreign import ccall unsafe "LLVMSetParamAlignment" setParamAlignment
     :: ValueRef -> CUInt -> IO ()
+
+
+data Context
+    deriving (Typeable)
+type ContextRef = Ptr Context
+
 foreign import ccall unsafe "LLVMAddAttribute" addAttribute
     :: ValueRef -> CAttribute -> IO ()
 foreign import ccall unsafe "LLVMAddInstrAttribute" addInstrAttribute
@@ -1170,21 +1332,131 @@ foreign import ccall unsafe "LLVMRemoveInstrAttribute" removeInstrAttribute
     :: ValueRef -> CUInt -> CAttribute -> IO ()
 foreign import ccall unsafe "LLVMSetTailCall" setTailCall
     :: ValueRef -> CInt -> IO ()
-{-
-foreign import ccall unsafe "LLVMAddAlias" addAlias
-    :: ModuleRef -> TypeRef -> ValueRef -> CString -> IO ValueRef
-foreign import ccall unsafe "LLVMBuildExtractValue" buildExtractValue
+foreign import ccall unsafe "LLVMAddFunctionAttr" addFunctionAttr
+    :: ValueRef -> CAttribute -> IO ()
+foreign import ccall unsafe "LLVMAlignOf" alignOf
+    :: TypeRef -> IO ValueRef
+foreign import ccall unsafe "LLVMAppendBasicBlockInContext" appendBasicBlockInContext
+    :: ContextRef -> ValueRef -> CString -> IO BasicBlockRef
+foreign import ccall unsafe "LLVMBuildAggregateRet" buildAggregateRet
+    :: BuilderRef -> (Ptr ValueRef) -> CUInt -> IO ValueRef
+foreign import ccall unsafe "LLVMBuildExactSDiv" buildExactSDiv
+    :: BuilderRef -> ValueRef -> ValueRef -> CString -> IO ValueRef
+foreign import ccall unsafe "LLVMBuildFAdd" buildFAdd
+    :: BuilderRef -> ValueRef -> ValueRef -> CString -> IO ValueRef
+foreign import ccall unsafe "LLVMBuildFMul" buildFMul
+    :: BuilderRef -> ValueRef -> ValueRef -> CString -> IO ValueRef
+foreign import ccall unsafe "LLVMBuildFPCast" buildFPCast
+    :: BuilderRef -> ValueRef -> TypeRef -> CString -> IO ValueRef
+foreign import ccall unsafe "LLVMBuildFSub" buildFSub
+    :: BuilderRef -> ValueRef -> ValueRef -> CString -> IO ValueRef
+foreign import ccall unsafe "LLVMBuildGlobalString" buildGlobalString
+    :: BuilderRef -> CString -> CString -> IO ValueRef
+foreign import ccall unsafe "LLVMBuildGlobalStringPtr" buildGlobalStringPtr
+    :: BuilderRef -> CString -> CString -> IO ValueRef
+foreign import ccall unsafe "LLVMBuildInBoundsGEP" buildInBoundsGEP
+    :: BuilderRef -> ValueRef -> (Ptr ValueRef) -> CUInt -> CString -> IO ValueRef
+foreign import ccall unsafe "LLVMBuildIntCast" buildIntCast
+    :: BuilderRef -> ValueRef -> TypeRef -> CString -> IO ValueRef
+foreign import ccall unsafe "LLVMBuildIsNotNull" buildIsNotNull
+    :: BuilderRef -> ValueRef -> CString -> IO ValueRef
+foreign import ccall unsafe "LLVMBuildIsNull" buildIsNull
+    :: BuilderRef -> ValueRef -> CString -> IO ValueRef
+foreign import ccall unsafe "LLVMBuildNSWAdd" buildNSWAdd
+    :: BuilderRef -> ValueRef -> ValueRef -> CString -> IO ValueRef
+foreign import ccall unsafe "LLVMBuildPointerCast" buildPointerCast
+    :: BuilderRef -> ValueRef -> TypeRef -> CString -> IO ValueRef
+foreign import ccall unsafe "LLVMBuildPtrDiff" buildPtrDiff
+    :: BuilderRef -> ValueRef -> ValueRef -> CString -> IO ValueRef
+foreign import ccall unsafe "LLVMBuildSExtOrBitCast" buildSExtOrBitCast
+    :: BuilderRef -> ValueRef -> TypeRef -> CString -> IO ValueRef
+foreign import ccall unsafe "LLVMBuildStructGEP" buildStructGEP
     :: BuilderRef -> ValueRef -> CUInt -> CString -> IO ValueRef
-foreign import ccall unsafe "LLVMBuildInsertValue" buildInsertValue
-    :: BuilderRef -> ValueRef -> ValueRef -> CUInt -> CString -> IO ValueRef
-foreign import ccall unsafe "LLVMClearInsertionPosition" clearInsertionPosition
-    :: BuilderRef -> IO ()
-foreign import ccall unsafe "LLVMConstExtractValue" constExtractValue
-    :: ValueRef -> Ptr CUInt -> CUInt -> IO ValueRef
-foreign import ccall unsafe "LLVMConstInlineAsm" constInlineAsm
-    :: TypeRef -> CString -> CString -> CInt -> IO ValueRef
-foreign import ccall unsafe "LLVMConstInsertValue" constInsertValue
-    :: ValueRef -> ValueRef -> Ptr CUInt -> IO ValueRef
-foreign import ccall unsafe "LLVMInsertIntoBuilder" insertIntoBuilder
-    :: BuilderRef -> ValueRef -> IO ()
--}
+foreign import ccall unsafe "LLVMBuildTruncOrBitCast" buildTruncOrBitCast
+    :: BuilderRef -> ValueRef -> TypeRef -> CString -> IO ValueRef
+foreign import ccall unsafe "LLVMBuildZExtOrBitCast" buildZExtOrBitCast
+    :: BuilderRef -> ValueRef -> TypeRef -> CString -> IO ValueRef
+foreign import ccall unsafe "LLVMConstExactSDiv" constExactSDiv
+    :: ValueRef -> ValueRef -> IO ValueRef
+foreign import ccall unsafe "LLVMConstFAdd" constFAdd
+    :: ValueRef -> ValueRef -> ValueRef
+foreign import ccall unsafe "LLVMConstFMul" constFMul
+    :: ValueRef -> ValueRef -> ValueRef
+foreign import ccall unsafe "LLVMConstFNeg" constFNeg
+    :: ValueRef -> ValueRef
+foreign import ccall unsafe "LLVMConstFPCast" constFPCast
+    :: ValueRef -> TypeRef -> ValueRef
+foreign import ccall unsafe "LLVMConstFSub" constFSub
+    :: ValueRef -> ValueRef -> ValueRef
+foreign import ccall unsafe "LLVMConstInBoundsGEP" constInBoundsGEP
+    :: ValueRef -> (Ptr ValueRef) -> CUInt -> IO ValueRef
+foreign import ccall unsafe "LLVMConstIntCast" constIntCast
+    :: ValueRef -> TypeRef -> CUInt -> IO ValueRef
+foreign import ccall unsafe "LLVMConstIntOfString" constIntOfString
+    :: TypeRef -> CString -> CUInt -> IO ValueRef
+foreign import ccall unsafe "LLVMConstIntOfStringAndSize" constIntOfStringAndSize
+    :: TypeRef -> CString -> CUInt -> CUInt -> IO ValueRef
+foreign import ccall unsafe "LLVMConstNSWAdd" constNSWAdd
+    :: ValueRef -> ValueRef -> IO ValueRef
+foreign import ccall unsafe "LLVMConstPointerCast" constPointerCast
+    :: ValueRef -> TypeRef -> IO ValueRef
+foreign import ccall unsafe "LLVMConstPointerNull" constPointerNull
+    :: TypeRef -> IO ValueRef
+foreign import ccall unsafe "LLVMConstRealOfStringAndSize" constRealOfStringAndSize
+    :: TypeRef -> CString -> CUInt -> IO ValueRef
+foreign import ccall unsafe "LLVMConstSExtOrBitCast" constSExtOrBitCast
+    :: ValueRef -> TypeRef -> IO ValueRef
+foreign import ccall unsafe "LLVMConstStringInContext" constStringInContext
+    :: ContextRef -> CString -> CUInt -> CInt -> IO ValueRef
+foreign import ccall unsafe "LLVMConstStructInContext" constStructInContext
+    :: ContextRef -> (Ptr ValueRef) -> CUInt -> CInt -> IO ValueRef
+foreign import ccall unsafe "LLVMConstTruncOrBitCast" constTruncOrBitCast
+    :: ValueRef -> TypeRef -> IO ValueRef
+foreign import ccall unsafe "LLVMConstZExtOrBitCast" constZExtOrBitCast
+    :: ValueRef -> TypeRef -> IO ValueRef
+foreign import ccall unsafe "LLVMContextDispose" contextDispose
+    :: ContextRef -> IO ()
+foreign import ccall unsafe "LLVMCreateBuilderInContext" createBuilderInContext
+    :: ContextRef -> IO BuilderRef
+foreign import ccall unsafe "LLVMDoubleTypeInContext" doubleTypeInContext
+    :: ContextRef -> IO TypeRef
+foreign import ccall unsafe "LLVMFP128TypeInContext" fP128TypeInContext
+    :: ContextRef -> IO TypeRef
+foreign import ccall unsafe "LLVMFloatTypeInContext" floatTypeInContext
+    :: ContextRef -> IO TypeRef
+foreign import ccall unsafe "LLVMGetTypeByName" getTypeByName
+    :: ModuleRef -> CString -> IO TypeRef
+foreign import ccall unsafe "LLVMGetTypeContext" getTypeContext
+    :: TypeRef -> IO ContextRef
+foreign import ccall unsafe "LLVMInsertBasicBlockInContext" insertBasicBlockInContext
+    :: ContextRef -> BasicBlockRef -> CString -> IO BasicBlockRef
+foreign import ccall unsafe "LLVMInsertIntoBuilderWithName" insertIntoBuilderWithName
+    :: BuilderRef -> ValueRef -> CString -> IO ()
+foreign import ccall unsafe "LLVMInt16TypeInContext" int16TypeInContext
+    :: ContextRef -> IO TypeRef
+foreign import ccall unsafe "LLVMInt1TypeInContext" int1TypeInContext
+    :: ContextRef -> IO TypeRef
+foreign import ccall unsafe "LLVMInt32TypeInContext" int32TypeInContext
+    :: ContextRef -> IO TypeRef
+foreign import ccall unsafe "LLVMInt64TypeInContext" int64TypeInContext
+    :: ContextRef -> IO TypeRef
+foreign import ccall unsafe "LLVMInt8TypeInContext" int8TypeInContext
+    :: ContextRef -> IO TypeRef
+foreign import ccall unsafe "LLVMIntTypeInContext" intTypeInContext
+    :: ContextRef -> CUInt -> IO TypeRef
+foreign import ccall unsafe "LLVMLabelTypeInContext" labelTypeInContext
+    :: ContextRef -> IO TypeRef
+foreign import ccall unsafe "LLVMModuleCreateWithNameInContext" moduleCreateWithNameInContext
+    :: CString -> ContextRef -> IO ModuleRef
+foreign import ccall unsafe "LLVMOpaqueTypeInContext" opaqueTypeInContext
+    :: ContextRef -> IO TypeRef
+foreign import ccall unsafe "LLVMPPCFP128TypeInContext" pPCFP128TypeInContext
+    :: ContextRef -> IO TypeRef
+foreign import ccall unsafe "LLVMRemoveFunctionAttr" removeFunctionAttr
+    :: ValueRef -> CAttribute -> IO ()
+foreign import ccall unsafe "LLVMStructTypeInContext" structTypeInContext
+    :: ContextRef -> (Ptr TypeRef) -> CUInt -> CInt -> IO TypeRef
+foreign import ccall unsafe "LLVMVoidTypeInContext" voidTypeInContext
+    :: ContextRef -> IO TypeRef
+foreign import ccall unsafe "LLVMX86FP80TypeInContext" x86FP80TypeInContext
+    :: ContextRef -> IO TypeRef

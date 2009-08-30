@@ -42,6 +42,8 @@ mVFun = do
 
 main :: IO ()
 main = do
+    -- Initialize jitter
+    initializeNativeTarget
 
     let mSomeFn' = mSomeFn
     ioSomeFn <- simpleFunction mSomeFn'

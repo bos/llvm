@@ -10,7 +10,7 @@ Prerequisites
 -------------
 
 Firstly, you'll need to have LLVM.  I recommend installing LLVM
-version 2.5 (from llvm.org) which is what it's been tested with.
+version 2.6 (from llvm.org) which is what it's been tested with.
 
 Install from source.:
 Build this and install it somewhere.  Follow the LLVM instructions,

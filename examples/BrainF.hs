@@ -24,6 +24,9 @@ import LLVM.ExecutionEngine
 
 main :: IO ()
 main = do
+    -- Initialize jitter
+    initializeNativeTarget
+
     aargs <- getArgs
     let (args, debug) = if take 1 aargs == ["-"] then (tail aargs, True) else (aargs, False)
     let text = "+++++++++++++++++++++++++++++++++" ++  -- constant 33

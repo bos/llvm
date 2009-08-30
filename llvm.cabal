@@ -1,9 +1,11 @@
 name: llvm
-version: 0.6.7.0
+version: 0.7.0.0
 license: BSD3
 license-file: LICENSE
 synopsis: Bindings to the LLVM compiler toolkit.
 description: Bindings to the LLVM compiler toolkit.
+             New in 0.7.0.0: Adapted to LLVM 2.6;
+             New in 0.6.8.0: Add functions to allow freeing function resources;
              New in 0.6.7.0: Struct types;
              New in 0.6.6.0: Bug fixes;
 	     New in 0.6.5.0: Adapted to LLVM 2.5;
@@ -34,10 +36,13 @@ extra-source-files:
     examples/Vector.hs
     examples/Makefile
     examples/mainfib.c
+    examples/Struct.hs
+    examples/structCheck.c
     tests/Makefile
     tests/TestValue.hs
     tools/DiffFFI.hs
     tools/FunctionMangler.hs
+    tools/FunctionMangulation.hs
     tools/IntrinsicMangler.hs
     tools/Makefile
     llvm.buildinfo.in
@@ -67,11 +72,13 @@ library
       LLVM.FFI.Core
       LLVM.FFI.ExecutionEngine
       LLVM.FFI.Target
+      LLVM.FFI.Transforms.IPO
       LLVM.FFI.Transforms.Scalar
       LLVM.Util.Arithmetic
       LLVM.Util.File
       LLVM.Util.Foreign
       LLVM.Util.Loop
+      LLVM.Util.Optimize
 
   other-modules:
       LLVM.Core.CodeGen
@@ -83,3 +90,21 @@ library
       LLVM.Core.Vector
       LLVM.ExecutionEngine.Engine
       LLVM.ExecutionEngine.Target
+      LLVM.Target.Native
+      LLVM.Target.X86
+      LLVM.Target.Sparc
+      LLVM.Target.PowerPC
+      LLVM.Target.Alpha
+      LLVM.Target.ARM
+      LLVM.Target.Mips
+      LLVM.Target.CellSPU
+      LLVM.Target.PIC16
+      LLVM.Target.XCore
+      LLVM.Target.MSP430
+      LLVM.Target.SystemZ
+      LLVM.Target.Blackfin
+      LLVM.Target.CBackend
+      LLVM.Target.MSIL
+      LLVM.Target.CppBackend
+
+  C-Sources: cbits/free.c

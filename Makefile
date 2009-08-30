@@ -47,6 +47,7 @@ install: setup
 clean:
 	-$(MAKE) -C examples clean
 	-$(MAKE) -C tests clean
+	-$(MAKE) -C tools clean
 	-rm -f Setup.hi Setup.o
 	-./setup clean
 	-rm -f setup setup.exe setup.exe.manifest

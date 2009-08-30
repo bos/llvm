@@ -70,6 +70,8 @@ optimize name = do
 -- XXX With a working pass manager it wouldn't be necessary to go via a file.
 main :: IO ()
 main = do
+    -- Initialize jitter
+    initializeNativeTarget
     -- First run standard code.
     m <- newModule
     iovec <- defineModule m cgvec

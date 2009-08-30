@@ -4,6 +4,7 @@ import Data.Word
 import LLVM.Core
 --import LLVM.ExecutionEngine
 import LLVM.Util.Loop
+import LLVM.Util.Optimize
 
 cg :: CodeGenModule (Function (Double -> IO (Ptr Double)))
 cg = do
@@ -52,6 +53,10 @@ cg = do
 
 main :: IO ()
 main = do
+    -- Initialize jitter
+    initializeNativeTarget
     m <- newModule
     _f <- defineModule m cg
     writeBitcodeToFile "Arr.bc" m
+    optimizeModule 3 m
+    writeBitcodeToFile "Arr-opt.bc" m

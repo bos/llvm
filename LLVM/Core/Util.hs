@@ -253,7 +253,7 @@ addFunction modul linkage name typ =
     withModule modul $ \ modulPtr ->
       withCString name $ \ namePtr -> do
         f <- FFI.addFunction modulPtr namePtr typ
-        FFI.setLinkage f linkage
+        FFI.setLinkage f (FFI.fromLinkage linkage)
         return f
 
 getParam :: Function -> Int -> Value
@@ -266,7 +266,7 @@ addGlobal modul linkage name typ =
     withModule modul $ \ modulPtr ->
       withCString name $ \ namePtr -> do
         v <- FFI.addGlobal modulPtr typ namePtr
-        FFI.setLinkage v linkage
+        FFI.setLinkage v (FFI.fromLinkage linkage)
         return v
 
 -- unsafePerformIO is safe because it's only used for the withCStringLen conversion

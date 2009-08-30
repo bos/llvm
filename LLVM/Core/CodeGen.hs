@@ -5,6 +5,7 @@ module LLVM.Core.CodeGen(
     getModuleValues, ModuleValue, castModuleValue,
     -- * Globals
     Linkage(..),
+    Visibility(..),
     -- * Function creation
     Function, newFunction, newNamedFunction, defineFunction, createFunction, createNamedFunction,
     addAttributes,
@@ -35,6 +36,7 @@ import Foreign.Storable(sizeOf)
 import Data.TypeLevel hiding (Bool, Eq, (+), (==))
 import LLVM.Core.CodeGenMonad
 import qualified LLVM.FFI.Core as FFI
+import LLVM.FFI.Core(Linkage(..), Visibility(..))
 import qualified LLVM.Core.Util as U
 import LLVM.Core.Type
 import LLVM.Core.Data
@@ -177,7 +179,7 @@ newNamedFunction :: forall a . (IsFunction a)
 newNamedFunction linkage name = do
     modul <- getModule
     let typ = typeRef (undefined :: a)
-    liftIO $ liftM Value $ U.addFunction modul (fromIntegral $ fromEnum linkage) name typ
+    liftIO $ liftM Value $ U.addFunction modul linkage name typ
 
 -- | Create a new function.  Use 'newNamedFunction' to create a function with external linkage, since
 -- it needs a known name.
@@ -316,7 +318,7 @@ externFunction name = do
             let linkage = ExternalLinkage
             modul <- getFunctionModule
             let typ = typeRef (undefined :: a)
-            f <- liftIO $ U.addFunction modul (fromIntegral $ fromEnum linkage) name typ
+            f <- liftIO $ U.addFunction modul linkage name typ
             putExterns ((name, f) : es)
 	    return $ Value f
 
@@ -345,7 +347,7 @@ newNamedGlobal :: forall a . (IsType a)
 newNamedGlobal isConst linkage name = do
     modul <- getModule
     let typ = typeRef (undefined :: a)
-    liftIO $ liftM Value $ do g <- U.addGlobal modul (fromIntegral $ fromEnum linkage) name typ
+    liftIO $ liftM Value $ do g <- U.addGlobal modul linkage name typ
     	     	   	      when isConst $ FFI.setGlobalConstant g 1
 			      return g
 
@@ -387,34 +389,10 @@ string n s = do
     modul <- getModule
     name <- genMSym "str"
     let typ = FFI.arrayType (typeRef (undefined :: Word8)) (fromIntegral n)
-    liftIO $ liftM Value $ do g <- U.addGlobal modul (fromIntegral $ fromEnum InternalLinkage) name typ
+    liftIO $ liftM Value $ do g <- U.addGlobal modul InternalLinkage name typ
     	     	   	      FFI.setGlobalConstant g 1
 			      FFI.setInitializer g s
 			      return g
-
---------------------------------------
-
--- |An enumeration for the kinds of linkage for global values.
-data Linkage
-    = ExternalLinkage     -- ^Externally visible function
-    | LinkOnceLinkage     -- ^Keep one copy of function when linking (inline)
-    | WeakLinkage         -- ^Keep one copy of named function when linking (weak)
-    | AppendingLinkage    -- ^Special purpose, only applies to global arrays
-    | InternalLinkage     -- ^Rename collisions when linking (static functions)
-    | DLLImportLinkage    -- ^Function to be imported from DLL
-    | DLLExportLinkage    -- ^Function to be accessible from DLL
-    | ExternalWeakLinkage -- ^ExternalWeak linkage description
-    | GhostLinkage        -- ^Stand-in functions for streaming fns from BC files    
-    deriving (Show, Eq, Ord, Enum, Typeable)
-
-{-
--- |An enumeration for the kinds of visibility of global values.
-data VisibilityTypes
-    = DefaultVisibility   -- ^The GV is visible
-    | HiddenVisibility    -- ^The GV is hidden
-    | ProtectedVisibility -- ^The GV is protected
-    deriving (Show, Eq, Ord, Enum)
--}
 
 --------------------------------------
 

@@ -32,7 +32,8 @@ llvm_cppflags="`$llvm_config --cppflags`"
 llvm_includedir="`$llvm_config --includedir`"
 llvm_ldflags="`$llvm_config --ldflags`"
 
-llvm_engine_libs="`$llvm_config --libs engine`"
+llvm_all_libs="`$llvm_config --libs all`"
+llvm_target="`$llvm_config --libs engine | sed 's/.*LLVM\(.[^ ]*\)CodeGen.*/\1/'`"
 
 CPPFLAGS="$llvm_cppflags $CPPFLAGS"
 LDFLAGS="$llvm_ldflags $LDFLAGS"
@@ -49,7 +50,8 @@ AC_CHECK_LIB(LLVMCore, LLVMModuleCreateWithName, [],
   [AC_MSG_ERROR(could not find LLVM C bindings)])
 
 AC_SUBST([llvm_cppflags])
-AC_SUBST([llvm_engine_libs])
+AC_SUBST([llvm_all_libs])
+AC_SUBST([llvm_target])
 AC_SUBST([llvm_includedir])
 AC_SUBST([llvm_ldflags])
 

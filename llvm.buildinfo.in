@@ -1,4 +1,4 @@
-ghc-options: @llvm_cppflags@ -pgml @CXX@
-ld-options: @llvm_ldflags@ @llvm_engine_libs@ -lstdc++
+cpp-options: @llvm_cppflags@ -DTARGET=@llvm_target@
+ghc-options: -pgml @CXX@
+ld-options: @llvm_ldflags@ @llvm_all_libs@ -lstdc++
 include-dirs: @llvm_includedir@
-extra-libraries: LLVMAnalysis LLVMBitWriter LLVMBitReader LLVMCore LLVMTarget LLVMSupport LLVMSystem

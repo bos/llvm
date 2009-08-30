@@ -35,6 +35,8 @@ type T = Vector D4 R
 
 main :: IO ()
 main = do
+    -- Initialize jitter
+    initializeNativeTarget
     let mDotProd' = mDotProd
     writeCodeGenModule "DotProd.bc" mDotProd'
 

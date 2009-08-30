@@ -4,13 +4,15 @@ Haskell LLVM Bindings Release License
 University of Illinois/NCSA
 Open Source License
 
-Copyright (c) 2007 Bryan O'Sullivan
+Copyright (c) 2007-2009 Bryan O'Sullivan
 All rights reserved.
 
 Developed by:
 
     Bryan O'Sullivan <bos@serpentine.com>
     http://www.serpentine.com/blog/
+
+    Lennart Augustsson <lennart@augustsson.net>
 
 Permission is hereby granted, free of charge, to any person obtaining
 a copy of this software and associated documentation files (the

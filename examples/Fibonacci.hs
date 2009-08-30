@@ -5,6 +5,7 @@ import Control.Monad(forM_)
 import Data.Word
 
 import LLVM.Core
+import LLVM.Util.Optimize
 import LLVM.ExecutionEngine
 
 -- Our module will have these two functions.
@@ -18,6 +19,8 @@ main = do
     args <- getArgs
     let args' = if null args then ["10"] else args
 
+    -- Initialize jitter
+    initializeNativeTarget
     -- Create a module,
     m <- newNamedModule "fib"
     -- and define its contents.
@@ -29,6 +32,9 @@ main = do
     -- Write the code to a file for later perusal.
     -- Can be disassembled with llvm-dis.
     writeBitcodeToFile "Fibonacci.bc" m
+
+    optimizeModule 3 m
+    writeBitcodeToFile "Fibonacci-opt.bc" m
 
     -- Generate code for mfib, and then throw away the IO in the type.
     -- The result is an ordinary Haskell function.

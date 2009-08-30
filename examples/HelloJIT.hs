@@ -17,6 +17,7 @@ bldGreet = do
 
 main :: IO ()
 main = do
+    initializeNativeTarget
     greet <- simpleFunction bldGreet
     greet
     greet

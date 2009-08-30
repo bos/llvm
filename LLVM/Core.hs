@@ -27,6 +27,8 @@
 -- @createX@.  Furthermore, an explicit name can be given to an entity by the
 -- @newNamedX@ function; the @newX@ function just generates a fresh name.
 module LLVM.Core(
+    -- * Initialize
+    initializeNativeTarget,
     -- * Modules
     Module, newModule, newNamedModule, defineModule, destroyModule, createModule,
     ModuleProvider, createModuleProviderForExistingModule,
@@ -64,11 +66,7 @@ module LLVM.Core(
     addAttributes, Attribute(..),
     castVarArgs,
     -- * Debugging
-    dumpValue, dumpType, getValueName,
-    -- * Transformations
-    addCFGSimplificationPass, addConstantPropagationPass, addDemoteMemoryToRegisterPass,
-    addGVNPass, addInstructionCombiningPass, addPromoteMemoryToRegisterPass, addReassociatePass,
-    addTargetData
+    dumpValue, dumpType, getValueName
     ) where
 import qualified LLVM.FFI.Core as FFI
 import LLVM.Core.Util hiding (Function, BasicBlock, createModule, constString, constStringNul, constVector, constArray, getModuleValues, valueHasType)
@@ -79,6 +77,7 @@ import LLVM.Core.Data(Vector, Array)
 import LLVM.Core.Instructions
 import LLVM.Core.Type
 import LLVM.Core.Vector
+import LLVM.Target.Native
 
 -- |Print a value.
 dumpValue :: Value a -> IO ()

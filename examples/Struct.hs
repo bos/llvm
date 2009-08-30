@@ -31,6 +31,7 @@ mStruct = do
 
 main :: IO ()
 main = do
+    initializeNativeTarget
     writeCodeGenModule "Struct.bc" mStruct
     struct <- simpleFunction mStruct
     let a = 10

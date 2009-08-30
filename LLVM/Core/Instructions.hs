@@ -12,6 +12,7 @@ module LLVM.Core.Instructions(
     -- | Arithmetic operations with the normal semantics.
     -- The u instractions are unsigned, the s instructions are signed.
     add, sub, mul, neg,
+    fadd, fsub, fmul, -- fneg,
     udiv, sdiv, fdiv, urem, srem, frem,
     -- * Logical binary operations
     -- |Logical instructions with the normal semantics.
@@ -153,11 +154,11 @@ type FFIConstBinOp = FFI.ValueRef -> FFI.ValueRef -> FFI.ValueRef
 class ABinOp a b c | a b -> c where
     abinop :: FFIConstBinOp -> FFIBinOp -> a -> b -> CodeGenFunction r c
 
-add :: (IsArithmetic c, ABinOp a b (v c)) => a -> b -> CodeGenFunction r (v c)
+add :: ({-IsInteger-} IsArithmetic c, ABinOp a b (v c)) => a -> b -> CodeGenFunction r (v c)
 add = abinop FFI.constAdd FFI.buildAdd
-sub :: (IsArithmetic c, ABinOp a b (v c)) => a -> b -> CodeGenFunction r (v c)
+sub :: ({-IsInteger-} IsArithmetic c, ABinOp a b (v c)) => a -> b -> CodeGenFunction r (v c)
 sub = abinop FFI.constSub FFI.buildSub
-mul :: (IsArithmetic c, ABinOp a b (v c)) => a -> b -> CodeGenFunction r (v c)
+mul :: ({-IsInteger-} IsArithmetic c, ABinOp a b (v c)) => a -> b -> CodeGenFunction r (v c)
 mul = abinop FFI.constMul FFI.buildMul
 
 udiv :: (IsInteger c, ABinOp a b (v c)) => a -> b -> CodeGenFunction r (v c)
@@ -168,6 +169,13 @@ urem :: (IsInteger c, ABinOp a b (v c)) => a -> b -> CodeGenFunction r (v c)
 urem = abinop FFI.constURem FFI.buildURem
 srem :: (IsInteger c, ABinOp a b (v c)) => a -> b -> CodeGenFunction r (v c)
 srem = abinop FFI.constSRem FFI.buildSRem
+
+fadd :: (IsFloating c, ABinOp a b (v c)) => a -> b -> CodeGenFunction r (v c)
+fadd = abinop FFI.constFAdd FFI.buildFAdd
+fsub :: (IsFloating c, ABinOp a b (v c)) => a -> b -> CodeGenFunction r (v c)
+fsub = abinop FFI.constFSub FFI.buildFSub
+fmul :: (IsFloating c, ABinOp a b (v c)) => a -> b -> CodeGenFunction r (v c)
+fmul = abinop FFI.constFMul FFI.buildFMul
 
 -- | Floating point division.
 fdiv :: (IsFloating c, ABinOp a b (v c)) => a -> b -> CodeGenFunction r (v c)
@@ -225,8 +233,13 @@ buildUnOp op a =
     withCurrentBuilder $ \ bld ->
       U.withEmptyCString $ op bld a
 
-neg :: (IsArithmetic a) => Value a -> CodeGenFunction r (Value a)
+neg :: ({-IsInteger-} IsArithmetic a) => Value a -> CodeGenFunction r (Value a)
 neg (Value x) = buildUnOp FFI.buildNeg x
+
+{-
+fneg :: (IsFloating a) => Value a -> CodeGenFunction r (Value a)
+fneg (Value x) = buildUnOp FFI.buildFNeg x
+-}
 
 inv :: (IsInteger a) => Value a -> CodeGenFunction r (Value a)
 inv (Value x) = buildUnOp FFI.buildNot x

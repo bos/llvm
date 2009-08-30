@@ -7,6 +7,9 @@ import LLVM.ExecutionEngine
 
 main :: IO ()
 main = do
+    -- Initialize jitter
+    initializeNativeTarget
+
     td <- getTargetData
     print (littleEndian td,
            aBIAlignmentOfType td $ typeRef (undefined :: Word32),

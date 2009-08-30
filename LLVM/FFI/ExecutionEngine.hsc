@@ -31,6 +31,10 @@ module LLVM.FFI.ExecutionEngine
     , createGenericValueOfPointer
     , genericValueToPointer
     , ptrDisposeGenericValue
+
+    -- * Linking
+--    , linkInInterpreter
+    , linkInJIT
     ) where
 import Data.Typeable
 import Foreign.C.String (CString)
@@ -114,3 +118,10 @@ foreign import ccall unsafe "LLVMAddGlobalMapping" addGlobalMapping
 
 foreign import ccall unsafe "LLVMGetPointerToGlobal" getPointerToGlobal
     :: ExecutionEngineRef -> ValueRef -> IO (FunPtr a)
+
+{-
+foreign import ccall unsafe "LLVMLinkInInterpreter" linkInInterpreter
+    :: IO ()
+-}
+foreign import ccall unsafe "LLVMLinkInJIT" linkInJIT
+    :: IO ()

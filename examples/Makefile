@@ -29,4 +29,4 @@ fastfib:	Fibonacci
 	@echo Have a look at Fib.s if you like to see clever code.
 
 clean:
-	rm -f $(examples) *.o *.hi *.s *.bc Fib *.exe *.exe.manifest
+	rm -f $(examples) *.o *.hi *.s *.bc Fib *.exe *.exe.manifest *~

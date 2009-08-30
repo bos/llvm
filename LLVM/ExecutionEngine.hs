@@ -11,6 +11,7 @@ module LLVM.ExecutionEngine(
     runStaticDestructors,
 -}
     getPointerToFunction,
+    getFreePointers, FreePointers,
     -- * Translation
     Translatable, Generic,
     generateFunction,

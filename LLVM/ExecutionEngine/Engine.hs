@@ -9,6 +9,7 @@ module LLVM.ExecutionEngine.Engine(
        {- runStaticConstructors, runStaticDestructors, -}
        getExecutionEngineTargetData,
        getPointerToFunction,
+       getFreePointers, FreePointers,
        runFunction, getRunFunction,
        GenericValue, Generic(..)
        ) where
@@ -31,6 +32,7 @@ import System.IO.Unsafe (unsafePerformIO)
 import LLVM.Core.Util(Module, ModuleProvider, withModuleProvider, createModule, createModuleProviderForExistingModule)
 import qualified LLVM.FFI.ExecutionEngine as FFI
 import qualified LLVM.FFI.Target as FFI
+import qualified LLVM.FFI.Core as FFI(ModuleProviderRef, ValueRef)
 import qualified LLVM.Core.Util(Function)
 import LLVM.Core.Type(IsFirstClass, typeRef)
 
@@ -156,6 +158,16 @@ addModule :: Module -> EngineAccess ()
 addModule m = do
     mp <- liftIO $ createModuleProviderForExistingModule m
     addModuleProvider mp
+
+-- | Get all the information needed to free a function.
+-- Freeing code might have to be done from a (C) finalizer, so it has to done from C.
+-- The function c_freeFunctionObject take these pointers as arguments and frees the function.
+type FreePointers = (Ptr FFI.ExecutionEngine, FFI.ModuleProviderRef, FFI.ValueRef)
+getFreePointers :: Function f -> EngineAccess FreePointers
+getFreePointers (Value f) = do
+    ea <- get
+    liftIO $ withModuleProvider (head $ ea_providers ea) $ \ mpp ->
+        return (ea_engine ea, mpp, f)
 
 --------------------------------------
 

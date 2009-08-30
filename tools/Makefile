@@ -8,4 +8,4 @@ all: $(tools)
 	$(ghc) $(ghcflags) --make -o $@ -main-is $(basename $<).main $<
 
 clean:
-	-rm -f *.o *.hi $(tools)
+	-rm -f *.o *.hi $(tools) *.exe
