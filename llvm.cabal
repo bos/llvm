@@ -38,6 +38,7 @@ extra-source-files:
     examples/mainfib.c
     examples/Struct.hs
     examples/structCheck.c
+    examples/Varargs.hs
     tests/Makefile
     tests/TestValue.hs
     tools/DiffFFI.hs

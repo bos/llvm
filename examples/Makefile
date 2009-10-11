@@ -1,7 +1,7 @@
 ghc := ghc
 ghcflags := -Wall -optl -w
 # -DHAS_GETPOINTERTOGLOBAL=1
-examples := HelloJIT Fibonacci BrainF Vector Array DotProd Arith Align Struct
+examples := HelloJIT Fibonacci BrainF Vector Array DotProd Arith Align Struct Varargs
 
 all: $(examples:%=%.exe)
 
