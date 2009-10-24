@@ -14,7 +14,7 @@ maintainer: Bryan O'Sullivan <bos@serpentine.com>, Lennart Augustsson <lennart@a
 homepage: http://darcs.serpentine.com/llvm/
 stability: experimental
 category: Compilers/Interpreters, Code Generation
-tested-with: GHC == 6.10.2
+tested-with: GHC == 6.10.4
 cabal-version: >= 1.2.3
 build-type: Custom
 
