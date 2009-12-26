@@ -1,5 +1,5 @@
 {-# LANGUAGE ScopedTypeVariables, FlexibleInstances, TypeOperators, FlexibleContexts #-}
-module LLVM.Util.Loop(Phi, forLoop, mapVector, mapVector2) where
+module LLVM.Util.Loop(Phi(phis,addPhis), forLoop, mapVector, mapVector2) where
 import Data.TypeLevel hiding (Bool)
 import LLVM.Core
 
