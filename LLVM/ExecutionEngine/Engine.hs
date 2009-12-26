@@ -27,6 +27,7 @@ import Foreign.Ptr (Ptr)
 import Foreign.Ptr (FunPtr)
 import LLVM.Core.CodeGen(Value(..), Function)
 import Foreign.Storable (peek)
+import Foreign.StablePtr (StablePtr, castStablePtrToPtr, castPtrToStablePtr, )
 import System.IO.Unsafe (unsafePerformIO)
 
 import LLVM.Core.Util(Module, ModuleProvider, withModuleProvider, createModule, createModuleProviderForExistingModule)
@@ -281,4 +282,8 @@ instance Generic Double where
 instance Generic (Ptr a) where
     toGeneric = unsafePerformIO . createGenericValueWith . FFI.createGenericValueOfPointer
     fromGeneric val = unsafePerformIO . withGenericValue val $ FFI.genericValueToPointer
+
+instance Generic (StablePtr a) where
+    toGeneric = unsafePerformIO . createGenericValueWith . FFI.createGenericValueOfPointer . castStablePtrToPtr
+    fromGeneric val = unsafePerformIO . fmap castPtrToStablePtr . withGenericValue val $ FFI.genericValueToPointer
 

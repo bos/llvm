@@ -31,6 +31,7 @@ import Data.List(intercalate)
 import Data.Int
 import Data.Word
 import Data.TypeLevel hiding (Bool, Eq)
+import Foreign.StablePtr (StablePtr, )
 import LLVM.Core.Util(functionType, structType)
 import LLVM.Core.Data
 import qualified LLVM.FFI.Core as FFI
@@ -189,6 +190,15 @@ instance (Nat n, IsPrimitive a) => IsType (Vector n a)
 instance (IsType a) => IsType (Ptr a) where
     typeDesc _ = TDPtr (typeDesc (undefined :: a))
 
+instance IsType (StablePtr a) where
+    typeDesc _ = TDPtr (typeDesc (undefined :: Int8))
+{-
+    typeDesc _ = TDPtr TDVoid
+
+List: Type.cpp:1311: static llvm::PointerType* llvm::PointerType::get(const llvm::Type*, unsigned int): Assertion `ValueType != Type::VoidTy && "Pointer to void is not valid, use sbyte* instead!"' failed.
+-}
+
+
 -- Functions.
 instance (IsFirstClass a, IsFunction b) => IsType (a->b) where
     typeDesc = funcType []
@@ -285,6 +295,7 @@ instance IsFirstClass Word32
 instance IsFirstClass Word64
 instance (Nat n, IsPrimitive a) => IsFirstClass (Vector n a)
 instance (IsType a) => IsFirstClass (Ptr a)
+instance IsFirstClass (StablePtr a)
 instance IsFirstClass Label
 instance IsFirstClass () -- XXX This isn't right, but () can be returned
 instance (StructFields as) => IsFirstClass (Struct as)
