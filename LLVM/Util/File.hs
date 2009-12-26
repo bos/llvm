@@ -1,4 +1,5 @@
 module LLVM.Util.File(writeCodeGenModule, optimizeFunction, optimizeFunctionCG) where
+import System.Directory
 import System.Cmd(system)
 
 import LLVM.Core
