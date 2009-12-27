@@ -82,7 +82,18 @@ foreign import ccall unsafe "LLVMGenericValueToFloat" genericValueToFloat
 foreign import ccall unsafe "&LLVMDisposeGenericValue" ptrDisposeGenericValue
     :: FunPtr (GenericValueRef -> IO ())
 
-foreign import ccall unsafe "LLVMRunFunction" runFunction
+{-
+safe call is important, since the running LLVM code may call back into Haskell code
+
+See
+http://www.cse.unsw.edu.au/~chak/haskell/ffi/ffi/ffise3.html#x6-130003.3 says:
+
+"Optionally, an import declaration can specify,
+after the calling  convention,
+the safety level that should be used when invoking an external entity.
+..."
+-}
+foreign import ccall safe "LLVMRunFunction" runFunction
     :: ExecutionEngineRef -> ValueRef -> CUInt
     -> Ptr GenericValueRef -> IO GenericValueRef
 
@@ -105,7 +116,7 @@ foreign import ccall unsafe "LLVMGenericValueToPointer" genericValueToPointer
 foreign import ccall unsafe "LLVMRemoveModuleProvider" removeModuleProvider
     :: ExecutionEngineRef -> ModuleProviderRef -> Ptr ModuleRef -> Ptr CString
     -> IO CInt
-foreign import ccall unsafe "LLVMRunFunctionAsMain" runFunctionAsMain
+foreign import ccall safe "LLVMRunFunctionAsMain" runFunctionAsMain
     :: ExecutionEngineRef -> ValueRef -> CUInt
     -> Ptr CString              -- ^ argv
     -> Ptr CString              -- ^ envp
