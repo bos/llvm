@@ -317,6 +317,7 @@ instance IsSized Word64 D64
 instance (Nat n, IsSized a s, Mul n s ns, Pos ns) => IsSized (Array n a) ns
 instance (Nat n, IsPrimitive a, IsSized a s, Mul n s ns, Pos ns) => IsSized (Vector n a) ns
 instance (IsType a) => IsSized (Ptr a) PtrSize
+instance IsSized (StablePtr a) PtrSize
 -- instance IsSized Label PtrSize -- labels are not quite first classed
 -- We cannot compute the sizes statically :(
 instance (StructFields as) => IsSized (Struct as) UnknownSize
