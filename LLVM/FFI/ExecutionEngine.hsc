@@ -93,7 +93,7 @@ foreign import ccall unsafe "LLVMCreateGenericValueOfPointer"
 foreign import ccall unsafe "LLVMCreateInterpreter" createInterpreter
     :: Ptr ExecutionEngineRef -> ModuleProviderRef -> Ptr CString -> IO CInt
 foreign import ccall unsafe "LLVMCreateJITCompiler" createJITCompiler
-    :: Ptr ExecutionEngineRef -> ModuleProviderRef -> Ptr CString -> IO CInt
+    :: Ptr ExecutionEngineRef -> ModuleProviderRef -> CUInt -> Ptr CString -> IO CInt
 foreign import ccall unsafe "LLVMFindFunction" findFunction
     :: ExecutionEngineRef -> CString -> Ptr ValueRef -> IO CInt
 foreign import ccall unsafe "LLVMFreeMachineCodeForFunction"
