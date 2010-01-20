@@ -1,4 +1,4 @@
 cpp-options: @llvm_cppflags@ -DTARGET=@llvm_target@
 ghc-options: -pgml @CXX@
-ld-options: @llvm_ldflags@ @llvm_all_libs@ -lstdc++
+ld-options: @llvm_all_libs@ @llvm_ldflags@ -lstdc++
 include-dirs: @llvm_includedir@
