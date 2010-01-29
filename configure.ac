@@ -27,16 +27,56 @@ AC_ARG_WITH(llvm_bindir,
 AC_PATH_PROG(llvm_config, llvm-config,
   [AC_MSG_ERROR(could not find llvm-config in $llvm_bindir)],
   ["$llvm_bindir:$PATH"])
+  
+dnl * Choose target platform
+dnl
+dnl We don't use the standard autoconf macros for this, but instead
+dnl ask GHC what platform it is for.  Why?  We need to generate a library
+dnl matching the compiler.
+dnl NB: This code is from GHC's configure (where the corresponding code for
+dnl guessing host and build variables can be found, too)
+
+dnl Guess target platform if necessary.
+m4_divert_once([HELP_CANON],
+[[
+System types:
+  --target=TARGET   configure for building compilers for TARGET [guessed]]])dnl
+
+if test "$target" = ""
+then
+    if test "${compiler}" != ""
+    then
+        target=`${compiler} +RTS --info | grep '^ ,("Target platform"' | sed -e 's/.*, "//' -e 's/")//' | tr -d '\r'`
+        echo "Target platform inferred as: $target"
+    else
+        echo "Can't work out target platform"
+        exit 1
+    fi
+fi
+
+dnl Determine target-specific options
+dnl This is important as Snow Leopard (Mac OS X 10.6) defaults to generating
+dnl 64-bit code.
+case $target in
+i386-apple-darwin)
+    TARGET_CPPFLAGS="-m32"
+    TAGRET_LDFLAGS="-m32"
+    ;;
+x86_64-apple-darwin)
+    TARGET_CPPFLAGS="-m64"
+    TAGRET_LDFLAGS="-m64"
+    ;;
+esac
 
 llvm_cppflags="`$llvm_config --cppflags`"
 llvm_includedir="`$llvm_config --includedir`"
 llvm_ldflags="`$llvm_config --ldflags`"
 
 llvm_all_libs="`$llvm_config --libs all`"
-llvm_target="`$llvm_config --libs engine | sed 's/.*LLVM\(.[^ ]*\)CodeGen.*/\1/'`"
+llvm_target="`$llvm_config --libs engine | sed 's/.*LLVM\(.[[^ ]]*\)CodeGen.*/\1/'`"
 
-CPPFLAGS="$llvm_cppflags $CPPFLAGS"
-LDFLAGS="$llvm_ldflags $LDFLAGS"
+CPPFLAGS="$llvm_cppflags $CPPFLAGS $TARGET_CPPFLAGS"
+LDFLAGS="$llvm_ldflags $LDFLAGS $TARGET_LDFLAGS"
 
 AC_CHECK_HEADERS([llvm-c/Core.h], [],
   [AC_MSG_ERROR(could not find LLVM C bindings)])
