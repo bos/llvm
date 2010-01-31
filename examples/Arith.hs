@@ -1,5 +1,5 @@
 {-# OPTIONS_GHC -fno-warn-type-defaults #-}
-{-# LANGUAGE ScopedTypeVariables, PatternSignatures #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 module Arith where
 import Data.Int
 import Data.TypeLevel(D4)
