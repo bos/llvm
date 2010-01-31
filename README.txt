@@ -11,12 +11,15 @@ home page is here:
 Configuration
 -------------
 
-By default, when you run "runghc Setup configure", the Haskell
-bindings will be configured to install to /usr/local.  The configure
-script will look for your LLVM installation in that same directory.
+By default, when you run "cabal install" or "runghc Setup configure",
+the Haskell bindings will be configured to install to /usr/local.  The
+configure script will look for your LLVM installation in that same
+directory.
 
 If you have LLVM installed in a different location, e.g. /usr, you can
 tell the configure script where to find it as follows:
+
+  cabal install --configure-option=--with-llvm-prefix=/usr
 
   runghc Setup configure --configure-option=--with-llvm-prefix=/usr
 
@@ -42,6 +45,6 @@ We welcome your comments and contributions.  You can send email to us
 at <bos@serpentine.com> or <lennart@augustsson.net>.  If you want to
 send patches, please get a copy of the darcs repository:
 
-  darcs get http://darcs.serpentine.com/llvm
+  darcs get http://code.haskell.org/llvm/
 
 Thanks!
