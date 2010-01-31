@@ -1,23 +1,22 @@
-name:          llvm
-version:       0.7.0.1
-license:       BSD3
-license-file:  LICENSE
-synopsis:      Bindings to the LLVM compiler toolkit.
-description:   Bindings to the LLVM compiler toolkit.
-	       New in 0.7.0.0: Adapted to LLVM 2.6;
-	       New in 0.6.8.0: Allow freeing of function resources;
-	       New in 0.6.7.0: Struct types;
-	       New in 0.6.6.0: Bug fixes;
-	       New in 0.6.5.0: Adapted to LLVM 2.5;
-author:        Bryan O'Sullivan, Lennart Augustsson
-maintainer:    Bryan O'Sullivan <bos@serpentine.com>,
-               Lennart Augustsson <lennart@augustsson.net>
-homepage:      http://trac.haskell.org/llvm/
-stability:     experimental
-category:      Compilers/Interpreters, Code Generation
-tested-with:   GHC == 6.10.4, GHC == 6.12.1
-cabal-version: >= 1.6
-build-type:    Custom
+name: llvm
+version: 0.7.0.1
+license: BSD3
+license-file: LICENSE
+synopsis: Bindings to the LLVM compiler toolkit.
+description: Bindings to the LLVM compiler toolkit.
+             New in 0.7.0.0: Adapted to LLVM 2.6;
+             New in 0.6.8.0: Add functions to allow freeing function resources;
+             New in 0.6.7.0: Struct types;
+             New in 0.6.6.0: Bug fixes;
+	     New in 0.6.5.0: Adapted to LLVM 2.5;
+author: Bryan O'Sullivan, Lennart Augustsson
+maintainer: Bryan O'Sullivan <bos@serpentine.com>, Lennart Augustsson <lennart@augustsson.net>
+homepage: http://darcs.serpentine.com/llvm/
+stability: experimental
+category: Compilers/Interpreters, Code Generation
+tested-with: GHC == 6.10.4
+cabal-version: >= 1.2.3
+build-type: Custom
 
 extra-source-files:
     INSTALL.txt
