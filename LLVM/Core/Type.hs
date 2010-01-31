@@ -16,8 +16,6 @@ module LLVM.Core.Type(
     IsFirstClass,
     IsSized,
     IsFunction,
-    -- ** Others
-    IsPowerOf2,
     -- ** Structs
     (:&), (&),
     -- ** Type tests
@@ -36,10 +34,6 @@ import Data.TypeLevel hiding (Bool, Eq)
 import LLVM.Core.Util(functionType, structType)
 import LLVM.Core.Data
 import qualified LLVM.FFI.Core as FFI
-
--- Usage: vector precondition
-class (Pos n) => IsPowerOf2 n
-instance (LogBase D2 n l, ExpBase D2 l n) => IsPowerOf2 n
 
 -- TODO:
 -- Move IntN, WordN to a special module that implements those types
@@ -187,7 +181,7 @@ instance IsType Int64  where typeDesc _ = TDInt True  64
 instance (Nat n, IsSized a s) => IsType (Array n a)
     where typeDesc _ = TDArray (toNum (undefined :: n))
     	  	               (typeDesc (undefined :: a))
-instance (IsPowerOf2 n, IsPrimitive a) => IsType (Vector n a)
+instance (Nat n, IsPrimitive a) => IsType (Vector n a)
     where typeDesc _ = TDVector (toNum (undefined :: n))
     	  	       		(typeDesc (undefined :: a))
 
@@ -241,12 +235,12 @@ instance IsArithmetic Word8
 instance IsArithmetic Word16
 instance IsArithmetic Word32
 instance IsArithmetic Word64
-instance (IsPowerOf2 n, IsPrimitive a, IsArithmetic a) => IsArithmetic (Vector n a)
+instance (Nat n, IsPrimitive a, IsArithmetic a) => IsArithmetic (Vector n a)
 
 instance IsFloating Float
 instance IsFloating Double
 instance IsFloating FP128
-instance (IsPowerOf2 n, IsPrimitive a, IsFloating a) => IsFloating (Vector n a)
+instance (Nat n, IsPrimitive a, IsFloating a) => IsFloating (Vector n a)
 
 instance (Pos n) => IsInteger (IntN n)
 instance (Pos n) => IsInteger (WordN n)
@@ -259,7 +253,7 @@ instance IsInteger Word8
 instance IsInteger Word16
 instance IsInteger Word32
 instance IsInteger Word64
-instance (IsPowerOf2 n, IsPrimitive a, IsInteger a) => IsInteger (Vector n a)
+instance (Nat n, IsPrimitive a, IsInteger a) => IsInteger (Vector n a)
 
 instance (Pos n) => IsIntegerOrPointer (IntN n)
 instance (Pos n) => IsIntegerOrPointer (WordN n)
@@ -272,7 +266,7 @@ instance IsIntegerOrPointer Word8
 instance IsIntegerOrPointer Word16
 instance IsIntegerOrPointer Word32
 instance IsIntegerOrPointer Word64
-instance (IsPowerOf2 n, IsPrimitive a, IsInteger a) => IsIntegerOrPointer (Vector n a)
+instance (Nat n, IsPrimitive a, IsInteger a) => IsIntegerOrPointer (Vector n a)
 instance (IsType a) => IsIntegerOrPointer (Ptr a)
 
 instance IsFirstClass Float
@@ -289,7 +283,7 @@ instance IsFirstClass Word8
 instance IsFirstClass Word16
 instance IsFirstClass Word32
 instance IsFirstClass Word64
-instance (IsPowerOf2 n, IsPrimitive a) => IsFirstClass (Vector n a)
+instance (Nat n, IsPrimitive a) => IsFirstClass (Vector n a)
 instance (IsType a) => IsFirstClass (Ptr a)
 instance IsFirstClass Label
 instance IsFirstClass () -- XXX This isn't right, but () can be returned
@@ -310,7 +304,7 @@ instance IsSized Word16 D16
 instance IsSized Word32 D32
 instance IsSized Word64 D64
 instance (Nat n, IsSized a s, Mul n s ns, Pos ns) => IsSized (Array n a) ns
-instance (IsPowerOf2 n, IsPrimitive a, IsSized a s, Mul n s ns, Pos ns) => IsSized (Vector n a) ns
+instance (Nat n, IsPrimitive a, IsSized a s, Mul n s ns, Pos ns) => IsSized (Vector n a) ns
 instance (IsType a) => IsSized (Ptr a) PtrSize
 -- instance IsSized Label PtrSize -- labels are not quite first classed
 -- We cannot compute the sizes statically :(

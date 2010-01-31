@@ -12,7 +12,7 @@ import Foreign.Marshal.Array(peekArray, pokeArray)
 import System.IO.Unsafe(unsafePerformIO)
 
 -- XXX Should these really be here?
-class (IsPowerOf2 n, IsPrimitive a) => MkVector va n a | va -> n a, n a -> va where
+class (Nat n, IsPrimitive a) => MkVector va n a | va -> n a, n a -> va where
     toVector :: va -> Vector n a
     fromVector :: Vector n a -> va
 
@@ -36,7 +36,7 @@ instance (IsPrimitive a) => MkVector (a, a, a, a, a, a, a, a) D8 a where
     fromVector (Vector [a1, a2, a3, a4, a5, a6, a7, a8]) = (a1, a2, a3, a4, a5, a6, a7, a8)
     fromVector _ = error "fromVector: impossible"
 
-instance (Storable a, IsPowerOf2 n, IsPrimitive a) => Storable (Vector n a) where
+instance (Storable a, Nat n, IsPrimitive a) => Storable (Vector n a) where
     sizeOf a = storeSizeOfType ourTargetData (typeRef a)
     alignment a = aBIAlignmentOfType ourTargetData (typeRef a)
     peek p = fmap Vector $ peekArray (toNum (undefined :: n)) (castPtr p :: Ptr a)
