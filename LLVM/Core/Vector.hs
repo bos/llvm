@@ -1,6 +1,6 @@
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 {-# LANGUAGE MultiParamTypeClasses, FunctionalDependencies, FlexibleInstances, ScopedTypeVariables #-}
-module LLVM.Core.Vector(MkVector(..)) where
+module LLVM.Core.Vector(MkVector(..), vector, ) where
 import Data.Function
 import Data.TypeLevel hiding (Eq, (+), (==), (-), (*), succ, pred, div, mod, divMod, logBase)
 import LLVM.Core.Type
@@ -50,6 +50,13 @@ ourTargetData = unsafePerformIO getTargetData
 
 unVector :: Vector n a -> [a]
 unVector (Vector xs) = xs
+
+-- |Make a constant vector.  Replicates or truncates the list to get length /n/.
+-- This behaviour is consistent with that of 'LLVM.Core.CodeGen.constVector'.
+vector :: forall a n. (Pos n) => [a] -> Vector n a
+vector xs =
+   Vector (take (toNum (undefined :: n)) (cycle xs))
+
 
 binop :: (a -> b -> c) -> Vector n a -> Vector n b -> Vector n c
 binop op xs ys = Vector $ zipWith op (unVector xs) (unVector ys)

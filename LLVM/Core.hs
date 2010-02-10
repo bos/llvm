@@ -47,7 +47,7 @@ module LLVM.Core(
     createString, createStringNul,
     --constString, constStringNul,
     constVector, constArray,
-    toVector, fromVector,
+    toVector, fromVector, vector,
     -- * Code generation
     CodeGenFunction, CodeGenModule,
     -- * Functions
