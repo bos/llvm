@@ -1201,6 +1201,15 @@ data Attribute
     | NestAttribute
     | ReadNoneAttribute
     | ReadOnlyAttribute
+    | NoInlineAttribute
+    | AlwaysInlineAttribute
+    | OptimizeForSizeAttribute
+    | StackProtectAttribute
+    | StackProtectReqAttribute
+    | NoCaptureAttribute
+    | NoRedZoneAttribute
+    | NoImplicitFloatAttribute
+    | NakedAttribute
     deriving (Show, Eq, Ord, Enum, Bounded, Typeable)
 
 fromAttribute :: Attribute -> CAttribute
@@ -1215,6 +1224,15 @@ fromAttribute ByValAttribute = (#const LLVMByValAttribute)
 fromAttribute NestAttribute = (#const LLVMNestAttribute)
 fromAttribute ReadNoneAttribute = (#const LLVMReadNoneAttribute)
 fromAttribute ReadOnlyAttribute = (#const LLVMReadOnlyAttribute)
+fromAttribute NoInlineAttribute = (#const LLVMNoInlineAttribute)
+fromAttribute AlwaysInlineAttribute = (#const LLVMAlwaysInlineAttribute)
+fromAttribute OptimizeForSizeAttribute = (#const LLVMOptimizeForSizeAttribute)
+fromAttribute StackProtectAttribute = (#const LLVMStackProtectAttribute)
+fromAttribute StackProtectReqAttribute = (#const LLVMStackProtectReqAttribute)
+fromAttribute NoCaptureAttribute = (#const LLVMNoCaptureAttribute)
+fromAttribute NoRedZoneAttribute = (#const LLVMNoRedZoneAttribute)
+fromAttribute NoImplicitFloatAttribute = (#const LLVMNoImplicitFloatAttribute)
+fromAttribute NakedAttribute = (#const LLVMNakedAttribute)
 
 toAttribute :: CAttribute -> Attribute
 toAttribute c | c == (#const LLVMZExtAttribute) = ZExtAttribute
@@ -1228,6 +1246,15 @@ toAttribute c | c == (#const LLVMByValAttribute) = ByValAttribute
 toAttribute c | c == (#const LLVMNestAttribute) = NestAttribute
 toAttribute c | c == (#const LLVMReadNoneAttribute) = ReadNoneAttribute
 toAttribute c | c == (#const LLVMReadOnlyAttribute) = ReadOnlyAttribute
+toAttribute c | c == (#const LLVMNoInlineAttribute) = NoInlineAttribute
+toAttribute c | c == (#const LLVMAlwaysInlineAttribute) = AlwaysInlineAttribute
+toAttribute c | c == (#const LLVMOptimizeForSizeAttribute) = OptimizeForSizeAttribute
+toAttribute c | c == (#const LLVMStackProtectAttribute) = StackProtectAttribute
+toAttribute c | c == (#const LLVMStackProtectReqAttribute) = StackProtectReqAttribute
+toAttribute c | c == (#const LLVMNoCaptureAttribute) = NoCaptureAttribute
+toAttribute c | c == (#const LLVMNoRedZoneAttribute) = NoRedZoneAttribute
+toAttribute c | c == (#const LLVMNoImplicitFloatAttribute) = NoImplicitFloatAttribute
+toAttribute c | c == (#const LLVMNakedAttribute) = NakedAttribute
 toAttribute _ = error "toAttribute: bad value"
 
 type CAttribute = CInt
