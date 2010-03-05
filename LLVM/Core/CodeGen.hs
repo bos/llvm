@@ -20,7 +20,7 @@ module LLVM.Core.CodeGen(
     IsConst(..), valueOf, value,
     zero, allOnes, undef,
     createString, createStringNul,
-    constVector, constArray,
+    constVector, constArray, constStruct, constPackedStruct,
     -- * Basic blocks
     BasicBlock(..), newBasicBlock, newNamedBasicBlock, defineBasicBlock, createBasicBlock, getCurrentBasicBlock,
     fromLabel, toLabel,
@@ -405,3 +405,21 @@ constVector xs =
 constArray :: forall a n s . (IsSized a s, Nat n) => [ConstValue a] -> ConstValue (Array n a)
 constArray xs =
     ConstValue $ U.constArray (typeRef (undefined :: a)) (toNum (undefined :: n)) [ v | ConstValue v <- xs ]
+
+-- |Make a constant struct.
+constStruct :: (IsConstStruct c a) => c -> ConstValue (Struct a)
+constStruct struct =
+    ConstValue $ U.constStruct (constValueFieldsOf struct) False
+
+-- |Make a constant packed struct.
+constPackedStruct :: (IsConstStruct c a) => c -> ConstValue (PackedStruct a)
+constPackedStruct struct =
+    ConstValue $ U.constStruct (constValueFieldsOf struct) True
+
+class IsConstStruct c a | a -> c, c -> a where
+    constValueFieldsOf :: c -> [FFI.ValueRef]
+
+instance (IsConst a, IsConstStruct cs as) => IsConstStruct (ConstValue a, cs) (a, as) where
+    constValueFieldsOf (a, as) = unConstValue a : constValueFieldsOf as
+instance IsConstStruct () () where
+    constValueFieldsOf _ = []
