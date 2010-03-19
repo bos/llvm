@@ -34,7 +34,7 @@ module LLVM.Core.Instructions(
     fptoui, fptosi,
     uitofp, sitofp,
     ptrtoint, inttoptr,
-    bitcast,
+    bitcast, bitcastUnify,
     -- * Comparison
     IntPredicate(..), FPPredicate(..),
     CmpRet,
@@ -339,6 +339,13 @@ inttoptr = convert FFI.buildIntToPtr
 bitcast :: (IsFirstClass a, IsFirstClass b, IsSized a sa, IsSized b sb, sa :==: sb)
         => Value a -> CodeGenFunction r (Value b)
 bitcast = convert FFI.buildBitCast
+
+-- | Same as bitcast but instead of the '(:==:)' type class it uses type unification.
+-- This way, properties like reflexivity, symmetry and transitivity
+-- are obvious to the Haskell compiler.
+bitcastUnify :: (IsFirstClass a, IsFirstClass b, IsSized a s, IsSized b s)
+        => Value a -> CodeGenFunction r (Value b)
+bitcastUnify = convert FFI.buildBitCast
 
 type FFIConvert = FFI.BuilderRef -> FFI.ValueRef -> FFI.TypeRef -> U.CString -> IO FFI.ValueRef
 
