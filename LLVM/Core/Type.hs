@@ -8,6 +8,7 @@ module LLVM.Core.Type(
     -- * Type classifier
     IsType(..),
     -- ** Special type classifiers
+    Nat,
     IsArithmetic,
     IsInteger,
     IsIntegerOrPointer,

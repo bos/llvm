@@ -33,7 +33,7 @@ main = do
     -- Can be disassembled with llvm-dis.
     writeBitcodeToFile "Fibonacci.bc" m
 
-    optimizeModule 3 m
+    _ <- optimizeModule 3 m
     writeBitcodeToFile "Fibonacci-opt.bc" m
 
     -- Generate code for mfib, and then throw away the IO in the type.

@@ -45,7 +45,7 @@ cg = do
 	b <- arrayMalloc (4 :: Word32)
 	fillArray b [x,x,x,x]
 	c <- arrayMalloc (4 :: Word32)
-	call matMul (valueOf 2) (valueOf 2) (valueOf 2) a b c
+	_ <- call matMul (valueOf 2) (valueOf 2) (valueOf 2) a b c
 	ret c
     let _ = test :: Function (Double -> IO (Ptr Double))
 
@@ -58,5 +58,5 @@ main = do
     m <- newModule
     _f <- defineModule m cg
     writeBitcodeToFile "Arr.bc" m
-    optimizeModule 3 m
+    _ <- optimizeModule 3 m
     writeBitcodeToFile "Arr-opt.bc" m

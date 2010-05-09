@@ -11,7 +11,7 @@ bldGreet = do
     greetz <- createStringNul "Hello, JIT!"
     func <- createFunction ExternalLinkage $ do
       tmp <- getElementPtr0 greetz (0::Word32, ())
-      call puts tmp -- Throw away return value.
+      _ <- call puts tmp -- Throw away return value.
       ret ()
     return func
 

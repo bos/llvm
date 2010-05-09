@@ -107,7 +107,7 @@ brainCompile _debug instrs wmemtotal = do
             -- Write a character.
             char8 <- load cur
             char32 <- zext char8
-            call putchar char32
+            _ <- call putchar char32
             return cur
         gen cur '-' = do
             -- Decrement byte at head.
@@ -132,7 +132,7 @@ brainCompile _debug instrs wmemtotal = do
 
     brainf <- createFunction ExternalLinkage $ do
         ptr_arr <- arrayMalloc wmemtotal
-        call memset ptr_arr (valueOf 0) (valueOf wmemtotal) (valueOf 0)
+        _ <- call memset ptr_arr (valueOf 0) (valueOf wmemtotal) (valueOf 0)
 --        _ptr_arrmax <- getElementPtr ptr_arr (wmemtotal, ())
         -- Start head in the middle.
         curhead <- getElementPtr ptr_arr (wmemtotal `div` 2, ())
@@ -140,7 +140,7 @@ brainCompile _debug instrs wmemtotal = do
         bb <- getCurrentBasicBlock
         generate instrs [] (curhead, bb)
 
-        free ptr_arr
+        _ <- free ptr_arr
         ret ()
 
     return brainf

@@ -55,7 +55,7 @@ import Control.Monad(liftM)
 import Data.Int
 import Data.Word
 import Foreign.C(CInt)
-import Data.TypeLevel((:<:), (:>:), (:==:), D0, toNum, Succ, Nat)
+import Data.TypeLevel((:<:), (:>:), (:==:), D0, toNum, Succ)
 import qualified LLVM.FFI.Core as FFI
 import LLVM.Core.Data
 import LLVM.Core.Type
@@ -564,11 +564,11 @@ load (Value p) =
 -- | Store a value in memory
 store :: Value a                        -- ^ Value to store.
       -> Value (Ptr a)                  -- ^ Address to store to.
-      -> CodeGenFunction r (Value ())
-store (Value v) (Value p) =
-    liftM Value $
-    withCurrentBuilder $ \ bldPtr ->
+      -> CodeGenFunction r ()
+store (Value v) (Value p) = do
+    withCurrentBuilder_ $ \ bldPtr ->
       FFI.buildStore bldPtr v p
+    return ()
 
 {-
 -- XXX type is wrong

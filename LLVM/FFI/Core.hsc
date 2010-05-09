@@ -496,7 +496,7 @@ module LLVM.FFI.Core
     , setCurrentDebugLocation
     , setInstDebugLocation
     , setMetadata
-    , unionType
+--    , unionType
     , unionTypeInContext
 
     -- ** Build instruction from opcode
@@ -1677,7 +1677,9 @@ foreign import ccall unsafe "LLVMSetInstDebugLocation" setInstDebugLocation
     :: BuilderRef -> ValueRef -> IO ()
 foreign import ccall unsafe "LLVMSetMetadata" setMetadata
     :: ValueRef -> CUInt -> ValueRef -> IO ()
+{-
 foreign import ccall unsafe "LLVMUnionType" unionType
     :: (Ptr TypeRef) -> CUInt -> IO TypeRef
+-}
 foreign import ccall unsafe "LLVMUnionTypeInContext" unionTypeInContext
     :: ContextRef -> (Ptr TypeRef) -> CUInt -> IO TypeRef
