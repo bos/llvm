@@ -6,7 +6,7 @@ import Data.TypeLevel hiding (Eq, (+), (==), (-), (*), succ, pred, div, mod, div
 import LLVM.Core.Type
 import LLVM.Core.Data
 import LLVM.ExecutionEngine.Target
-import Foreign.Ptr(Ptr, castPtr)
+import Foreign.Ptr(castPtr)
 import Foreign.Storable(Storable(..))
 import Foreign.Marshal.Array(peekArray, pokeArray)
 import System.IO.Unsafe(unsafePerformIO)

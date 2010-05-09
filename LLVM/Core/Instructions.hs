@@ -88,13 +88,16 @@ instance (IsFirstClass a, IsConst a) => Ret a a where
 
 instance Ret (Value a) a where
     ret' (Value a) = do
-        withCurrentBuilder $ \ bldPtr -> FFI.buildRet bldPtr a
+        withCurrentBuilder_ $ \ bldPtr -> FFI.buildRet bldPtr a
         return terminate
 
 instance Ret () () where
     ret' _ = do
-        withCurrentBuilder $ FFI.buildRetVoid
+        withCurrentBuilder_ $ FFI.buildRetVoid
         return terminate
+
+withCurrentBuilder_ :: (FFI.BuilderRef -> IO a) -> CodeGenFunction r ()
+withCurrentBuilder_ p = withCurrentBuilder p >> return ()
 
 --------------------------------------
 
@@ -104,7 +107,7 @@ condBr :: Value Bool -- ^ Boolean to branch upon.
        -> BasicBlock -- ^ Target for false.
        -> CodeGenFunction r Terminate
 condBr (Value b) (BasicBlock t1) (BasicBlock t2) = do
-    withCurrentBuilder $ \ bldPtr -> FFI.buildCondBr bldPtr b t1 t2
+    withCurrentBuilder_ $ \ bldPtr -> FFI.buildCondBr bldPtr b t1 t2
     return terminate
 
 --------------------------------------
@@ -113,7 +116,7 @@ condBr (Value b) (BasicBlock t1) (BasicBlock t2) = do
 br :: BasicBlock  -- ^ Branch target.
    -> CodeGenFunction r Terminate
 br (BasicBlock t) = do
-    withCurrentBuilder $ \ bldPtr -> FFI.buildBr bldPtr t
+    withCurrentBuilder_ $ \ bldPtr -> FFI.buildBr bldPtr t
     return terminate
 
 --------------------------------------
@@ -125,7 +128,7 @@ switch :: (IsInteger a)
        -> [(ConstValue a, BasicBlock)]   -- ^ Labels and corresponding branch targets.
        -> CodeGenFunction r Terminate
 switch (Value val) (BasicBlock dflt) arms = do
-    withCurrentBuilder $ \ bldPtr -> do
+    withCurrentBuilder_ $ \ bldPtr -> do
         inst <- FFI.buildSwitch bldPtr val dflt (fromIntegral $ length arms)
         sequence_ [ FFI.addCase inst c b | (ConstValue c, BasicBlock b) <- arms ]
     return terminate
@@ -136,13 +139,13 @@ switch (Value val) (BasicBlock dflt) arms = do
 -- I.e., throw a non-local exception.
 unwind :: CodeGenFunction r Terminate
 unwind = do
-    withCurrentBuilder FFI.buildUnwind
+    withCurrentBuilder_ FFI.buildUnwind
     return terminate
 
 -- |Inform the code generator that this code can never be reached.
 unreachable :: CodeGenFunction r Terminate
 unreachable = do
-    withCurrentBuilder FFI.buildUnreachable
+    withCurrentBuilder_ FFI.buildUnreachable
     return terminate
 
 --------------------------------------
