@@ -17,7 +17,7 @@ build: dist/setup-config
 	./setup build
 
 dist/setup-config: setup configure llvm.cabal llvm.buildinfo.in
-	./setup configure --prefix=$(prefix) --libdir=$(prefix)/$(_lib) \
+	./setup configure --user --prefix=$(prefix) --libdir=$(prefix)/$(_lib) \
 	    --configure-option --with-llvm-prefix=$(llvm_prefix) $(user_flag)
 
 setup: Setup.lhs
@@ -51,7 +51,7 @@ clean:
 	-rm -f Setup.hi Setup.o
 	-./setup clean
 	-rm -f setup setup.exe setup.exe.manifest
-	-rm *~
+	-rm -f *~
 	-rm -rf dist
 
 distclean: clean
