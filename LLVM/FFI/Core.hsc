@@ -235,6 +235,13 @@ module LLVM.FFI.Core
     , constInsertElement
     , constShuffleVector
     , constRealOfString
+    , constNSWMul
+    , constNSWNeg
+    , constNSWSub
+    , constNUWAdd
+    , constNUWMul
+    , constNUWNeg
+    , constNUWSub
 
     -- * Basic blocks
     , BasicBlock
@@ -273,6 +280,7 @@ module LLVM.FFI.Core
     , buildRetVoid
     , buildRet
     , buildBr
+    , buildIndirectBr
     , buildCondBr
     , buildSwitch
     , buildInvoke
@@ -301,7 +309,15 @@ module LLVM.FFI.Core
     , buildOr
     , buildXor
     , buildNeg
+    , buildFNeg
     , buildNot
+    , buildNSWMul
+    , buildNSWNeg
+    , buildNSWSub
+    , buildNUWAdd
+    , buildNUWMul
+    , buildNUWNeg
+    , buildNUWSub
 
     -- ** Memory
     , buildMalloc
@@ -338,7 +354,6 @@ module LLVM.FFI.Core
     , buildGlobalString
     , buildGlobalStringPtr
     , buildInBoundsGEP
-    , buildIntCast
     , buildIsNotNull
     , buildIsNull
     , buildNSWAdd
@@ -447,10 +462,63 @@ module LLVM.FFI.Core
     , x86FP80TypeInContext
     , getTypeContext
 
+    , addAlias
+    , addDestination
+    , addGlobalInAddressSpace
+    , blockAddress
+    , clearInsertionPosition
+    , constExtractValue
+    , constInlineAsm
+    , constInsertValue
+    , constIntGetSExtValue
+    , constIntGetZExtValue
+
+    , constUnion
+    , contextCreate
+    , countUnionElementTypes
+    , createFunctionPassManagerForModule
+    , getAttribute
+    , getCurrentDebugLocation
+    , getFunctionAttr
+    , getGlobalContext
+    , getMDKindID
+    , getMDKindIDInContext
+    , getMetadata
+    , getOperand
+    , getUnionElementTypes
+    , hasMetadata
+    , insertIntoBuilder
+    , mDNode
+    , mDNodeInContext
+    , mDString
+    , mDStringInContext
+    , replaceAllUsesWith
+    , setCurrentDebugLocation
+    , setInstDebugLocation
+    , setMetadata
+    , unionType
+    , unionTypeInContext
+
+    -- ** Build instruction from opcode
+    , buildBinOp
+    , getConstOpcode
+
+    , buildCast
+    , buildExtractValue
+    , buildInsertValue
+
+    -- ** Use
+    , OpaqueUse
+    , UseRef
+    , getFirstUse
+    , getNextUse
+    , getUsedValue
+    , getUser
+
     ) where
 import Data.Typeable(Typeable)
 import Foreign.C.String (CString)
-import Foreign.C.Types (CDouble, CInt, CUInt, CULLong)
+import Foreign.C.Types (CDouble, CInt, CUInt, CLLong, CULLong)
 import Foreign.Ptr (Ptr, FunPtr)
 
 #include <llvm-c/Core.h>
@@ -1263,6 +1331,10 @@ data PassManager
     deriving (Typeable)
 type PassManagerRef = Ptr PassManager
 
+data OpaqueUse
+    deriving (Typeable)
+type UseRef = Ptr OpaqueUse
+
 foreign import ccall unsafe "LLVMConstRealOfString" constRealOfString
     :: TypeRef -> CString -> IO ValueRef
 foreign import ccall unsafe "LLVMCreateFunctionPassManager" createFunctionPassManager
@@ -1377,14 +1449,14 @@ foreign import ccall unsafe "LLVMBuildFPCast" buildFPCast
     :: BuilderRef -> ValueRef -> TypeRef -> CString -> IO ValueRef
 foreign import ccall unsafe "LLVMBuildFSub" buildFSub
     :: BuilderRef -> ValueRef -> ValueRef -> CString -> IO ValueRef
+foreign import ccall unsafe "LLVMBuildFNeg" buildFNeg
+    :: BuilderRef -> ValueRef -> CString -> IO ValueRef
 foreign import ccall unsafe "LLVMBuildGlobalString" buildGlobalString
     :: BuilderRef -> CString -> CString -> IO ValueRef
 foreign import ccall unsafe "LLVMBuildGlobalStringPtr" buildGlobalStringPtr
     :: BuilderRef -> CString -> CString -> IO ValueRef
 foreign import ccall unsafe "LLVMBuildInBoundsGEP" buildInBoundsGEP
     :: BuilderRef -> ValueRef -> (Ptr ValueRef) -> CUInt -> CString -> IO ValueRef
-foreign import ccall unsafe "LLVMBuildIntCast" buildIntCast
-    :: BuilderRef -> ValueRef -> TypeRef -> CString -> IO ValueRef
 foreign import ccall unsafe "LLVMBuildIsNotNull" buildIsNotNull
     :: BuilderRef -> ValueRef -> CString -> IO ValueRef
 foreign import ccall unsafe "LLVMBuildIsNull" buildIsNull
@@ -1487,3 +1559,125 @@ foreign import ccall unsafe "LLVMVoidTypeInContext" voidTypeInContext
     :: ContextRef -> IO TypeRef
 foreign import ccall unsafe "LLVMX86FP80TypeInContext" x86FP80TypeInContext
     :: ContextRef -> IO TypeRef
+
+
+
+
+foreign import ccall unsafe "LLVMAddAlias" addAlias
+    :: ModuleRef -> TypeRef -> ValueRef -> CString -> IO ValueRef
+foreign import ccall unsafe "LLVMAddDestination" addDestination
+    :: ValueRef -> BasicBlockRef -> IO ()
+foreign import ccall unsafe "LLVMAddGlobalInAddressSpace" addGlobalInAddressSpace
+    :: ModuleRef -> TypeRef -> CString -> CUInt -> IO ValueRef
+foreign import ccall unsafe "LLVMBlockAddress" blockAddress
+    :: ValueRef -> BasicBlockRef -> IO ValueRef
+foreign import ccall unsafe "LLVMBuildBinOp" buildBinOp
+    :: BuilderRef -> CUInt{-Opcode-} -> ValueRef -> ValueRef -> CString -> IO ValueRef
+foreign import ccall unsafe "LLVMBuildCast" buildCast
+    :: BuilderRef -> CUInt{-Opcode-} -> ValueRef -> TypeRef -> CString -> IO ValueRef
+foreign import ccall unsafe "LLVMBuildExtractValue" buildExtractValue
+    :: BuilderRef -> ValueRef -> CUInt -> CString -> IO ValueRef
+foreign import ccall unsafe "LLVMBuildIndirectBr" buildIndirectBr
+    :: BuilderRef -> ValueRef -> CUInt -> IO ValueRef
+foreign import ccall unsafe "LLVMBuildInsertValue" buildInsertValue
+    :: BuilderRef -> ValueRef -> ValueRef -> CUInt -> CString -> IO ValueRef
+foreign import ccall unsafe "LLVMBuildNSWMul" buildNSWMul
+    :: BuilderRef -> ValueRef -> ValueRef -> CString -> IO ValueRef
+foreign import ccall unsafe "LLVMBuildNSWNeg" buildNSWNeg
+    :: BuilderRef -> ValueRef -> CString -> IO ValueRef
+foreign import ccall unsafe "LLVMBuildNSWSub" buildNSWSub
+    :: BuilderRef -> ValueRef -> ValueRef -> CString -> IO ValueRef
+foreign import ccall unsafe "LLVMBuildNUWAdd" buildNUWAdd
+    :: BuilderRef -> ValueRef -> ValueRef -> CString -> IO ValueRef
+foreign import ccall unsafe "LLVMBuildNUWMul" buildNUWMul
+    :: BuilderRef -> ValueRef -> ValueRef -> CString -> IO ValueRef
+foreign import ccall unsafe "LLVMBuildNUWNeg" buildNUWNeg
+    :: BuilderRef -> ValueRef -> CString -> IO ValueRef
+foreign import ccall unsafe "LLVMBuildNUWSub" buildNUWSub
+    :: BuilderRef -> ValueRef -> ValueRef -> CString -> IO ValueRef
+foreign import ccall unsafe "LLVMClearInsertionPosition" clearInsertionPosition
+    :: BuilderRef -> IO ()
+foreign import ccall unsafe "LLVMConstExtractValue" constExtractValue
+    :: ValueRef -> Ptr CUInt -> CUInt -> IO ValueRef
+foreign import ccall unsafe "LLVMConstInlineAsm" constInlineAsm
+    :: TypeRef -> CString -> CString -> Bool -> Bool -> IO ValueRef
+foreign import ccall unsafe "LLVMConstInsertValue" constInsertValue
+    :: ValueRef -> ValueRef -> Ptr CUInt -> CUInt -> IO ValueRef
+foreign import ccall unsafe "LLVMConstIntGetSExtValue" constIntGetSExtValue
+    :: ValueRef -> IO CLLong
+foreign import ccall unsafe "LLVMConstIntGetZExtValue" constIntGetZExtValue
+    :: ValueRef -> IO CULLong
+foreign import ccall unsafe "LLVMConstNSWMul" constNSWMul
+    :: ValueRef -> ValueRef -> IO ValueRef
+foreign import ccall unsafe "LLVMConstNSWNeg" constNSWNeg
+    :: ValueRef -> IO ValueRef
+foreign import ccall unsafe "LLVMConstNSWSub" constNSWSub
+    :: ValueRef -> ValueRef -> IO ValueRef
+foreign import ccall unsafe "LLVMConstNUWAdd" constNUWAdd
+    :: ValueRef -> ValueRef -> IO ValueRef
+foreign import ccall unsafe "LLVMConstNUWMul" constNUWMul
+    :: ValueRef -> ValueRef -> IO ValueRef
+foreign import ccall unsafe "LLVMConstNUWNeg" constNUWNeg
+    :: ValueRef -> IO ValueRef
+foreign import ccall unsafe "LLVMConstNUWSub" constNUWSub
+    :: ValueRef -> ValueRef -> IO ValueRef
+foreign import ccall unsafe "LLVMConstUnion" constUnion
+    :: TypeRef -> ValueRef -> IO ValueRef
+foreign import ccall unsafe "LLVMContextCreate" contextCreate
+    :: IO ContextRef
+foreign import ccall unsafe "LLVMCountUnionElementTypes" countUnionElementTypes
+    :: TypeRef -> IO CUInt
+foreign import ccall unsafe "LLVMCreateFunctionPassManagerForModule" createFunctionPassManagerForModule
+    :: ModuleRef -> IO PassManagerRef
+foreign import ccall unsafe "LLVMGetAttribute" getAttribute
+    :: ValueRef -> IO CUInt{-Attribute-}
+foreign import ccall unsafe "LLVMGetConstOpcode" getConstOpcode
+    :: ValueRef -> IO CUInt {-Opcode-}
+foreign import ccall unsafe "LLVMGetCurrentDebugLocation" getCurrentDebugLocation
+    :: BuilderRef -> IO ValueRef
+foreign import ccall unsafe "LLVMGetFirstUse" getFirstUse
+    :: ValueRef -> IO UseRef
+foreign import ccall unsafe "LLVMGetFunctionAttr" getFunctionAttr
+    :: ValueRef -> IO CUInt {-Attribute-}
+foreign import ccall unsafe "LLVMGetGlobalContext" getGlobalContext
+    :: IO ContextRef
+foreign import ccall unsafe "LLVMGetMDKindID" getMDKindID
+    :: CString -> CUInt -> IO CUInt
+foreign import ccall unsafe "LLVMGetMDKindIDInContext" getMDKindIDInContext
+    :: ContextRef -> CString -> CUInt -> IO CUInt
+foreign import ccall unsafe "LLVMGetMetadata" getMetadata
+    :: ValueRef -> CUInt -> IO ValueRef
+foreign import ccall unsafe "LLVMGetNextUse" getNextUse
+    :: UseRef -> IO UseRef
+foreign import ccall unsafe "LLVMGetOperand" getOperand
+    :: ValueRef -> CUInt -> IO ValueRef
+foreign import ccall unsafe "LLVMGetUnionElementTypes" getUnionElementTypes
+    :: TypeRef -> (Ptr TypeRef) -> IO ()
+foreign import ccall unsafe "LLVMGetUsedValue" getUsedValue
+    :: UseRef -> IO ValueRef
+foreign import ccall unsafe "LLVMGetUser" getUser
+    :: UseRef -> IO ValueRef
+foreign import ccall unsafe "LLVMHasMetadata" hasMetadata
+    :: ValueRef -> IO CInt
+foreign import ccall unsafe "LLVMInsertIntoBuilder" insertIntoBuilder
+    :: BuilderRef -> ValueRef -> IO ()
+foreign import ccall unsafe "LLVMMDNode" mDNode
+    :: (Ptr ValueRef) -> CUInt -> IO ValueRef
+foreign import ccall unsafe "LLVMMDNodeInContext" mDNodeInContext
+    :: ContextRef -> (Ptr ValueRef) -> CUInt -> IO ValueRef
+foreign import ccall unsafe "LLVMMDString" mDString
+    :: CString -> CUInt -> IO ValueRef
+foreign import ccall unsafe "LLVMMDStringInContext" mDStringInContext
+    :: ContextRef -> CString -> CUInt -> IO ValueRef
+foreign import ccall unsafe "LLVMReplaceAllUsesWith" replaceAllUsesWith
+    :: ValueRef -> ValueRef -> IO ()
+foreign import ccall unsafe "LLVMSetCurrentDebugLocation" setCurrentDebugLocation
+    :: BuilderRef -> ValueRef -> IO ()
+foreign import ccall unsafe "LLVMSetInstDebugLocation" setInstDebugLocation
+    :: BuilderRef -> ValueRef -> IO ()
+foreign import ccall unsafe "LLVMSetMetadata" setMetadata
+    :: ValueRef -> CUInt -> ValueRef -> IO ()
+foreign import ccall unsafe "LLVMUnionType" unionType
+    :: (Ptr TypeRef) -> CUInt -> IO TypeRef
+foreign import ccall unsafe "LLVMUnionTypeInContext" unionTypeInContext
+    :: ContextRef -> (Ptr TypeRef) -> CUInt -> IO TypeRef

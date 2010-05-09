@@ -20,6 +20,13 @@ module LLVM.FFI.ExecutionEngine
     , addGlobalMapping
     , getPointerToGlobal
 
+    , addModule
+    , createExecutionEngineForModule
+    , createInterpreterForModule
+    , createJITCompilerForModule
+    , disposeExecutionEngine
+    , removeModule
+
     -- * Generic values
     , GenericValue
     , GenericValueRef
@@ -136,3 +143,20 @@ foreign import ccall unsafe "LLVMLinkInInterpreter" linkInInterpreter
 -}
 foreign import ccall unsafe "LLVMLinkInJIT" linkInJIT
     :: IO ()
+
+foreign import ccall unsafe "LLVMAddModule" addModule
+    :: ExecutionEngineRef -> ModuleRef -> IO ()
+foreign import ccall unsafe "LLVMCreateExecutionEngineForModule" createExecutionEngineForModule
+    :: (Ptr ExecutionEngineRef) -> ModuleRef -> (Ptr CString) -> IO Bool
+foreign import ccall unsafe "LLVMCreateInterpreterForModule" createInterpreterForModule
+    :: (Ptr ExecutionEngineRef) -> ModuleRef -> (Ptr CString) -> IO Bool
+foreign import ccall unsafe "LLVMCreateJITCompilerForModule" createJITCompilerForModule
+    :: (Ptr ExecutionEngineRef) -> ModuleRef -> CUInt -> (Ptr CString) -> IO Bool
+foreign import ccall unsafe "LLVMDisposeExecutionEngine" disposeExecutionEngine
+    :: ExecutionEngineRef -> IO ()
+{-
+foreign import ccall unsafe "LLVMDisposeGenericValue" disposeGenericValue
+    :: GenericValueRef -> IO ()
+-}
+foreign import ccall unsafe "LLVMRemoveModule" removeModule
+    :: ExecutionEngineRef -> ModuleRef -> (Ptr ModuleRef) -> (Ptr CString) -> IO Bool

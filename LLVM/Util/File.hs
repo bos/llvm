@@ -8,7 +8,7 @@ import LLVM.ExecutionEngine
 writeCodeGenModule :: String -> CodeGenModule a -> IO ()
 writeCodeGenModule name f = do
     m <- newModule
-    defineModule m f
+    _ <- defineModule m f
     writeBitcodeToFile name m
 
 optimize :: String -> IO ()

@@ -20,8 +20,6 @@ foreign import ccall unsafe "LLVMAddReassociatePass" addReassociatePass
     :: PassManagerRef -> IO ()
 foreign import ccall unsafe "LLVMAddAggressiveDCEPass" addAggressiveDCEPass
     :: PassManagerRef -> IO ()
-foreign import ccall unsafe "LLVMAddCondPropagationPass" addCondPropagationPass
-    :: PassManagerRef -> IO ()
 foreign import ccall unsafe "LLVMAddDeadStoreEliminationPass" addDeadStoreEliminationPass
     :: PassManagerRef -> IO ()
 foreign import ccall unsafe "LLVMAddIndVarSimplifyPass" addIndVarSimplifyPass

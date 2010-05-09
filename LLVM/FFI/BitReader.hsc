@@ -15,3 +15,7 @@ foreign import ccall unsafe "LLVMGetBitcodeModuleProviderInContext" getBitcodeMo
     :: ContextRef -> MemoryBufferRef -> (Ptr ModuleProviderRef) -> (Ptr CString) -> IO CInt
 foreign import ccall unsafe "LLVMParseBitcodeInContext" parseBitcodeInContext
     :: ContextRef -> MemoryBufferRef -> (Ptr ModuleRef) -> (Ptr CString) -> IO CInt
+foreign import ccall unsafe "LLVMGetBitcodeModule" getBitcodeModule
+    :: MemoryBufferRef -> (Ptr ModuleRef) -> (Ptr CString) -> IO Bool
+foreign import ccall unsafe "LLVMGetBitcodeModuleInContext" getBitcodeModuleInContext
+    :: ContextRef -> MemoryBufferRef -> (Ptr ModuleRef) -> (Ptr CString) -> IO Bool

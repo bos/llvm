@@ -78,7 +78,6 @@ createStandardModulePasses passes optLevel unitAtATime unrollLoops simplifyLibCa
     addCFGSimplificationPass passes
     addScalarReplAggregatesPass passes
     addInstructionCombiningPass passes
-    addCondPropagationPass passes
     addTailCallEliminationPass passes
     addCFGSimplificationPass passes
     addReassociatePass passes
@@ -96,7 +95,6 @@ createStandardModulePasses passes optLevel unitAtATime unrollLoops simplifyLibCa
     addSCCPPass passes
 
     addInstructionCombiningPass passes
-    addCondPropagationPass passes
     addDeadStoreEliminationPass passes
     addAggressiveDCEPass passes
     addCFGSimplificationPass passes

@@ -10,3 +10,5 @@ foreign import ccall unsafe "LLVMWriteBitcodeToFile" writeBitcodeToFile
     :: ModuleRef -> CString -> IO CInt
 foreign import ccall unsafe "LLVMWriteBitcodeToFileHandle" writeBitcodeToFileHandle
     :: ModuleRef -> CInt -> IO CInt
+foreign import ccall unsafe "LLVMWriteBitcodeToFD" writeBitcodeToFD
+    :: ModuleRef -> CInt -> CInt -> CInt -> IO CInt
