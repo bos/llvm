@@ -24,7 +24,7 @@ AC_ARG_WITH(llvm_bindir,
   llvm_bindir="$withval",
   llvm_bindir="$llvm_prefix/bin")dnl
 
-AC_PATH_PROG(llvm_config, llvm-config,
+AC_PATH_PROGS(llvm_config, [llvm-config-2.7 llvm-config],
   [AC_MSG_ERROR(could not find llvm-config in $llvm_bindir)],
   ["$llvm_bindir:$PATH"])
   
