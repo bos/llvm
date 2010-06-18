@@ -639,11 +639,13 @@ ac_includes_default="\
 
 ac_subst_vars='LTLIBOBJS
 LIBOBJS
-llvm_ldflags
+llvm_ldoptions
 llvm_includedir
 llvm_target
-llvm_all_libs
+llvm_extra_libdirs
+llvm_extra_libs
 llvm_cppflags
+llvm_version
 EGREP
 GREP
 CPP
@@ -2524,12 +2526,24 @@ x86_64-apple-darwin)
     ;;
 esac
 
+llvm_version="`$llvm_config --version`"
 llvm_cppflags="`$llvm_config --cppflags`"
 llvm_includedir="`$llvm_config --includedir`"
 llvm_ldflags="`$llvm_config --ldflags`"
 
 llvm_all_libs="`$llvm_config --libs all`"
 llvm_target="`$llvm_config --libs engine | sed 's/.*LLVM\(.[^ ]*\)CodeGen.*/\1/'`"
+
+llvm_extra_libs=""
+llvm_extra_libdirs=""
+llvm_ldoptions=""
+for opt in $llvm_all_libs $llvm_ldflags; do
+  case $opt in
+    -l*) llvm_extra_libs="$llvm_extra_libs `echo $opt | sed 's/-l//'`";;
+    -L*) llvm_extra_libdirs="$llvm_extra_libdirs `echo $opt | sed 's/-L//'`";;
+    *)   llvm_ldoptions="$llvm_ldoptions $opt";;
+  esac
+done
 
 CPPFLAGS="$llvm_cppflags $CPPFLAGS $TARGET_CPPFLAGS"
 LDFLAGS="$llvm_ldflags $LDFLAGS $TARGET_LDFLAGS"
@@ -4079,6 +4093,8 @@ else
 $as_echo "$as_me: error: could not find LLVM C bindings" >&2;}
    { (exit 1); exit 1; }; }
 fi
+
+
 
 
 

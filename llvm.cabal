@@ -78,7 +78,8 @@ library
   ghc-options: -Wall
 
   if os(darwin)
-    ld-options: -w /System/Library/Frameworks/vecLib.framework/Versions/A/vecLib
+    ld-options: -w 
+    frameworks: vecLib
     cpp-options: -D__MACOS__
 
   exposed-modules:

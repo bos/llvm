@@ -68,12 +68,25 @@ x86_64-apple-darwin)
     ;;
 esac
 
+llvm_version="`$llvm_config --version`"
 llvm_cppflags="`$llvm_config --cppflags`"
 llvm_includedir="`$llvm_config --includedir`"
 llvm_ldflags="`$llvm_config --ldflags`"
 
 llvm_all_libs="`$llvm_config --libs all`"
 llvm_target="`$llvm_config --libs engine | sed 's/.*LLVM\(.[[^ ]]*\)CodeGen.*/\1/'`"
+
+dnl We need to separate libraries that need to be linked from other linker options.
+llvm_extra_libs=""
+llvm_extra_libdirs=""
+llvm_ldoptions=""
+for opt in $llvm_all_libs $llvm_ldflags; do
+  case $opt in
+    -l*) llvm_extra_libs="$llvm_extra_libs `echo $opt | sed 's/-l//'`";;
+    -L*) llvm_extra_libdirs="$llvm_extra_libdirs `echo $opt | sed 's/-L//'`";;
+    *)   llvm_ldoptions="$llvm_ldoptions $opt";;
+  esac
+done
 
 CPPFLAGS="$llvm_cppflags $CPPFLAGS $TARGET_CPPFLAGS"
 LDFLAGS="$llvm_ldflags $LDFLAGS $TARGET_LDFLAGS"
@@ -89,10 +102,12 @@ CC=$CXX
 AC_CHECK_LIB(LLVMCore, LLVMModuleCreateWithName, [],
   [AC_MSG_ERROR(could not find LLVM C bindings)])
 
+AC_SUBST([llvm_version])
 AC_SUBST([llvm_cppflags])
-AC_SUBST([llvm_all_libs])
+AC_SUBST([llvm_extra_libs])
+AC_SUBST([llvm_extra_libdirs])
 AC_SUBST([llvm_target])
 AC_SUBST([llvm_includedir])
-AC_SUBST([llvm_ldflags])
+AC_SUBST([llvm_ldoptions])
 
 AC_OUTPUT
