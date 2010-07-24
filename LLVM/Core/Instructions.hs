@@ -21,6 +21,9 @@ module LLVM.Core.Instructions(
     extractelement,
     insertelement,
     shufflevector,
+    -- * Aggregate operations
+    extractvalue,
+    insertvalue,
     -- * Memory access
     malloc, arrayMalloc,
     alloca, arrayAlloca,
@@ -47,14 +50,14 @@ module LLVM.Core.Instructions(
     Terminate,
     Ret, CallArgs, ABinOp, CmpOp, FunctionArgs, FunctionRet, IsConst,
     AllocArg,
-    GetElementPtr, IsIndexArg
+    GetElementPtr, IsIndexArg, GetValue
     ) where
 import Prelude hiding (and, or)
 import Data.Typeable
 import Control.Monad(liftM)
 import Data.Int
 import Data.Word
-import Foreign.C(CInt)
+import Foreign.C(CInt, CUInt)
 import Data.TypeLevel((:<:), (:>:), (:==:), D0, toNum, Succ)
 import qualified LLVM.FFI.Core as FFI
 import LLVM.Core.Data
@@ -258,7 +261,7 @@ extractelement (Value vec) (Value i) =
     withCurrentBuilder $ \ bldPtr ->
       U.withEmptyCString $ FFI.buildExtractElement bldPtr vec i
 
--- | Insert a value into a vector, nondescructive.
+-- | Insert a value into a vector, nondestructive.
 insertelement :: Value (Vector n a)                -- ^ Vector
               -> Value a                           -- ^ Value to insert
               -> Value Word32                      -- ^ Index into the vector
@@ -279,6 +282,45 @@ shufflevector (Value a) (Value b) (ConstValue mask) =
     liftM Value $
     withCurrentBuilder $ \ bldPtr ->
       U.withEmptyCString $ FFI.buildShuffleVector bldPtr a b mask
+
+
+-- |Acceptable arguments to 'extractvalue' and 'insertvalue'.
+class GetValue agg ix el | agg ix -> el where
+    getIx :: agg -> ix -> CUInt
+
+instance (GetField as i a, Nat i) => GetValue (Struct as) i a where
+    getIx _ n = toNum n
+
+instance (IsFirstClass a, Nat n) => GetValue (Array n a) Word32 a where
+    getIx _ n = fromIntegral n
+
+instance (IsFirstClass a, Nat n) => GetValue (Array n a) Word64 a where
+    getIx _ n = fromIntegral n
+
+-- | Get a value from an aggregate.
+extractvalue :: forall r agg i a.
+                GetValue agg i a
+             => Value agg                   -- ^ Aggregate
+             -> i                           -- ^ Index into the aggregate
+             -> CodeGenFunction r (Value a)
+extractvalue (Value agg) i =
+    liftM Value $
+    withCurrentBuilder $ \ bldPtr ->
+      U.withEmptyCString $
+        FFI.buildExtractValue bldPtr agg (getIx (undefined::agg) i)
+
+-- | Insert a value into an aggregate, nondestructive.
+insertvalue :: forall r agg i a.
+               GetValue agg i a
+            => Value agg                   -- ^ Aggregate
+            -> Value a                     -- ^ Value to insert
+            -> i                           -- ^ Index into the aggregate
+            -> CodeGenFunction r (Value agg)
+insertvalue (Value agg) (Value e) i =
+    liftM Value $
+    withCurrentBuilder $ \ bldPtr ->
+      U.withEmptyCString $
+        FFI.buildInsertValue bldPtr agg e (getIx (undefined::agg) i)
 
 
 --------------------------------------
