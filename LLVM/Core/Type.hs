@@ -17,6 +17,7 @@ module LLVM.Core.Type(
     IsFirstClass,
     IsSized,
     IsFunction,
+    UnknownSize, -- needed for arrays of structs
     -- ** Structs
     (:&), (&),
     -- ** Type tests
