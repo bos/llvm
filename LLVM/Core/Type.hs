@@ -296,6 +296,7 @@ instance IsFirstClass Word16
 instance IsFirstClass Word32
 instance IsFirstClass Word64
 instance (Nat n, IsPrimitive a) => IsFirstClass (Vector n a)
+instance (Nat n, IsType a, IsSized a s) => IsFirstClass (Array n a)
 instance (IsType a) => IsFirstClass (Ptr a)
 instance IsFirstClass (StablePtr a)
 instance IsFirstClass Label
