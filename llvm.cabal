@@ -44,6 +44,7 @@ extra-source-files:
     examples/DotProd.hs
     examples/Fibonacci.hs
     examples/HelloJIT.hs
+    examples/List.hs
     examples/Makefile
     examples/Struct.hs
     examples/Varargs.hs
