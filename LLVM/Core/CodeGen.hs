@@ -10,7 +10,7 @@ module LLVM.Core.CodeGen(
     Function, newFunction, newNamedFunction, defineFunction, createFunction, createNamedFunction,
     addAttributes,
     FFI.Attribute(..),
-    externFunction,
+    externFunction, staticFunction,
     FunctionArgs, FunctionRet,
     TFunction,
     -- * Global variable creation
@@ -31,7 +31,8 @@ import Data.Typeable
 import Control.Monad(liftM, when)
 import Data.Int
 import Data.Word
-import Foreign.Ptr(minusPtr, nullPtr)
+import Foreign.StablePtr (StablePtr, castStablePtrToPtr)
+import Foreign.Ptr(minusPtr, nullPtr, FunPtr, castFunPtrToPtr)
 import Foreign.Storable(sizeOf)
 import Data.TypeLevel hiding (Bool, Eq, (+), (==))
 import LLVM.Core.CodeGenMonad
@@ -265,6 +266,7 @@ instance (Pos n, IsPrimitive a) =>
          FunctionArgs (IO (Vector n a)) (FA (Vector n a)) (FA (Vector n a)) where apArgs _ _ g = g
 instance (IsType a) => 
          FunctionArgs (IO (Ptr a))      (FA (Ptr a))      (FA (Ptr a))      where apArgs _ _ g = g
+instance FunctionArgs (IO (StablePtr a)) (FA (StablePtr a)) (FA (StablePtr a))      where apArgs _ _ g = g
 
 -- |This class is just to simplify contexts.
 class (FunctionArgs (IO a) (CodeGenFunction a ()) (CodeGenFunction a ())) => FunctionRet a
@@ -308,7 +310,8 @@ fromLabel (Value ptr) = BasicBlock (FFI.valueAsBasicBlock ptr)
 
 --------------------------------------
 
--- |Create a reference to an external function while code generating for a function.
+-- | Create a reference to an external function while code generating for a function.
+-- If LLVM cannot resolve its name, then you may try 'staticFunction'.
 externFunction :: forall a r . (IsFunction a) => String -> CodeGenFunction r (Function a)
 externFunction name = do
     es <- getExterns
@@ -321,6 +324,35 @@ externFunction name = do
             f <- liftIO $ U.addFunction modul linkage name typ
             putExterns ((name, f) : es)
 	    return $ Value f
+
+{- |
+Make an external C function with a fixed address callable from LLVM code.
+This callback function can also be a Haskell function,
+that was imported like
+
+> foreign import ccall "&nextElement"
+>    nextElementFunPtr :: FunPtr (StablePtr (IORef [Word32]) -> IO Word32)
+
+See @examples\/List.hs@.
+
+When you only use 'externFunction', then LLVM cannot resolve the name.
+(However, I do not know why.)
+Thus 'staticFunction' manages a list of static functions.
+This list is automatically installed by 'ExecutionEngine.simpleFunction'
+and can be manually obtained by 'getGlobalMappings'
+and installed by 'ExecutionEngine.addGlobalMappings'.
+\"Installing\" means calling LLVM's @addGlobalMapping@ according to
+<http://old.nabble.com/jit-with-external-functions-td7769793.html>.
+-}
+staticFunction :: (IsFunction f) => FunPtr f -> CodeGenFunction r (Function f)
+staticFunction func = do
+    modul <- getFunctionModule
+    let typ :: IsType a => FunPtr a -> a -> FFI.TypeRef
+        typ _ x = typeRef x
+    val <- liftIO $ U.addFunction modul ExternalLinkage
+           "" (typ func undefined)
+    addGlobalMapping val (castFunPtrToPtr func)
+    return $ Value val
 
 --------------------------------------
 

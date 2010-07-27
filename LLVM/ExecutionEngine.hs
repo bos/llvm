@@ -11,6 +11,8 @@ module LLVM.ExecutionEngine(
     runStaticDestructors,
 -}
     getPointerToFunction,
+    addFunctionValue,
+    addGlobalMappings,
     getFreePointers, FreePointers,
     -- * Translation
     Translatable, Generic,
@@ -32,6 +34,7 @@ import LLVM.Core.CodeGen(Value(..))
 import LLVM.Core
 import LLVM.ExecutionEngine.Target
 --import LLVM.Core.Util(runFunctionPassManager, initializeFunctionPassManager, finalizeFunctionPassManager)
+import Control.Monad (liftM2, )
 
 -- |Class of LLVM function types that can be translated to the corresponding
 -- Haskell type.
@@ -45,6 +48,10 @@ instance (Generic a) => Translatable (IO a) where
     translate run args f = fmap fromGeneric $ run f $ reverse args
 
 -- |Generate a Haskell function from an LLVM function.
+--
+-- Note that the function is compiled for every call (Just-In-Time compilation).
+-- If you want to compile the function once and call it a lot of times
+-- then you should better use 'getPointerToFunction'.
 generateFunction :: (Translatable f) =>
                     Value (Ptr f) -> EngineAccess f
 generateFunction (Value f) = do
@@ -62,13 +69,15 @@ instance Unsafe (IO a) a where
 
 -- |Translate a function to Haskell code.  This is a simplified interface to
 -- the execution engine and module mechanism.
+-- It is based on 'generateFunction', so see there for limitations.
 simpleFunction :: (Translatable f) => CodeGenModule (Function f) -> IO f
 simpleFunction bld = do
     m <- newModule
-    func <- defineModule m bld
+    (func, mappings) <- defineModule m (liftM2 (,) bld getGlobalMappings)
     prov <- createModuleProviderForExistingModule m
     runEngineAccess $ do
         addModuleProvider prov
+        addGlobalMappings mappings
         generateFunction func
 
 {-

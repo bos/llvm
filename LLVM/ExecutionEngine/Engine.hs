@@ -9,6 +9,7 @@ module LLVM.ExecutionEngine.Engine(
        {- runStaticConstructors, runStaticDestructors, -}
        getExecutionEngineTargetData,
        getPointerToFunction,
+       addFunctionValue, addGlobalMappings,
        getFreePointers, FreePointers,
        runFunction, getRunFunction,
        GenericValue, Generic(..)
@@ -23,9 +24,9 @@ import Foreign.Marshal.Array (withArrayLen)
 import Foreign.ForeignPtr (ForeignPtr, newForeignPtr, withForeignPtr)
 import Foreign.Marshal.Utils (fromBool)
 import Foreign.C.String (peekCString)
-import Foreign.Ptr (Ptr)
-import Foreign.Ptr (FunPtr)
+import Foreign.Ptr (Ptr, FunPtr, castFunPtrToPtr)
 import LLVM.Core.CodeGen(Value(..), Function)
+import LLVM.Core.CodeGenMonad(GlobalMappings(..))
 import Foreign.Storable (peek)
 import Foreign.StablePtr (StablePtr, castStablePtrToPtr, castPtrToStablePtr, )
 import System.IO.Unsafe (unsafePerformIO)
@@ -34,7 +35,7 @@ import LLVM.Core.Util(Module, ModuleProvider, withModuleProvider, createModule, 
 import qualified LLVM.FFI.ExecutionEngine as FFI
 import qualified LLVM.FFI.Target as FFI
 import qualified LLVM.FFI.Core as FFI(ModuleProviderRef, ValueRef)
-import qualified LLVM.Core.Util(Function)
+import qualified LLVM.Core.Util as U
 import LLVM.Core.Type(IsFirstClass, typeRef)
 
 {-
@@ -150,10 +151,42 @@ getExecutionEngineTargetData = do
     eePtr <- gets ea_engine
     liftIO $ FFI.getExecutionEngineTargetData eePtr
 
+{- |
+In contrast to 'generateFunction' this compiles a function once.
+Thus it is faster for many calls to the same function.
+See @examples\/Vector.hs@.
+
+If the function calls back into Haskell code,
+you also have to set the function addresses
+using 'addFunctionValue' or 'addGlobalMappings'.
+-}
 getPointerToFunction :: Function f -> EngineAccess (FunPtr f)
 getPointerToFunction (Value f) = do
     eePtr <- gets ea_engine
     liftIO $ FFI.getPointerToGlobal eePtr f
+
+{- |
+Tell LLVM the address of an external function
+if it cannot resolve a name automatically.
+Alternatively you may declare the function
+with 'staticFunction' instead of 'externFunction'.
+-}
+addFunctionValue :: Function f -> FunPtr f -> EngineAccess ()
+addFunctionValue (Value g) f =
+    addFunctionValueCore g (castFunPtrToPtr f)
+
+{- |
+Pass a list of global mappings to LLVM
+that can be obtained from 'LLVM.Core.getGlobalMappings'.
+-}
+addGlobalMappings :: GlobalMappings -> EngineAccess ()
+addGlobalMappings (GlobalMappings gms) =
+   mapM_ (uncurry addFunctionValueCore) gms
+
+addFunctionValueCore :: U.Function -> Ptr () -> EngineAccess ()
+addFunctionValueCore g f = do
+    eePtr <- gets ea_engine
+    liftIO $ FFI.addGlobalMapping eePtr g f
 
 addModule :: Module -> EngineAccess ()
 addModule m = do
@@ -189,13 +222,13 @@ withAll ps a = go [] ps
     where go ptrs (x:xs) = withGenericValue x $ \ptr -> go (ptr:ptrs) xs
           go ptrs _ = withArrayLen (reverse ptrs) a
                    
-runFunction :: LLVM.Core.Util.Function -> [GenericValue] -> EngineAccess GenericValue
+runFunction :: U.Function -> [GenericValue] -> EngineAccess GenericValue
 runFunction func args = do
     eePtr <- gets ea_engine
     liftIO $ withAll args $ \argLen argPtr ->
                  createGenericValueWith $ FFI.runFunction eePtr func
                                               (fromIntegral argLen) argPtr
-getRunFunction :: EngineAccess (LLVM.Core.Util.Function -> [GenericValue] -> IO GenericValue)
+getRunFunction :: EngineAccess (U.Function -> [GenericValue] -> IO GenericValue)
 getRunFunction = do
     eePtr <- gets ea_engine
     return $ \ func args -> 
@@ -286,4 +319,3 @@ instance Generic (Ptr a) where
 instance Generic (StablePtr a) where
     toGeneric = unsafePerformIO . createGenericValueWith . FFI.createGenericValueOfPointer . castStablePtrToPtr
     fromGeneric val = unsafePerformIO . fmap castPtrToStablePtr . withGenericValue val $ FFI.genericValueToPointer
-

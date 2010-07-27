@@ -2,6 +2,7 @@
 module LLVM.Core.CodeGenMonad(
     -- * Module code generation
     CodeGenModule, runCodeGenModule, genMSym, getModule,
+    GlobalMappings(..), addGlobalMapping, getGlobalMappings,
     -- * Function code generation
     CodeGenFunction, runCodeGenFunction, genFSym, getFunction, getBuilder, getFunctionModule, getExterns, putExterns,
     -- * Reexport
@@ -10,6 +11,8 @@ module LLVM.Core.CodeGenMonad(
 import Data.Typeable
 import Control.Monad.State
 
+import Foreign.Ptr (Ptr, )
+
 import LLVM.Core.Util(Module, Builder, Function)
 
 --------------------------------------
@@ -17,6 +20,7 @@ import LLVM.Core.Util(Module, Builder, Function)
 data CGMState = CGMState {
     cgm_module :: Module,
     cgm_externs :: [(String, Function)],
+    cgm_global_mappings :: [(Function, Ptr ())],
     cgm_next :: !Int
     }
     deriving (Show, Typeable)
@@ -35,7 +39,7 @@ getModule = gets cgm_module
 
 runCodeGenModule :: Module -> CodeGenModule a -> IO a
 runCodeGenModule m (CGM body) = do
-    let cgm = CGMState { cgm_module = m, cgm_next = 1, cgm_externs = [] }
+    let cgm = CGMState { cgm_module = m, cgm_next = 1, cgm_externs = [], cgm_global_mappings = [] }
     evalStateT body cgm
 
 --------------------------------------
@@ -74,6 +78,29 @@ putExterns es = do
     cgf <- get
     let cgm' = (cgf_module cgf) { cgm_externs = es }
     put (cgf { cgf_module = cgm' })
+
+addGlobalMapping ::
+    Function -> Ptr () -> CodeGenFunction r ()
+addGlobalMapping value func =
+    -- could be written in a nicer way using Data.Accessor
+    modify $ \cgf ->
+       let cgm = cgf_module cgf
+       in  cgf { cgf_module =
+              cgm { cgm_global_mappings =
+                 (value,func) : cgm_global_mappings cgm } }
+
+newtype GlobalMappings =
+   GlobalMappings [(Function, Ptr ())]
+
+{- |
+Get a list created by calls to 'staticFunction'
+that must be passed to the execution engine
+via 'LLVM.ExecutionEngine.addGlobalMappings'.
+-}
+getGlobalMappings ::
+    CodeGenModule GlobalMappings
+getGlobalMappings =
+   gets (GlobalMappings . cgm_global_mappings)
 
 runCodeGenFunction :: Builder -> Function -> CodeGenFunction r a -> CodeGenModule a
 runCodeGenFunction bld fn (CGF body) = do
