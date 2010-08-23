@@ -17,6 +17,8 @@ module LLVM.Core.Type(
     IsFirstClass,
     IsSized,
     IsFunction,
+    -- ** Others
+    NumberOfElements,
     UnknownSize, -- needed for arrays of structs
     -- ** Structs
     (:&), (&),
@@ -129,7 +131,11 @@ isFloating = is . typeDesc
 -- Usage:
 --  Precondition for Vector
 -- |Primitive types.
-class IsType a => IsPrimitive a
+class (NumberOfElements D1 a) => IsPrimitive a
+
+-- |Number of elements for instructions that handle both primitive and vector types
+class (IsType a) => NumberOfElements n a | a -> n
+
 
 -- Usage:
 --  Precondition for function args and result.
@@ -345,6 +351,28 @@ instance IsPrimitive Word32
 instance IsPrimitive Word64
 instance IsPrimitive Label
 instance IsPrimitive ()
+
+
+instance NumberOfElements D1 Float
+instance NumberOfElements D1 Double
+instance NumberOfElements D1 FP128
+instance (Pos n) => NumberOfElements D1 (IntN n)
+instance (Pos n) => NumberOfElements D1 (WordN n)
+instance NumberOfElements D1 Bool
+instance NumberOfElements D1 Int8
+instance NumberOfElements D1 Int16
+instance NumberOfElements D1 Int32
+instance NumberOfElements D1 Int64
+instance NumberOfElements D1 Word8
+instance NumberOfElements D1 Word16
+instance NumberOfElements D1 Word32
+instance NumberOfElements D1 Word64
+instance NumberOfElements D1 Label
+instance NumberOfElements D1 ()
+
+instance (Nat n, IsPrimitive a) =>
+         NumberOfElements n (Vector n a)
+
 
 -- Functions.
 instance (IsFirstClass a, IsFunction b) => IsFunction (a->b) where

@@ -352,21 +352,20 @@ fpext :: (IsFloating a, IsFloating b, IsPrimitive a, IsPrimitive b, IsSized a sa
       => Value a -> CodeGenFunction r (Value b)
 fpext = convert FFI.buildFPExt
 
--- XXX The fp<->i conversion can handle vectors.
 -- | Convert a floating point value to an unsigned integer.
-fptoui :: (IsFloating a, IsInteger b, IsPrimitive a, IsPrimitive b) => Value a -> CodeGenFunction r (Value b)
+fptoui :: (IsFloating a, IsInteger b, NumberOfElements n a, NumberOfElements n b) => Value a -> CodeGenFunction r (Value b)
 fptoui = convert FFI.buildFPToUI
 
 -- | Convert a floating point value to a signed integer.
-fptosi :: (IsFloating a, IsInteger b, IsPrimitive a, IsPrimitive b) => Value a -> CodeGenFunction r (Value b)
+fptosi :: (IsFloating a, IsInteger b, NumberOfElements n a, NumberOfElements n b) => Value a -> CodeGenFunction r (Value b)
 fptosi = convert FFI.buildFPToSI
 
 -- | Convert an unsigned integer to a floating point value.
-uitofp :: (IsInteger a, IsFloating b, IsPrimitive a, IsPrimitive b) => Value a -> CodeGenFunction r (Value b)
+uitofp :: (IsInteger a, IsFloating b, NumberOfElements n a, NumberOfElements n b) => Value a -> CodeGenFunction r (Value b)
 uitofp = convert FFI.buildUIToFP
 
 -- | Convert a signed integer to a floating point value.
-sitofp :: (IsInteger a, IsFloating b, IsPrimitive a, IsPrimitive b) => Value a -> CodeGenFunction r (Value b)
+sitofp :: (IsInteger a, IsFloating b, NumberOfElements n a, NumberOfElements n b) => Value a -> CodeGenFunction r (Value b)
 sitofp = convert FFI.buildSIToFP
 
 -- | Convert a pointer to an integer.
