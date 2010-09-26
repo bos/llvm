@@ -102,17 +102,24 @@ instance IsConst Float  where constOf = constF
 instance IsConst Double where constOf = constF
 --instance IsConst FP128  where constOf = constF
 
+constOfPtr :: (IsType a) =>
+    a -> Ptr b -> ConstValue a
+constOfPtr proto p =
+    let ip = p `minusPtr` nullPtr
+        inttoptrC (ConstValue v) = ConstValue $ FFI.constIntToPtr v (typeRef proto)
+    in  if sizeOf p == 4 then
+            inttoptrC $ constOf (fromIntegral ip :: Word32)
+        else if sizeOf p == 8 then
+            inttoptrC $ constOf (fromIntegral ip :: Word64)
+        else
+            error "constOf Ptr: pointer size not 4 or 8"
+
 -- This instance doesn't belong here, but mutually recursive modules are painful.
 instance (IsType a) => IsConst (Ptr a) where
-    constOf p =
-        let ip = p `minusPtr` nullPtr
-            inttoptrC (ConstValue v) = ConstValue $ FFI.constIntToPtr v (typeRef (undefined :: Ptr a))
-        in  if sizeOf p == 4 then
-                inttoptrC $ constOf (fromIntegral ip :: Word32)
-            else if sizeOf p == 8 then
-                inttoptrC $ constOf (fromIntegral ip :: Word64)
-            else
-                error "constOf Ptr: pointer size not 4 or 8"
+    constOf p = constOfPtr p p
+
+instance IsConst (StablePtr a) where
+    constOf p = constOfPtr p (castStablePtrToPtr p)
 
 instance (IsPrimitive a, IsConst a, Nat n) => IsConst (Vector n a) where
     constOf (Vector xs) = constVector (map constOf xs)
