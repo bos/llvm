@@ -53,7 +53,7 @@ unVector (Vector xs) = xs
 
 -- |Make a constant vector.  Replicates or truncates the list to get length /n/.
 -- This behaviour is consistent with that of 'LLVM.Core.CodeGen.constVector'.
-vector :: forall a n. (Pos n) => [a] -> Vector n a
+vector :: forall a n. (Nat n) => [a] -> Vector n a
 vector xs =
    Vector (take (toNum (undefined :: n)) (cycle xs))
 
