@@ -171,7 +171,7 @@ instance (Cmp a b, CallIntrinsic a, Floating a, IsConst a, IsFloating a) => Floa
 
     asin _ = error "LLVM missing intrinsic: asin"
     acos _ = error "LLVM missing intrinsic: acos"
-    atan _ = error "LLVM missing intrinsic: atab"
+    atan _ = error "LLVM missing intrinsic: atan"
 
     sinh x           = (exp x - exp (-x)) / 2
     cosh x           = (exp x + exp (-x)) / 2
