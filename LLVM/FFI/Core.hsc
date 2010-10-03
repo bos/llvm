@@ -739,6 +739,7 @@ data CallingConvention = C
                        | Cold
                        | X86StdCall
                        | X86FastCall
+                       | GHC
                          deriving (Show, Eq, Ord, Enum, Bounded, Typeable)
 
 fromCallingConvention :: CallingConvention -> CUInt
@@ -747,6 +748,7 @@ fromCallingConvention Fast = (#const LLVMFastCallConv)
 fromCallingConvention Cold = (#const LLVMColdCallConv)
 fromCallingConvention X86StdCall = (#const LLVMX86FastcallCallConv)
 fromCallingConvention X86FastCall = (#const LLVMX86StdcallCallConv)
+fromCallingConvention GHC = 10
 
 toCallingConvention :: CUInt -> CallingConvention
 toCallingConvention c | c == (#const LLVMCCallConv) = C
@@ -754,6 +756,7 @@ toCallingConvention c | c == (#const LLVMFastCallConv) = Fast
 toCallingConvention c | c == (#const LLVMColdCallConv) = Cold
 toCallingConvention c | c == (#const LLVMX86StdcallCallConv) = X86StdCall
 toCallingConvention c | c == (#const LLVMX86FastcallCallConv) = X86FastCall
+toCallingConvention c | c == 10 = GHC
 toCallingConvention c = error $ "LLVM.Core.FFI.toCallingConvention: " ++
                                 "unsupported calling convention" ++ show c
 
