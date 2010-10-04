@@ -1,9 +1,11 @@
 name:          llvm
-version:       0.8.1.0
+version:       0.8.2.0
 license:       BSD3
 license-file:  LICENSE
 synopsis:      Bindings to the LLVM compiler toolkit.
 description:   Bindings to the LLVM compiler toolkit.
+               * New in 0.8.2.0: Support for GHC calling convention.
+               .
                * New in 0.8.1.0: Numerous small changes.
                .
                * New in 0.8.0.0: Adapted to LLVM 2.7;
