@@ -5,7 +5,7 @@ module LLVM.Core.Instructions(
     condBr,
     br,
     switch,
-    invoke,
+    invoke, invokeWithConv,
     unwind,
     unreachable,
     -- * Arithmetic binary operations
@@ -45,7 +45,8 @@ module LLVM.Core.Instructions(
     select,
     -- * Other
     phi, addPhiInputs,
-    call,
+    call, callWithConv,
+    
     -- * Classes and types
     Terminate,
     Ret, CallArgs, ABinOp, CmpOp, FunctionArgs, FunctionRet, IsConst,
@@ -521,6 +522,30 @@ invoke :: (CallArgs f g)
        -> g
 invoke (BasicBlock norm) (BasicBlock expt) (Value f) =
     doCall (U.makeInvoke norm expt f) [] (undefined :: f)
+
+-- | Call a function with the given arguments.  The 'call' instruction
+-- is variadic, i.e., the number of arguments it takes depends on the
+-- type of /f/.
+-- This also sets the calling convention of the call to the function.
+-- As LLVM itself defines, if the calling conventions of the calling
+-- /instruction/ and the function being /called/ are different, undefined
+-- behavior results.
+callWithConv :: (CallArgs f g) => FFI.CallingConvention -> Function f -> g
+callWithConv cc (Value f) = doCall (U.makeCallWithCc cc f) [] (undefined :: f)
+
+-- | Call a function with exception handling.
+-- This also sets the calling convention of the call to the function.
+-- As LLVM itself defines, if the calling conventions of the calling
+-- /instruction/ and the function being /called/ are different, undefined
+-- behavior results.
+invokeWithConv :: (CallArgs f g)
+               => FFI.CallingConvention -- ^Calling convention
+               -> BasicBlock         -- ^Normal return point.
+               -> BasicBlock         -- ^Exception return point.
+               -> Function f         -- ^Function to call.
+               -> g
+invokeWithConv cc (BasicBlock norm) (BasicBlock expt) (Value f) =
+    doCall (U.makeInvokeWithCc cc norm expt f) [] (undefined :: f)
 
 --------------------------------------
 

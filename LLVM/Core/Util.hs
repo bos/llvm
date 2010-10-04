@@ -23,6 +23,7 @@ module LLVM.Core.Util(
     constString, constStringNul, constVector, constArray, constStruct,
     -- * Instructions
     makeCall, makeInvoke,
+    makeCallWithCc, makeInvokeWithCc,
     -- * Misc
     CString, withArrayLen,
     withEmptyCString,
@@ -286,7 +287,10 @@ constStringNul = constStringInternal True
 type Value = FFI.ValueRef
 
 makeCall :: Function -> FFI.BuilderRef -> [Value] -> IO Value
-makeCall func bldPtr args = do
+makeCall = makeCallWithCc FFI.C
+                        
+makeCallWithCc :: FFI.CallingConvention -> Function -> FFI.BuilderRef -> [Value] -> IO Value
+makeCallWithCc cc func bldPtr args = do
 {-
       print "makeCall"
       FFI.dumpValue func
@@ -294,16 +298,24 @@ makeCall func bldPtr args = do
       print "----------------------"
 -}
       withArrayLen args $ \ argLen argPtr ->
-        withEmptyCString $ 
-          FFI.buildCall bldPtr func argPtr
-                        (fromIntegral argLen)
+        withEmptyCString $ \cstr -> do
+          i <- FFI.buildCall bldPtr func argPtr
+                             (fromIntegral argLen) cstr
+          FFI.setInstructionCallConv i (FFI.fromCallingConvention cc)
+          return i
 
 makeInvoke :: BasicBlock -> BasicBlock -> Function -> FFI.BuilderRef ->
               [Value] -> IO Value
-makeInvoke norm expt func bldPtr args =
+makeInvoke = makeInvokeWithCc FFI.C
+
+makeInvokeWithCc :: FFI.CallingConvention -> BasicBlock -> BasicBlock -> Function -> FFI.BuilderRef ->
+              [Value] -> IO Value
+makeInvokeWithCc cc norm expt func bldPtr args =
       withArrayLen args $ \ argLen argPtr ->
-        withEmptyCString $ 
-          FFI.buildInvoke bldPtr func argPtr (fromIntegral argLen) norm expt
+        withEmptyCString $ \cstr -> do
+          i <- FFI.buildInvoke bldPtr func argPtr (fromIntegral argLen) norm expt cstr
+          FFI.setInstructionCallConv i (FFI.fromCallingConvention cc)
+          return i
 
 --------------------------------------
 

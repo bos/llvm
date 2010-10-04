@@ -7,7 +7,7 @@ module LLVM.Core.CodeGen(
     Linkage(..),
     Visibility(..),
     -- * Function creation
-    Function, newFunction, newNamedFunction, defineFunction, createFunction, createNamedFunction,
+    Function, newFunction, newNamedFunction, defineFunction, createFunction, createNamedFunction, setFuncCallConv,
     addAttributes,
     FFI.Attribute(..),
     externFunction, staticFunction,
@@ -230,6 +230,15 @@ createNamedFunction linkage name body = do
     f <- newNamedFunction linkage name
     defineFunction f body
     return f
+
+-- | Set the calling convention of a function. By default it is the
+-- C calling convention.
+setFuncCallConv :: Function a
+                -> FFI.CallingConvention
+                -> CodeGenModule ()
+setFuncCallConv (Value f) cc = do
+  liftIO $ FFI.setFunctionCallConv f (FFI.fromCallingConvention cc)
+  return ()
 
 -- | Add attributes to a value.  Beware, what attributes are allowed depends on
 -- what kind of value it is.
