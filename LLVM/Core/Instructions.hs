@@ -621,9 +621,9 @@ arrayAlloca s =
 
 -- XXX What's the type of free?
 -- | Free heap memory.
-free :: Value (Ptr a) -> CodeGenFunction r (Value ())
+free :: Value (Ptr a) -> CodeGenFunction r ()
 free (Value a) =
-    liftM Value $
+    liftM (const ()) $
     withCurrentBuilder $ \ bldPtr -> FFI.buildFree bldPtr a
 
 -- | Load a value from memory.
