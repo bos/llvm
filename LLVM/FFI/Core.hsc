@@ -473,9 +473,9 @@ module LLVM.FFI.Core
     , constIntGetSExtValue
     , constIntGetZExtValue
 
-    , constUnion
+--    , constUnion
     , contextCreate
-    , countUnionElementTypes
+--    , countUnionElementTypes
     , createFunctionPassManagerForModule
     , getAttribute
     , getCurrentDebugLocation
@@ -485,7 +485,7 @@ module LLVM.FFI.Core
     , getMDKindIDInContext
     , getMetadata
     , getOperand
-    , getUnionElementTypes
+--    , getUnionElementTypes
     , hasMetadata
     , insertIntoBuilder
     , mDNode
@@ -497,7 +497,7 @@ module LLVM.FFI.Core
     , setInstDebugLocation
     , setMetadata
 --    , unionType
-    , unionTypeInContext
+--    , unionTypeInContext
 
     -- ** Build instruction from opcode
     , buildBinOp
@@ -1624,12 +1624,16 @@ foreign import ccall unsafe "LLVMConstNUWNeg" constNUWNeg
     :: ValueRef -> IO ValueRef
 foreign import ccall unsafe "LLVMConstNUWSub" constNUWSub
     :: ValueRef -> ValueRef -> IO ValueRef
+{-
 foreign import ccall unsafe "LLVMConstUnion" constUnion
     :: TypeRef -> ValueRef -> IO ValueRef
+-}
 foreign import ccall unsafe "LLVMContextCreate" contextCreate
     :: IO ContextRef
+{-
 foreign import ccall unsafe "LLVMCountUnionElementTypes" countUnionElementTypes
     :: TypeRef -> IO CUInt
+-}
 foreign import ccall unsafe "LLVMCreateFunctionPassManagerForModule" createFunctionPassManagerForModule
     :: ModuleRef -> IO PassManagerRef
 foreign import ccall unsafe "LLVMGetAttribute" getAttribute
@@ -1654,8 +1658,10 @@ foreign import ccall unsafe "LLVMGetNextUse" getNextUse
     :: UseRef -> IO UseRef
 foreign import ccall unsafe "LLVMGetOperand" getOperand
     :: ValueRef -> CUInt -> IO ValueRef
+{-
 foreign import ccall unsafe "LLVMGetUnionElementTypes" getUnionElementTypes
     :: TypeRef -> (Ptr TypeRef) -> IO ()
+-}
 foreign import ccall unsafe "LLVMGetUsedValue" getUsedValue
     :: UseRef -> IO ValueRef
 foreign import ccall unsafe "LLVMGetUser" getUser
@@ -1683,6 +1689,6 @@ foreign import ccall unsafe "LLVMSetMetadata" setMetadata
 {-
 foreign import ccall unsafe "LLVMUnionType" unionType
     :: (Ptr TypeRef) -> CUInt -> IO TypeRef
--}
 foreign import ccall unsafe "LLVMUnionTypeInContext" unionTypeInContext
     :: ContextRef -> (Ptr TypeRef) -> CUInt -> IO TypeRef
+-}
