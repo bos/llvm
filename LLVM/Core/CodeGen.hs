@@ -1,4 +1,4 @@
-{-# LANGUAGE ScopedTypeVariables, MultiParamTypeClasses, FunctionalDependencies, FlexibleInstances, TypeSynonymInstances, UndecidableInstances, FlexibleContexts, ScopedTypeVariables, DeriveDataTypeable #-}
+{-# LANGUAGE ScopedTypeVariables, MultiParamTypeClasses, FunctionalDependencies, FlexibleInstances, TypeSynonymInstances, UndecidableInstances, FlexibleContexts, ScopedTypeVariables, DeriveDataTypeable, Rank2Types #-}
 module LLVM.Core.CodeGen(
     -- * Module creation
     newModule, newNamedModule, defineModule, createModule,
@@ -20,6 +20,7 @@ module LLVM.Core.CodeGen(
     IsConst(..), valueOf, value,
     zero, allOnes, undef,
     createString, createStringNul,
+    withString, withStringNul,
     constVector, constArray, constStruct, constPackedStruct,
     -- * Basic blocks
     BasicBlock(..), newBasicBlock, newNamedBasicBlock, defineBasicBlock, createBasicBlock, getCurrentBasicBlock,
@@ -426,11 +427,36 @@ type TFunction a = CodeGenModule (Function a)
 type TGlobal a = CodeGenModule (Global a)
 
 -- Special string creators
+{-# DEPRECATED createString "use withString instead" #-}
 createString :: String -> TGlobal (Array n Word8)
 createString s = string (length s) (U.constString s)
 
+{-# DEPRECATED createStringNul "use withStringNul instead" #-}
 createStringNul :: String -> TGlobal (Array n Word8)
 createStringNul s = string (length s + 1) (U.constStringNul s)
+
+withString ::
+   String ->
+   (forall n. (Nat n) => Global (Array n Word8) -> CodeGenModule a) ->
+   CodeGenModule a
+withString s act =
+   let n = length s
+   in  reifyIntegral n (\tn ->
+          do arr <- string n (U.constString s)
+             act (fixArraySize tn arr))
+
+withStringNul ::
+   String ->
+   (forall n. (Nat n) => Global (Array n Word8) -> CodeGenModule a) ->
+   CodeGenModule a
+withStringNul s act =
+   let n = length s + 1
+   in  reifyIntegral n (\tn ->
+          do arr <- string n (U.constStringNul s)
+             act (fixArraySize tn arr))
+
+fixArraySize :: n -> Global (Array n a) -> Global (Array n a)
+fixArraySize _ = id
 
 string :: Int -> FFI.ValueRef -> TGlobal (Array n Word8)
 string n s = do

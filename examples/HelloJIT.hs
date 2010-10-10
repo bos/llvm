@@ -6,14 +6,13 @@ import LLVM.Core
 import LLVM.ExecutionEngine
 
 bldGreet :: CodeGenModule (Function (IO ()))
-bldGreet = do
+bldGreet = withStringNul "Hello, JIT!" (\greetz -> do
     puts <- newNamedFunction ExternalLinkage "puts" :: TFunction (Ptr Word8 -> IO Word32)
-    greetz <- createStringNul "Hello, JIT!"
     func <- createFunction ExternalLinkage $ do
       tmp <- getElementPtr0 greetz (0::Word32, ())
       _ <- call puts tmp -- Throw away return value.
       ret ()
-    return func
+    return func)
 
 main :: IO ()
 main = do

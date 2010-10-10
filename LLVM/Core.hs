@@ -45,6 +45,7 @@ module LLVM.Core(
     Value, ConstValue, valueOf, constOf, value,
     zero, allOnes, undef,
     createString, createStringNul,
+    withString, withStringNul,
     --constString, constStringNul,
     constVector, constArray,
     constStruct, constPackedStruct,
