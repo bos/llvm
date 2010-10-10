@@ -1,15 +1,16 @@
 {-# LANGUAGE TypeOperators #-}
 module Vector where
-import System.Cmd(system)
-import Control.Monad
-import Data.TypeLevel.Num(D16, toNum)
-import Data.Word
+
+import Convert
 
 import LLVM.Core
 import LLVM.ExecutionEngine
-import LLVM.Util.Loop
+import LLVM.Util.Optimize (optimizeModule, )
+import LLVM.Util.Loop (forLoop, )
 
-import Convert
+import Control.Monad (liftM2, )
+import Data.TypeLevel.Num (D16, toNum, )
+import Data.Word (Word32, )
 
 -- Type of vector elements.
 type T = Float
@@ -60,14 +61,6 @@ cgvec = do
 --    liftIO $ dumpValue f
     return f
 
--- Run LLVM optimizer at standard level.
-optimize :: String -> IO ()
-optimize name = do
-    _rc <- system $ "opt -std-compile-opts " ++ name ++ " -f -o " ++ name
-    return ()
-
--- Optimize the module by writing the bit code to file, running the optimizer, and then reading the file back in.
--- XXX With a working pass manager it wouldn't be necessary to go via a file.
 main :: IO ()
 main = do
     -- Initialize jitter
@@ -86,21 +79,18 @@ main = do
     vec 10 >>= print
 
     -- And then optimize and run.
-    let name = "Vec.bc"
-    writeBitcodeToFile name m
-    optimize name
-    m' <- readBitcodeFromFile name
+    _ <- optimizeModule 1 m
 
-    funcs <- getModuleValues m'
+    funcs <- getModuleValues m
     print $ map fst funcs
 
     let iovec' :: Function (T -> IO T)
         Just iovec' = castModuleValue =<< lookup "vectest" funcs
 	ioretacc' :: Function (IO T)
         Just ioretacc' = castModuleValue =<< lookup "retacc" funcs
-    
+
     (vec', retacc') <- runEngineAccess $ do
-        addModule m'
+        addModule m
         liftM2 (,) (generateFunction iovec') (generateFunction ioretacc')
 
     dumpValue iovec'
@@ -108,6 +98,3 @@ main = do
     vec' 10 >>= print
     vec' 0 >>= print
     retacc' >>= print
-
-
-
