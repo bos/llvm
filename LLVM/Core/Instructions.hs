@@ -712,7 +712,7 @@ instance GetElementPtr a () a where
     getIxList _ () = []
 
 -- Index in Array
-instance (GetElementPtr o i n, IsIndexArg a) => GetElementPtr (Array k o) (a, i) n where
+instance (GetElementPtr o i n, IsIndexArg a, Nat k) => GetElementPtr (Array k o) (a, i) n where
     getIxList _ (v, i) = getArg v : getIxList (undefined :: o) i
 
 -- Index in Vector
