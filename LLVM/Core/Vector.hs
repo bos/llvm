@@ -12,7 +12,7 @@ import Foreign.Marshal.Array(peekArray, pokeArray)
 import System.IO.Unsafe(unsafePerformIO)
 
 -- XXX Should these really be here?
-class (Nat n, IsPrimitive a) => MkVector va n a | va -> n a, n a -> va where
+class (Pos n, IsPrimitive a) => MkVector va n a | va -> n a, n a -> va where
     toVector :: va -> Vector n a
     fromVector :: Vector n a -> va
 
@@ -36,7 +36,7 @@ instance (IsPrimitive a) => MkVector (a, a, a, a, a, a, a, a) D8 a where
     fromVector (Vector [a1, a2, a3, a4, a5, a6, a7, a8]) = (a1, a2, a3, a4, a5, a6, a7, a8)
     fromVector _ = error "fromVector: impossible"
 
-instance (Storable a, Nat n, IsPrimitive a) => Storable (Vector n a) where
+instance (Storable a, Pos n, IsPrimitive a) => Storable (Vector n a) where
     sizeOf a = storeSizeOfType ourTargetData (typeRef a)
     alignment a = aBIAlignmentOfType ourTargetData (typeRef a)
     peek p = fmap Vector $ peekArray (toNum (undefined :: n)) (castPtr p :: Ptr a)
@@ -53,7 +53,7 @@ unVector (Vector xs) = xs
 
 -- |Make a constant vector.  Replicates or truncates the list to get length /n/.
 -- This behaviour is consistent with that of 'LLVM.Core.CodeGen.constVector'.
-vector :: forall a n. (Nat n) => [a] -> Vector n a
+vector :: forall a n. (Pos n) => [a] -> Vector n a
 vector xs =
    Vector (take (toNum (undefined :: n)) (cycle xs))
 
@@ -64,10 +64,10 @@ binop op xs ys = Vector $ zipWith op (unVector xs) (unVector ys)
 unop :: (a -> b) -> Vector n a -> Vector n b
 unop op = Vector . map op . unVector
 
-instance (Eq a) => Eq (Vector n a) where
+instance (Eq a, Pos n) => Eq (Vector n a) where
     (==) = (==) `on` unVector
 
-instance (Ord a) => Ord (Vector n a) where
+instance (Ord a, Pos n) => Ord (Vector n a) where
     compare = compare `on` unVector
 
 instance (Num a, Pos n) => Num (Vector n a) where

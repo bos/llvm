@@ -121,7 +121,7 @@ instance (IsType a) => IsConst (Ptr a) where
 instance IsConst (StablePtr a) where
     constOf p = constOfPtr p (castStablePtrToPtr p)
 
-instance (IsPrimitive a, IsConst a, Nat n) => IsConst (Vector n a) where
+instance (IsPrimitive a, IsConst a, Pos n) => IsConst (Vector n a) where
     constOf (Vector xs) = constVector (map constOf xs)
 
 instance (IsConst a, IsSized a s, Nat n) => IsConst (Array n a) where
@@ -445,7 +445,7 @@ string n s = do
 --------------------------------------
 
 -- |Make a constant vector.  Replicates or truncates the list to get length /n/.
-constVector :: forall a n . (Nat n) => [ConstValue a] -> ConstValue (Vector n a)
+constVector :: forall a n . (Pos n) => [ConstValue a] -> ConstValue (Vector n a)
 constVector xs =
     ConstValue $ U.constVector (toNum (undefined :: n)) [ v | ConstValue v <- xs ]
 

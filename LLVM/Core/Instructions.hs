@@ -254,7 +254,8 @@ inv (Value x) = buildUnOp FFI.buildNot x
 --------------------------------------
 
 -- | Get a value from a vector.
-extractelement :: Value (Vector n a)               -- ^ Vector
+extractelement :: (Pos n)
+               => Value (Vector n a)               -- ^ Vector
                -> Value Word32                     -- ^ Index into the vector
                -> CodeGenFunction r (Value a)
 extractelement (Value vec) (Value i) =
@@ -263,7 +264,8 @@ extractelement (Value vec) (Value i) =
       U.withEmptyCString $ FFI.buildExtractElement bldPtr vec i
 
 -- | Insert a value into a vector, nondestructive.
-insertelement :: Value (Vector n a)                -- ^ Vector
+insertelement :: (Pos n)
+              => Value (Vector n a)                -- ^ Vector
               -> Value a                           -- ^ Value to insert
               -> Value Word32                      -- ^ Index into the vector
               -> CodeGenFunction r (Value (Vector n a))
@@ -275,7 +277,8 @@ insertelement (Value vec) (Value e) (Value i) =
 -- XXX The documentation say the mask and result can  different length from
 -- the two first operand, but the C++ code doesn't do that.
 -- | Permute vector.
-shufflevector :: Value (Vector n a)
+shufflevector :: (Pos n)
+              => Value (Vector n a)
               -> Value (Vector n a)
               -> ConstValue (Vector n Word32)
               -> CodeGenFunction r (Value (Vector n a))
@@ -464,7 +467,7 @@ instance CmpRet Int16 Bool
 instance CmpRet Int32 Bool
 instance CmpRet Int64 Bool
 instance CmpRet (Ptr a) Bool
-instance CmpRet (Vector n a) (Vector n Bool)
+instance (Pos n) => CmpRet (Vector n a) (Vector n Bool)
 
 -- | Compare integers.
 icmp :: (IsIntegerOrPointer c, CmpOp a b c d, CmpRet c d) =>
@@ -713,7 +716,7 @@ instance (GetElementPtr o i n, IsIndexArg a) => GetElementPtr (Array k o) (a, i)
     getIxList _ (v, i) = getArg v : getIxList (undefined :: o) i
 
 -- Index in Vector
-instance (GetElementPtr o i n, IsIndexArg a) => GetElementPtr (Vector k o) (a, i) n where
+instance (GetElementPtr o i n, IsIndexArg a, Pos k) => GetElementPtr (Vector k o) (a, i) n where
     getIxList _ (v, i) = getArg v : getIxList (undefined :: o) i
 
 -- Index in Struct and PackedStruct.

@@ -36,22 +36,22 @@ instance Cmp Float Bool where cmp = fcmp . adjFloat
 instance Cmp Double Bool where cmp = fcmp . adjFloat
 instance Cmp FP128 Bool where cmp = fcmp . adjFloat
 {-
-instance (Nat n) => Cmp (Vector n Bool) (Vector n Bool) where cmp = icmp
-instance (Nat n) => Cmp (Vector n Word8) (Vector n Bool) where cmp = icmp
-instance (Nat n) => Cmp (Vector n Word16) (Vector n Bool) where cmp = icmp
-instance (Nat n) => Cmp (Vector n Word32) (Vector n Bool) where cmp = icmp
-instance (Nat n) => Cmp (Vector n Word64) (Vector n Bool) where cmp = icmp
-instance (Nat n) => Cmp (Vector n Int8) (Vector n Bool) where cmp = icmp . adjSigned
-instance (Nat n) => Cmp (Vector n Int16) (Vector n Bool) where cmp = icmp . adjSigned
-instance (Nat n) => Cmp (Vector n Int32) (Vector n Bool) where cmp = icmp . adjSigned
-instance (Nat n) => Cmp (Vector n Int64) (Vector n Bool) where cmp = icmp . adjSigned
-instance (Nat n) => Cmp (Vector n Float) (Vector n Bool) where cmp = fcmp . adjFloat
-instance (Nat n) => Cmp (Vector n Double) (Vector n Bool) where cmp = fcmp . adjFloat
-instance (Nat n) => Cmp (Vector n FP128) (Vector n Bool) where cmp = fcmp . adjFloat
+instance (Pos n) => Cmp (Vector n Bool) (Vector n Bool) where cmp = icmp
+instance (Pos n) => Cmp (Vector n Word8) (Vector n Bool) where cmp = icmp
+instance (Pos n) => Cmp (Vector n Word16) (Vector n Bool) where cmp = icmp
+instance (Pos n) => Cmp (Vector n Word32) (Vector n Bool) where cmp = icmp
+instance (Pos n) => Cmp (Vector n Word64) (Vector n Bool) where cmp = icmp
+instance (Pos n) => Cmp (Vector n Int8) (Vector n Bool) where cmp = icmp . adjSigned
+instance (Pos n) => Cmp (Vector n Int16) (Vector n Bool) where cmp = icmp . adjSigned
+instance (Pos n) => Cmp (Vector n Int32) (Vector n Bool) where cmp = icmp . adjSigned
+instance (Pos n) => Cmp (Vector n Int64) (Vector n Bool) where cmp = icmp . adjSigned
+instance (Pos n) => Cmp (Vector n Float) (Vector n Bool) where cmp = fcmp . adjFloat
+instance (Pos n) => Cmp (Vector n Double) (Vector n Bool) where cmp = fcmp . adjFloat
+instance (Pos n) => Cmp (Vector n FP128) (Vector n Bool) where cmp = fcmp . adjFloat
 -}
-instance (Nat n) => Cmp (Vector n Float) (Vector n Bool) where
+instance (Pos n) => Cmp (Vector n Float) (Vector n Bool) where
     cmp op = mapVector2 (fcmp (adjFloat op))
-instance (Nat n) => Cmp (Vector n Word32) (Vector n Bool) where
+instance (Pos n) => Cmp (Vector n Word32) (Vector n Bool) where
     cmp op = mapVector2 (cmp op)
 
 adjSigned :: IntPredicate -> IntPredicate
@@ -297,7 +297,7 @@ instance CallIntrinsic Double where
     callIntrinsic1' = callIntrinsicP1
     callIntrinsic2' = callIntrinsicP2
 
-instance (Nat n, IsPrimitive a, CallIntrinsic a) => CallIntrinsic (Vector n a) where
+instance (Pos n, IsPrimitive a, CallIntrinsic a) => CallIntrinsic (Vector n a) where
     callIntrinsic1' s = mapVector (callIntrinsic1' s)
     callIntrinsic2' s = mapVector2 (callIntrinsic2' s)
 

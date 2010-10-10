@@ -8,7 +8,7 @@ import LLVM.Util.Loop
 import LLVM.Util.File(writeCodeGenModule)
 import LLVM.Util.Foreign
 
-mDotProd :: forall n a . (Nat n,
+mDotProd :: forall n a . (Pos n,
 	                  IsPrimitive a, IsArithmetic a, IsFirstClass a, IsConst a, Num a,
 	                  FunctionRet a
 	                 ) =>

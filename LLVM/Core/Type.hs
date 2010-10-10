@@ -9,6 +9,7 @@ module LLVM.Core.Type(
     IsType(..),
     -- ** Special type classifiers
     Nat,
+    Pos,
     IsArithmetic,
     IsInteger,
     IsIntegerOrPointer,
@@ -190,7 +191,7 @@ instance IsType Int64  where typeDesc _ = TDInt True  64
 instance (Nat n, IsSized a s) => IsType (Array n a)
     where typeDesc _ = TDArray (toNum (undefined :: n))
     	  	               (typeDesc (undefined :: a))
-instance (Nat n, IsPrimitive a) => IsType (Vector n a)
+instance (Pos n, IsPrimitive a) => IsType (Vector n a)
     where typeDesc _ = TDVector (toNum (undefined :: n))
     	  	       		(typeDesc (undefined :: a))
 
@@ -253,12 +254,12 @@ instance IsArithmetic Word8
 instance IsArithmetic Word16
 instance IsArithmetic Word32
 instance IsArithmetic Word64
-instance (Nat n, IsPrimitive a, IsArithmetic a) => IsArithmetic (Vector n a)
+instance (Pos n, IsPrimitive a, IsArithmetic a) => IsArithmetic (Vector n a)
 
 instance IsFloating Float
 instance IsFloating Double
 instance IsFloating FP128
-instance (Nat n, IsPrimitive a, IsFloating a) => IsFloating (Vector n a)
+instance (Pos n, IsPrimitive a, IsFloating a) => IsFloating (Vector n a)
 
 instance (Pos n) => IsInteger (IntN n)
 instance (Pos n) => IsInteger (WordN n)
@@ -271,7 +272,7 @@ instance IsInteger Word8
 instance IsInteger Word16
 instance IsInteger Word32
 instance IsInteger Word64
-instance (Nat n, IsPrimitive a, IsInteger a) => IsInteger (Vector n a)
+instance (Pos n, IsPrimitive a, IsInteger a) => IsInteger (Vector n a)
 
 instance (Pos n) => IsIntegerOrPointer (IntN n)
 instance (Pos n) => IsIntegerOrPointer (WordN n)
@@ -284,7 +285,7 @@ instance IsIntegerOrPointer Word8
 instance IsIntegerOrPointer Word16
 instance IsIntegerOrPointer Word32
 instance IsIntegerOrPointer Word64
-instance (Nat n, IsPrimitive a, IsInteger a) => IsIntegerOrPointer (Vector n a)
+instance (Pos n, IsPrimitive a, IsInteger a) => IsIntegerOrPointer (Vector n a)
 instance (IsType a) => IsIntegerOrPointer (Ptr a)
 
 instance IsFirstClass Float
@@ -301,7 +302,7 @@ instance IsFirstClass Word8
 instance IsFirstClass Word16
 instance IsFirstClass Word32
 instance IsFirstClass Word64
-instance (Nat n, IsPrimitive a) => IsFirstClass (Vector n a)
+instance (Pos n, IsPrimitive a) => IsFirstClass (Vector n a)
 instance (Nat n, IsType a, IsSized a s) => IsFirstClass (Array n a)
 instance (IsType a) => IsFirstClass (Ptr a)
 instance IsFirstClass (StablePtr a)
@@ -324,7 +325,7 @@ instance IsSized Word16 D16
 instance IsSized Word32 D32
 instance IsSized Word64 D64
 instance (Nat n, IsSized a s, Mul n s ns, Pos ns) => IsSized (Array n a) ns
-instance (Nat n, IsPrimitive a, IsSized a s, Mul n s ns, Pos ns) => IsSized (Vector n a) ns
+instance (Pos n, IsPrimitive a, IsSized a s, Mul n s ns, Pos ns) => IsSized (Vector n a) ns
 instance (IsType a) => IsSized (Ptr a) PtrSize
 instance IsSized (StablePtr a) PtrSize
 -- instance IsSized Label PtrSize -- labels are not quite first classed
@@ -370,7 +371,7 @@ instance NumberOfElements D1 Word64
 instance NumberOfElements D1 Label
 instance NumberOfElements D1 ()
 
-instance (Nat n, IsPrimitive a) =>
+instance (Pos n, IsPrimitive a) =>
          NumberOfElements n (Vector n a)
 
 
