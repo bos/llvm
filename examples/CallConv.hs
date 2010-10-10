@@ -1,13 +1,10 @@
 module CallConv where
-import Prelude hiding(and, or)
-import System.Environment(getArgs)
-import Control.Monad(forM_)
-import Data.Word
 
 import LLVM.Core
-import LLVM.Util.Optimize
-import LLVM.ExecutionEngine
-import LLVM.FFI.Core (CallingConvention(..))
+import LLVM.FFI.Core (CallingConvention(GHC))
+
+import Data.Word (Word32)
+
 
 -- Our module will have these two functions.
 data Mod = Mod {
@@ -18,19 +15,19 @@ data Mod = Mod {
 main :: IO ()
 main = do
     m <- newModule
-    fns <- defineModule m buildMod
+    _fns <- defineModule m buildMod
     --_ <- optimizeModule 3 m
     writeBitcodeToFile "CallConv.bc" m
     return ()
 
 buildMod :: CodeGenModule Mod
 buildMod = do
-    m2 <- createNamedFunction InternalLinkage "plus" $ \ x y -> do
+    mod2 <- createNamedFunction InternalLinkage "plus" $ \ x y -> do
       r <- add x y
       ret r
-    setFuncCallConv m2 GHC
-    m1 <- newNamedFunction ExternalLinkage "test"
-    defineFunction m1 $ \ arg -> do
-      r <- callWithConv GHC m2 arg (valueOf 1)
+    setFuncCallConv mod2 GHC
+    mod1 <- newNamedFunction ExternalLinkage "test"
+    defineFunction mod1 $ \ arg -> do
+      r <- callWithConv GHC mod2 arg (valueOf 1)
       ret r
-    return $ Mod m1 m2
+    return $ Mod mod1 mod2
