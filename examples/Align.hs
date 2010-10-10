@@ -1,5 +1,5 @@
 module Align (main) where
-import Data.TypeLevel(D1, D2, D4)
+import Data.TypeLevel(D1, D4)
 import Data.Word
 
 import LLVM.Core
