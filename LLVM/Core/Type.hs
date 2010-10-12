@@ -10,7 +10,8 @@ module LLVM.Core.Type(
     -- ** Special type classifiers
     Nat,
     Pos,
-    IsArithmetic,
+    IsArithmetic(arithmeticType),
+    ArithmeticType(IntegerType,FloatingType),
     IsInteger,
     IsIntegerOrPointer,
     IsFloating,
@@ -95,7 +96,14 @@ data TypeDesc = TDFloat | TDDouble | TDFP128 | TDVoid | TDInt Bool Integer
 --   add, sub, mul, neg context
 --   used to get type name to call intrinsic
 -- |Arithmetic types, i.e., integral and floating types.
-class IsFirstClass a => IsArithmetic a
+class IsFirstClass a => IsArithmetic a where
+    arithmeticType :: ArithmeticType a
+
+data ArithmeticType a = IntegerType | FloatingType
+
+instance Functor ArithmeticType where
+    fmap _ IntegerType  = IntegerType
+    fmap _ FloatingType = FloatingType
 
 -- Usage:
 --  constI, allOnes
@@ -240,21 +248,23 @@ infixr &
 a & as = (a, as)
 
 --- Instances to classify types
-instance IsArithmetic Float
-instance IsArithmetic Double
-instance IsArithmetic FP128
-instance (Pos n) => IsArithmetic (IntN n)
-instance (Pos n) => IsArithmetic (WordN n)
-instance IsArithmetic Bool
-instance IsArithmetic Int8
-instance IsArithmetic Int16
-instance IsArithmetic Int32
-instance IsArithmetic Int64
-instance IsArithmetic Word8
-instance IsArithmetic Word16
-instance IsArithmetic Word32
-instance IsArithmetic Word64
-instance (Pos n, IsPrimitive a, IsArithmetic a) => IsArithmetic (Vector n a)
+instance IsArithmetic Float  where arithmeticType = FloatingType
+instance IsArithmetic Double where arithmeticType = FloatingType
+instance IsArithmetic FP128  where arithmeticType = FloatingType
+instance (Pos n) => IsArithmetic (IntN n)  where arithmeticType = IntegerType
+instance (Pos n) => IsArithmetic (WordN n) where arithmeticType = IntegerType
+instance IsArithmetic Bool   where arithmeticType = IntegerType
+instance IsArithmetic Int8   where arithmeticType = IntegerType
+instance IsArithmetic Int16  where arithmeticType = IntegerType
+instance IsArithmetic Int32  where arithmeticType = IntegerType
+instance IsArithmetic Int64  where arithmeticType = IntegerType
+instance IsArithmetic Word8  where arithmeticType = IntegerType
+instance IsArithmetic Word16 where arithmeticType = IntegerType
+instance IsArithmetic Word32 where arithmeticType = IntegerType
+instance IsArithmetic Word64 where arithmeticType = IntegerType
+instance (Pos n, IsPrimitive a, IsArithmetic a) =>
+         IsArithmetic (Vector n a) where
+   arithmeticType = fmap (undefined :: a -> Vector n a) arithmeticType
 
 instance IsFloating Float
 instance IsFloating Double

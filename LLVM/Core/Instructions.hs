@@ -12,7 +12,8 @@ module LLVM.Core.Instructions(
     -- | Arithmetic operations with the normal semantics.
     -- The u instractions are unsigned, the s instructions are signed.
     add, sub, mul, neg,
-    fadd, fsub, fmul, -- fneg,
+    iadd, isub, imul, ineg,
+    fadd, fsub, fmul, fneg,
     udiv, sdiv, fdiv, urem, srem, frem,
     -- * Logical binary operations
     -- |Logical instructions with the normal semantics.
@@ -21,7 +22,7 @@ module LLVM.Core.Instructions(
     extractelement,
     insertelement,
     shufflevector,
-    -- * Aggregate operations
+    -- * Aggregate operation
     extractvalue,
     insertvalue,
     -- * Memory access
@@ -157,16 +158,41 @@ unreachable = do
 type FFIBinOp = FFI.BuilderRef -> FFI.ValueRef -> FFI.ValueRef -> U.CString -> IO FFI.ValueRef
 type FFIConstBinOp = FFI.ValueRef -> FFI.ValueRef -> FFI.ValueRef
 
+
+withArithmeticType ::
+    (IsArithmetic c) =>
+    (ArithmeticType c -> a -> CodeGenFunction r (v c)) ->
+    (a -> CodeGenFunction r (v c))
+withArithmeticType f = f arithmeticType
+
 -- |Acceptable arguments to arithmetic binary instructions.
 class ABinOp a b c | a b -> c where
     abinop :: FFIConstBinOp -> FFIBinOp -> a -> b -> CodeGenFunction r c
 
-add :: ({-IsInteger-} IsArithmetic c, ABinOp a b (v c)) => a -> b -> CodeGenFunction r (v c)
-add = abinop FFI.constAdd FFI.buildAdd
-sub :: ({-IsInteger-} IsArithmetic c, ABinOp a b (v c)) => a -> b -> CodeGenFunction r (v c)
-sub = abinop FFI.constSub FFI.buildSub
-mul :: ({-IsInteger-} IsArithmetic c, ABinOp a b (v c)) => a -> b -> CodeGenFunction r (v c)
-mul = abinop FFI.constMul FFI.buildMul
+add :: (IsArithmetic c, ABinOp a b (v c)) => a -> b -> CodeGenFunction r (v c)
+add =
+    curry $ withArithmeticType $ \typ -> uncurry $ case typ of
+      IntegerType  -> abinop FFI.constAdd  FFI.buildAdd
+      FloatingType -> abinop FFI.constFAdd FFI.buildFAdd
+
+sub :: (IsArithmetic c, ABinOp a b (v c)) => a -> b -> CodeGenFunction r (v c)
+sub =
+    curry $ withArithmeticType $ \typ -> uncurry $ case typ of
+      IntegerType  -> abinop FFI.constSub  FFI.buildSub
+      FloatingType -> abinop FFI.constFSub FFI.buildFSub
+
+mul :: (IsArithmetic c, ABinOp a b (v c)) => a -> b -> CodeGenFunction r (v c)
+mul =
+    curry $ withArithmeticType $ \typ -> uncurry $ case typ of
+      IntegerType  -> abinop FFI.constMul  FFI.buildMul
+      FloatingType -> abinop FFI.constFMul FFI.buildFMul
+
+iadd :: (IsInteger c, ABinOp a b (v c)) => a -> b -> CodeGenFunction r (v c)
+iadd = abinop FFI.constAdd FFI.buildAdd
+isub :: (IsInteger c, ABinOp a b (v c)) => a -> b -> CodeGenFunction r (v c)
+isub = abinop FFI.constSub FFI.buildSub
+imul :: (IsInteger c, ABinOp a b (v c)) => a -> b -> CodeGenFunction r (v c)
+imul = abinop FFI.constMul FFI.buildMul
 
 udiv :: (IsInteger c, ABinOp a b (v c)) => a -> b -> CodeGenFunction r (v c)
 udiv = abinop FFI.constUDiv FFI.buildUDiv
@@ -240,11 +266,18 @@ buildUnOp op a =
     withCurrentBuilder $ \ bld ->
       U.withEmptyCString $ op bld a
 
-neg :: ({-IsInteger-} IsArithmetic a) => Value a -> CodeGenFunction r (Value a)
-neg (Value x) = buildUnOp FFI.buildNeg x
+neg :: forall r a. (IsArithmetic a) => Value a -> CodeGenFunction r (Value a)
+neg =
+    withArithmeticType $ \typ -> case typ of
+      IntegerType  -> \(Value x) -> buildUnOp FFI.buildNeg x
+      FloatingType -> abinop FFI.constFSub FFI.buildFSub (value zero :: Value a)
 
+ineg :: (IsInteger a) => Value a -> CodeGenFunction r (Value a)
+ineg (Value x) = buildUnOp FFI.buildNeg x
+
+fneg :: forall r a. (IsFloating a) => Value a -> CodeGenFunction r (Value a)
+fneg = fsub (value zero :: Value a)
 {-
-fneg :: (IsFloating a) => Value a -> CodeGenFunction r (Value a)
 fneg (Value x) = buildUnOp FFI.buildFNeg x
 -}
 
