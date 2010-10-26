@@ -14,6 +14,7 @@ module LLVM.Util.Arithmetic(
     ) where
 import Data.Word
 import Data.Int
+import Data.TypeLevel (D4)
 import LLVM.Core
 import LLVM.Util.Loop(mapVector, mapVector2)
 
