@@ -17,6 +17,8 @@ import Control.Monad(when)
 import Data.Word
 import Data.Int
 import System.Environment(getArgs)
+import System.Exit(exitFailure)
+import qualified System.IO as IO
 
 import LLVM.Core
 import LLVM.Util.File(writeCodeGenModule)
@@ -28,7 +30,10 @@ main = do
     initializeNativeTarget
 
     aargs <- getArgs
-    let (args, debug) = if take 1 aargs == ["-"] then (tail aargs, True) else (aargs, False)
+    let (args, debug) =
+           case aargs of
+              "-":rargs -> (rargs, True)
+              _ -> (aargs, False)
     let text = "+++++++++++++++++++++++++++++++++" ++  -- constant 33
                ">++++" ++                              -- next cell, loop counter, constant 4
                "[>++++++++++" ++                       -- loop, loop counter, constant 10
@@ -37,10 +42,16 @@ main = do
                  "]<-" ++                              -- back to 4, decrement loop counter
                "]" ++
                "++++++++++."
-    prog <- if length args == 1 then readFile (head args) else return text
+    prog <-
+       case args of
+          [] -> return text
+          fileName:[] -> readFile fileName
+          _ ->
+             IO.hPutStrLn IO.stderr "too many arguments" >>
+             exitFailure
 
-    when (debug) $
-        writeCodeGenModule "BrainF.bc" $ brainCompile debug prog 65536
+    when debug $
+       writeCodeGenModule "BrainF.bc" $ brainCompile debug prog 65536
 
     bfprog <- simpleFunction $ brainCompile debug prog 65536
     when (prog == text) $
