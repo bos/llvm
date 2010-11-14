@@ -1,5 +1,5 @@
 module BrainF where
--- BrainF compiler example 
+-- BrainF compiler example
 --
 -- The BrainF language has 8 commands:
 -- Command   Equivalent C    Action
@@ -74,7 +74,7 @@ brainCompile _debug instrs wmemtotal = do
             br loop
             defineBasicBlock exit
             generate is bs (cphi, exit)
-    
+
         generate ('[':is) bs curbb = do
             -- Start a new loop.
             loop <- newBasicBlock    -- loop top
@@ -87,10 +87,10 @@ brainCompile _debug instrs wmemtotal = do
             val <- load cur          -- load head byte.
             eqz <- icmp IntEQ val (0::Word8) -- test if it is 0.
             condBr eqz exit body     -- and branch accordingly.
-    
+
             defineBasicBlock body
             generate is ((cur, loop, exit) : bs) (cur, body)
-    
+
         generate (i:is) bs (curhead, bb) = do
             -- A simple command, with no new basic blocks.
             -- Just update which register the head is in.
