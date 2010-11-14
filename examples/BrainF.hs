@@ -140,7 +140,7 @@ brainCompile _debug instrs wmemtotal = do
         bb <- getCurrentBasicBlock
         generate instrs [] (curhead, bb)
 
-        _ <- free ptr_arr
+        free ptr_arr
         ret ()
 
     return brainf
