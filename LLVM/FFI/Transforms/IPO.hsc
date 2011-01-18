@@ -26,6 +26,8 @@ foreign import ccall unsafe "LLVMAddLowerSetJmpPass" addLowerSetJmpPass
     :: PassManagerRef -> IO ()
 foreign import ccall unsafe "LLVMAddPruneEHPass" addPruneEHPass
     :: PassManagerRef -> IO ()
+foreign import ccall unsafe "LLVMAddIPSCCPPass" addIPSCCPPass
+    :: PassManagerRef -> IO ()
 foreign import ccall unsafe "LLVMAddRaiseAllocationsPass" addRaiseAllocationsPass
     :: PassManagerRef -> IO ()
 foreign import ccall unsafe "LLVMAddStripDeadPrototypesPass" addStripDeadPrototypesPass

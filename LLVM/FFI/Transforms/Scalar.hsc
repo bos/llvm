@@ -48,3 +48,5 @@ foreign import ccall unsafe "LLVMAddSimplifyLibCallsPass" addSimplifyLibCallsPas
     :: PassManagerRef -> IO ()
 foreign import ccall unsafe "LLVMAddTailCallEliminationPass" addTailCallEliminationPass
     :: PassManagerRef -> IO ()
+foreign import ccall unsafe "LLVMAddVerifierPass" addVerifierPass
+    :: PassManagerRef -> IO ()
