@@ -403,6 +403,7 @@ module LLVM.FFI.Core
     , PassManagerRef
     , createFunctionPassManager
     , createPassManager
+    , disposePassManager
     , ptrDisposePassManager
     , finalizeFunctionPassManager
     , initializeFunctionPassManager
@@ -1344,6 +1345,8 @@ foreign import ccall unsafe "LLVMCreateFunctionPassManager" createFunctionPassMa
     :: ModuleProviderRef -> IO PassManagerRef
 foreign import ccall unsafe "LLVMCreatePassManager" createPassManager
     :: IO PassManagerRef
+foreign import ccall unsafe "LLVMDisposePassManager" disposePassManager
+    :: PassManagerRef -> IO ()
 foreign import ccall unsafe "&LLVMDisposePassManager" ptrDisposePassManager
     :: FunPtr (PassManagerRef -> IO ())
 foreign import ccall unsafe "LLVMDumpModule" dumpModule

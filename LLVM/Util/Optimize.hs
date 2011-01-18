@@ -17,13 +17,21 @@ import qualified LLVM.FFI.Core as FFI
 -- import LLVM.FFI.Target(addTargetData, createTargetData)
 import LLVM.FFI.Transforms.IPO
 import LLVM.FFI.Transforms.Scalar
+import Control.Exception (bracket, )
+
 
 {- |
 Result tells whether the module was modified by any of the passes.
 -}
 optimizeModule :: Int -> Module -> IO Bool
-optimizeModule optLevel mdl = withModule mdl $ \ m -> do
-    passes <- FFI.createPassManager
+optimizeModule optLevel mdl =
+    withModule mdl $ \ m ->
+    {-
+    Core.Util.createPassManager would provide a finalizer for us,
+    but I think it is better here to immediately dispose the manager
+    when we need it no longer.
+    -}
+    bracket FFI.createPassManager FFI.disposePassManager $ \ passes ->
 
 {-
 Note on LLVM-2.6 to 2.8 (at least):
@@ -54,7 +62,7 @@ http://llvm.org/bugs/show_bug.cgi?id=6394
 
     fPasses <- FFI.createFunctionPassManager mp
     -}
-    fPasses <- FFI.createPassManager
+    bracket FFI.createPassManager FFI.disposePassManager $ \ fPasses -> do
     -- add module target data?
 
     -- tools/opt/opt.cpp: AddStandardCompilePasses
