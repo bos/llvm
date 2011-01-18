@@ -9,8 +9,8 @@ However this way we risk inconsistencies
 between 'optimizeModule' and the @opt@ shell command.
 -}
 module LLVM.Util.Optimize(optimizeModule) where
+
 import Control.Monad(when)
-import Foreign.Ptr(nullPtr)
 
 import LLVM.Core.Util(Module, withModule)
 import qualified LLVM.FFI.Core as FFI
@@ -18,7 +18,10 @@ import qualified LLVM.FFI.Core as FFI
 import LLVM.FFI.Transforms.IPO
 import LLVM.FFI.Transforms.Scalar
 
-optimizeModule :: Int -> Module -> IO Int
+{- |
+Result tells whether the module was modified by any of the passes.
+-}
+optimizeModule :: Int -> Module -> IO Bool
 optimizeModule optLevel mdl = withModule mdl $ \ m -> do
     passes <- FFI.createPassManager
 
@@ -42,42 +45,54 @@ http://llvm.org/bugs/show_bug.cgi?id=6394
     addTargetData target passes
 -}
 
---FCN    fPasses <- FFI.createFunctionPassManager mp
-    let fPasses = nullPtr
-    -- XXX add module target data
+    {-
+    opt.cpp does not use a FunctionPassManager for function optimization,
+    but a module PassManager.
+    Thus we do it the same way.
+    I assume that we would need a FunctionPassManager
+    only if we wanted to apply individual optimizations to functions.
+
+    fPasses <- FFI.createFunctionPassManager mp
+    -}
+    fPasses <- FFI.createPassManager
+    -- add module target data?
 
     -- tools/opt/opt.cpp: AddStandardCompilePasses
     addVerifierPass passes
     addLowerSetJmpPass passes
     addOptimizationPasses passes fPasses optLevel
 
-    --FCN XXX loop through all functions and optimize them.
---    initializeFunctionPassManager fPasses
---    runFunctionPassManager fPasses fcn
+    {- if we wanted to do so, we could loop through all functions and optimize them.
+    initializeFunctionPassManager fPasses
+    runFunctionPassManager fPasses fcn
+    -}
 
---    addVerifierPass passes -- XXX does not exist
+    functionsModified <- FFI.runPassManager fPasses m
 
-    rc <- FFI.runPassManager passes m
+    moduleModified <- FFI.runPassManager passes m
     -- XXX discard pass manager?
 
-    return (fromIntegral rc)
+    return $
+       toEnum (fromIntegral moduleModified) ||
+       toEnum (fromIntegral functionsModified)
 
 -- tools/opt/opt.cpp: AddOptimizationPasses
 addOptimizationPasses :: FFI.PassManagerRef -> FFI.PassManagerRef -> Int -> IO ()
 addOptimizationPasses passes fPasses optLevel = do
     createStandardFunctionPasses fPasses optLevel
 
-    let inline = addFunctionInliningPass --  if optLevel > 1 then addFunctionInliningPass else const (return ())
+    -- if optLevel > 1 then addFunctionInliningPass else const (return ())
+    let inline = addFunctionInliningPass
     createStandardModulePasses passes optLevel True (optLevel > 1) True True inline
 
+-- llvm/Support/StandardPasses.h: createStandardFunctionPasses
 createStandardFunctionPasses :: FFI.PassManagerRef -> Int -> IO ()
 createStandardFunctionPasses fPasses optLevel = do
-  when False $ do -- FCN
+  when (optLevel > 0) $ do
     addCFGSimplificationPass fPasses
-    if optLevel == 1 then
-        addPromoteMemoryToRegisterPass fPasses
-     else
-        addScalarReplAggregatesPass fPasses
+    if optLevel == 1
+      then addPromoteMemoryToRegisterPass fPasses
+      else addScalarReplAggregatesPass fPasses
     addInstructionCombiningPass fPasses
 
 -- llvm/Support/StandardPasses.h: createStandardModulePasses
