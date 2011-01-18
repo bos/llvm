@@ -4,7 +4,7 @@ import Foreign.Ptr(nullPtr)
 
 import LLVM.Core.Util(Module, withModule)
 import qualified LLVM.FFI.Core as FFI
-import LLVM.FFI.Target(addTargetData, createTargetData)
+-- import LLVM.FFI.Target(addTargetData, createTargetData)
 import LLVM.FFI.Transforms.IPO
 import LLVM.FFI.Transforms.Scalar
 
@@ -12,9 +12,25 @@ optimizeModule :: Int -> Module -> IO Int
 optimizeModule optLevel mdl = withModule mdl $ \ m -> do
     passes <- FFI.createPassManager
 
+{-
+Note on LLVM-2.6 to 2.8 (at least):
+As far as I understand, if we do not set target data,
+then the optimizer will only perform machine independent optimizations.
+If we set target data
+(e.g. an empty layout string obtained from a module without 'target data' specification.)
+we risk that the optimizer switches to a wrong layout
+(e.g. to 64 bit pointers on a 32 bit machine for empty layout string)
+and thus generates corrupt code.
+
+Currently it seems to be safer to disable
+machine dependent optimization completely.
+
+http://llvm.org/bugs/show_bug.cgi?id=6394
+
     -- Pass the module target data to the pass manager.
     target <- FFI.getDataLayout m >>= createTargetData
     addTargetData target passes
+-}
 
 --FCN    fPasses <- FFI.createFunctionPassManager mp
     let fPasses = nullPtr
