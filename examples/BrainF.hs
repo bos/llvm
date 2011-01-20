@@ -22,6 +22,7 @@ import qualified System.IO as IO
 
 import LLVM.Core
 import LLVM.Util.File(writeCodeGenModule)
+import qualified LLVM.Util.Memory as Memory
 import LLVM.ExecutionEngine
 
 main :: IO ()
@@ -61,8 +62,7 @@ main = do
 brainCompile :: Bool -> String -> Word32 -> CodeGenModule (Function (IO ()))
 brainCompile _debug instrs wmemtotal = do
     -- LLVM functions
-    memset    <- newNamedFunction ExternalLinkage "llvm.memset.i32"
-              :: TFunction (Ptr Word8 -> Word8 -> Word32 -> Word32 -> Bool -> IO ())
+    memset    <- Memory.memset
     getchar   <- newNamedFunction ExternalLinkage "getchar"
               :: TFunction (IO Int32)
     putchar   <- newNamedFunction ExternalLinkage "putchar"
@@ -143,7 +143,7 @@ brainCompile _debug instrs wmemtotal = do
 
     brainf <- createFunction ExternalLinkage $ do
         ptr_arr <- arrayMalloc wmemtotal
-        _ <- call memset ptr_arr (valueOf 0) (valueOf wmemtotal) (valueOf 0) (valueOf False)
+        _ <- memset ptr_arr (valueOf 0) (valueOf wmemtotal) (valueOf 0) (valueOf False)
 --        _ptr_arrmax <- getElementPtr ptr_arr (wmemtotal, ())
         -- Start head in the middle.
         curhead <- getElementPtr ptr_arr (wmemtotal `div` 2, ())
