@@ -1,9 +1,11 @@
 name:          llvm
-version:       0.9.0.1
+version:       0.9.1.0
 license:       BSD3
 license-file:  LICENSE
 synopsis:      Bindings to the LLVM compiler toolkit.
 description:   Bindings to the LLVM compiler toolkit.
+               * New in 0.9.1.0: Util.Memory for memory related intrinsics
+               .
                * New in 0.9.0.0: Adapted to LLVM 2.8 (removed support for Union types);
                .
                * New in 0.8.2.0: Support for GHC calling convention.
@@ -104,6 +106,7 @@ library
       LLVM.Util.File
       LLVM.Util.Foreign
       LLVM.Util.Loop
+      LLVM.Util.Memory
       LLVM.Util.Optimize
 
   other-modules:
