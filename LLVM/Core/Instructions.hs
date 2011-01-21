@@ -47,7 +47,7 @@ module LLVM.Core.Instructions(
     -- * Other
     phi, addPhiInputs,
     call, callWithConv,
-    
+
     -- * Classes and types
     Terminate,
     Ret, CallArgs, ABinOp, CmpOp, FunctionArgs, FunctionRet, IsConst,
@@ -543,7 +543,7 @@ instance CallArgs (IO a) (CodeGenFunction r (Value a)) where
 
 doCallDef :: Caller -> [FFI.ValueRef] -> b -> CodeGenFunction r (Value a)
 doCallDef mkCall args _ =
-    withCurrentBuilder $ \ bld -> 
+    withCurrentBuilder $ \ bld ->
       liftM Value $ mkCall bld (reverse args)
 
 -- | Call a function with the given arguments.  The 'call' instruction is variadic, i.e., the number of arguments
@@ -590,7 +590,7 @@ invokeWithConv cc (BasicBlock norm) (BasicBlock expt) (Value f) =
 -- |Join several variables (virtual registers) from different basic blocks into one.
 -- All of the variables in the list are joined.  See also 'addPhiInputs'.
 phi :: forall a r . (IsFirstClass a) => [(Value a, BasicBlock)] -> CodeGenFunction r (Value a)
-phi incoming = 
+phi incoming =
     liftM Value $
       withCurrentBuilder $ \ bldPtr -> do
         inst <- U.buildEmptyPhi bldPtr (typeRef (undefined :: a))
@@ -606,7 +606,7 @@ addPhiInputs :: forall a r . (IsFirstClass a)
              -> CodeGenFunction r ()
 addPhiInputs (Value inst) incoming =
     liftIO $ U.addPhiIns inst [ (v, b) | (Value v, BasicBlock b) <- incoming ]
-    
+
 
 --------------------------------------
 
