@@ -8,10 +8,16 @@ all: $(examples:%=%.exe)
 Vector:	Convert.hs
 
 %.exe: %.hs
-	$(ghc) $(ghcflags) --make -o $(basename $<).exe -main-is $(basename $<).main $<
+	$(ghc) $(ghcflags) --make -o $@ -main-is $(basename $<).main $<
+
+%_dyn.exe: %.hs
+	$(ghc) $(ghcflags) -dynamic --make -o $@ -main-is $(basename $<).main $<
 
 Struct.exe:	Struct.hs structCheck.c
-	$(ghc) $(ghcflags) --make -o Struct.exe -main-is Struct.main Struct.hs structCheck.c
+	$(ghc) $(ghcflags) --make -o $@ -main-is Struct.main $^
+
+Struct_dyn.exe:	Struct.hs structCheck.c
+	$(ghc) $(ghcflags) -dynamic --make -o $@ -main-is $(basename $<).main $^
 
 %.run: %.exe
 	./$<
