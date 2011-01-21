@@ -34,7 +34,7 @@ homepage:      http://code.haskell.org/llvm/
 stability:     experimental
 category:      Compilers/Interpreters, Code Generation
 tested-with:   GHC == 6.10.4, GHC == 6.12.2
-cabal-version: >= 1.6
+cabal-version: == 1.10.*
 build-type:    Custom
 
 extra-source-files:
@@ -76,6 +76,7 @@ extra-tmp-files:
     llvm.buildinfo
 
 library
+--  default-language: Haskell98
   build-depends:
     base >= 3 && < 5,
     bytestring >= 0.9,

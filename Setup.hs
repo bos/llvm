@@ -20,10 +20,8 @@ main = do
     let hooks = autoconfUserHooks { postConf = if os == "mingw32" 
                                                then generateBuildInfo 
                                                else postConf autoconfUserHooks
-#if (__GLASGOW_HASKELL__ >= 612)
                                   , instHook = installHookWithExtraGhciLibraries
                                   , regHook  = regHookWithExtraGhciLibraries
-#endif
                                   }
     defaultMainWithHooks hooks
 
@@ -42,16 +40,18 @@ subst from to [] = []
 subst from to xs | Just r <- stripPrefix from xs = to ++ subst from to r
 subst from to (x:xs) = x : subst from to xs
 
--- To compensate for Cabal's bad design, we need to replicate the default registration hook code here,
--- to inject a value for extra-ghci-libraries into the package registration info.  (Inspired by
--- 'Gtk2HsSetup.hs'.)  This only works for Cabal 1.8, but we can't test for that, so we test for the GHC
--- version.
---
--- We define an extension field 'x-extra-ghci-libraries' in the .buildinfo file to communicate the
--- version information of the LLVM dynamic library from the configure script to the registration code.
+{-
+To compensate for Cabal's current design,
+we need to replicate the default registration hook code here,
+to inject a value for extra-ghci-libraries into the package registration info.
+(Inspired by 'Gtk2HsSetup.hs'.)
+This only works for Cabal 1.10,
+thus we added an according constraint to llvm.cabal.
 
-#if (__GLASGOW_HASKELL__ >= 612)
-
+We define an extension field 'x-extra-ghci-libraries' in the .buildinfo file
+in order to communicate the version information of the LLVM dynamic library
+from the configure script to the registration code.
+-}
 installHookWithExtraGhciLibraries :: PackageDescription -> LocalBuildInfo
                    -> UserHooks -> InstallFlags -> IO ()
 installHookWithExtraGhciLibraries pkg_descr localbuildinfo _ flags = do
@@ -115,5 +115,3 @@ register' pkg@PackageDescription { library       = Just lib  }
 register' _ _ regFlags = notice verbosity "No package to register"
   where
     verbosity = fromFlag (regVerbosity regFlags)
-
-#endif
