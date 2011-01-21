@@ -1,0 +1,36 @@
+Ltrace allows you to log the calls from your Haskell program
+into the LLVM C bindings.
+From this log you can reconstruct a C program
+that performs the same actions as your Haskell program.
+I needed this several times in order to create bug tickets
+for http://llvm.org/bugs.
+I hope you do not need it for this purpose, too.
+
+If you want to trace the LLVM calls of a Haskell program Main
+it is essential to build it
+with static calls from Main into Haskell-llvm
+  (that is no -dynamic flag for ghc)
+but dynamic calls from Haskell-llvm to LLVM
+  (-lLLVM-2.8rc  instead of `llvm-config --libs`).
+You should get an executable of around 10 MB size.
+If you link LLVM statically into the executable,
+then ltrace cannot track calls to LLVM at all.
+Such executables are several tens of MB large.
+If you link dynamically to Haskell-llvm,
+then only calls from Main to Haskell-llvm are tracked,
+but not those from Haskell-llvm to LLVM.
+If you are lucky some calls from Main to Haskell-llvm are inlined by GHC,
+and then some calls go directly from Main to LLVM
+and are thus visible for ltrace.
+Such executables are usually quite small
+(for todays norms), about some tens KB.
+You do not have this fine control of compilation
+when compiling with Cabal.
+I think you must call ghc directly like in:
+
+$ ghc -lLLVM-2.8rc -package llvm -O -debug -o main src/Main.hs
+
+
+You can then generate a log of the LLVM calls from Main using:
+
+$ ltrace -F ltrace.config --library=/usr/local/lib/libLLVM-2.8rc.so main
