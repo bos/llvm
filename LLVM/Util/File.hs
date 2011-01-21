@@ -4,13 +4,13 @@ import System.Cmd(system)
 import LLVM.Core
 import LLVM.ExecutionEngine
 
-writeCodeGenModule :: String -> CodeGenModule a -> IO ()
+writeCodeGenModule :: FilePath -> CodeGenModule a -> IO ()
 writeCodeGenModule name f = do
     m <- newModule
     _ <- defineModule m f
     writeBitcodeToFile name m
 
-optimize :: String -> IO ()
+optimize :: FilePath -> IO ()
 optimize name = do
     _rc <- system $ "opt -std-compile-opts " ++ name ++ " -f -o " ++ name
     return ()
