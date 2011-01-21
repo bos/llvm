@@ -288,7 +288,7 @@ type Value = FFI.ValueRef
 
 makeCall :: Function -> FFI.BuilderRef -> [Value] -> IO Value
 makeCall = makeCallWithCc FFI.C
-                        
+
 makeCallWithCc :: FFI.CallingConvention -> Function -> FFI.BuilderRef -> [Value] -> IO Value
 makeCallWithCc cc func bldPtr args = do
 {-
@@ -324,7 +324,7 @@ buildEmptyPhi bldPtr typ = do
     withEmptyCString $ FFI.buildPhi bldPtr typ
 
 withEmptyCString :: (CString -> IO a) -> IO a
-withEmptyCString = withCString "" 
+withEmptyCString = withCString ""
 
 addPhiIns :: Value -> [(Value, BasicBlock)] -> IO ()
 addPhiIns inst incoming = do
@@ -399,14 +399,14 @@ finalizeFunctionPassManager pm = liftM fromIntegral $ withPassManager pm FFI.fin
 -- The unsafePerformIO is just for the non-effecting withArrayLen
 constVector :: Int -> [Value] -> Value
 constVector n xs = unsafePerformIO $ do
-    let xs' = take n (cycle xs) 
+    let xs' = take n (cycle xs)
     withArrayLen xs' $ \ len ptr ->
         return $ FFI.constVector ptr (fromIntegral len)
 
 -- The unsafePerformIO is just for the non-effecting withArrayLen
 constArray :: Type -> Int -> [Value] -> Value
 constArray t n xs = unsafePerformIO $ do
-    let xs' = take n (cycle xs) 
+    let xs' = take n (cycle xs)
     withArrayLen xs' $ \ len ptr ->
         return $ FFI.constArray t ptr (fromIntegral len)
 
