@@ -136,7 +136,9 @@ library
       LLVM.Target.X86
       LLVM.Target.XCore
 
-  C-Sources: cbits/free.c
+  C-Sources:
+    cbits/malloc.c
+    cbits/free.c
 
 source-repository head
   type:     darcs
