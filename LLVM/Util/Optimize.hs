@@ -78,7 +78,6 @@ http://llvm.org/bugs/show_bug.cgi?id=6394
     functionsModified <- FFI.runPassManager fPasses m
 
     moduleModified <- FFI.runPassManager passes m
-    -- XXX discard pass manager?
 
     return $
        toEnum (fromIntegral moduleModified) ||
@@ -182,37 +181,28 @@ ToDo:
 Function that adds passes according to a list of opt-options.
 This would simplify to get consistent behaviour between opt and optimizeModule.
 
--verify                    addVerifierPass
-                           addLowerSetJmpPass
--globalopt                 addGlobalOptimizerPass
--ipsccp                    addIPSCCPPass
--deadargelim               addDeadArgEliminationPass
--instcombine               addInstructionCombiningPass
--simplifycfg               addCFGSimplificationPass
--prune-eh                  addPruneEHPass
--functionattrs             addFunctionAttrsPass
--scalarrepl                addScalarReplAggregatesPass
--simplify-libcalls         addSimplifyLibCallsPass
--instcombine               addInstructionCombiningPass
--jump-threading            addJumpThreadingPass
--simplifycfg               addCFGSimplificationPass
--instcombine               addInstructionCombiningPass
--tailcallelim              addTailCallEliminationPass
--simplifycfg               addCFGSimplificationPass
--reassociate               addReassociatePass
--loop-rotate               addLoopRotatePass
--licm                      addLICMPass
--instcombine               addInstructionCombiningPass
--indvars                   addIndVarSimplifyPass
--loop-deletion             addLoopDeletionPass
--instcombine               addInstructionCombiningPass
--memcpyopt                 addMemCpyOptPass
--sccp                      addSCCPPass
--instcombine               addInstructionCombiningPass
--jump-threading            addJumpThreadingPass
--dse                       addDeadStoreEliminationPass
 -adce                      addAggressiveDCEPass
--simplifycfg               addCFGSimplificationPass
--strip-dead-prototypes     addStripDeadPrototypesPass
+-deadargelim               addDeadArgEliminationPass
 -deadtypeelim              addDeadTypeEliminationPass
+-dse                       addDeadStoreEliminationPass
+-functionattrs             addFunctionAttrsPass
+-globalopt                 addGlobalOptimizerPass
+-indvars                   addIndVarSimplifyPass
+-instcombine               addInstructionCombiningPass
+-ipsccp                    addIPSCCPPass
+-jump-threading            addJumpThreadingPass
+-licm                      addLICMPass
+-loop-deletion             addLoopDeletionPass
+-loop-rotate               addLoopRotatePass
+-lowersetjmp               addLowerSetJmpPass
+-memcpyopt                 addMemCpyOptPass
+-prune-eh                  addPruneEHPass
+-reassociate               addReassociatePass
+-scalarrepl                addScalarReplAggregatesPass
+-sccp                      addSCCPPass
+-simplifycfg               addCFGSimplificationPass
+-simplify-libcalls         addSimplifyLibCallsPass
+-strip-dead-prototypes     addStripDeadPrototypesPass
+-tailcallelim              addTailCallEliminationPass
+-verify                    addVerifierPass
 -}
