@@ -126,7 +126,6 @@ library
       LLVM.Target.CBackend
       LLVM.Target.CellSPU
       LLVM.Target.CppBackend
-      LLVM.Target.MSIL
       LLVM.Target.MSP430
       LLVM.Target.Mips
       LLVM.Target.Native
