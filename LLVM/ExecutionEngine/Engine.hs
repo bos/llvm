@@ -15,6 +15,7 @@ module LLVM.ExecutionEngine.Engine(
        GenericValue, Generic(..)
        ) where
 import Control.Monad.State
+import Control.Applicative (Applicative, )
 import Control.Concurrent.MVar
 import Data.Typeable
 import Data.Int
@@ -126,7 +127,7 @@ data EAState = EAState {
     deriving (Show, Typeable)
 
 newtype EngineAccess a = EA (StateT EAState IO a)
-    deriving (Functor, Monad, MonadState EAState, MonadIO)
+    deriving (Functor, Applicative, Monad, MonadState EAState, MonadIO)
 
 -- |The LLVM execution engine is encapsulated so it cannot be accessed directly.
 -- The reason is that (currently) there must only ever be one engine,
@@ -181,7 +182,7 @@ that can be obtained from 'LLVM.Core.getGlobalMappings'.
 -}
 addGlobalMappings :: GlobalMappings -> EngineAccess ()
 addGlobalMappings (GlobalMappings gms) =
-   mapM_ (uncurry addFunctionValueCore) gms
+    mapM_ (uncurry addFunctionValueCore) gms
 
 addFunctionValueCore :: U.Function -> Ptr () -> EngineAccess ()
 addFunctionValueCore g f = do

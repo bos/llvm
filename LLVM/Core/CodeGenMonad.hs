@@ -10,6 +10,7 @@ module LLVM.Core.CodeGenMonad(
     ) where
 import Data.Typeable
 import Control.Monad.State
+import Control.Applicative (Applicative, )
 
 import Foreign.Ptr (Ptr, )
 
@@ -25,7 +26,7 @@ data CGMState = CGMState {
     }
     deriving (Show, Typeable)
 newtype CodeGenModule a = CGM (StateT CGMState IO a)
-    deriving (Functor, Monad, MonadState CGMState, MonadIO, Typeable)
+    deriving (Functor, Applicative, Monad, MonadState CGMState, MonadIO, Typeable)
 
 genMSym :: String -> CodeGenModule String
 genMSym prefix = do
@@ -52,7 +53,7 @@ data CGFState r = CGFState {
     }
     deriving (Show, Typeable)
 newtype CodeGenFunction r a = CGF (StateT (CGFState r) IO a)
-    deriving (Functor, Monad, MonadState (CGFState r), MonadIO, Typeable)
+    deriving (Functor, Applicative, Monad, MonadState (CGFState r), MonadIO, Typeable)
 
 genFSym :: CodeGenFunction a String
 genFSym = do
