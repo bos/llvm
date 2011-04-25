@@ -1,5 +1,5 @@
 {-# OPTIONS_GHC -fno-warn-orphans #-}
-{-# LANGUAGE CPP, FlexibleInstances, ScopedTypeVariables, FlexibleContexts, UndecidableInstances, TypeSynonymInstances, MultiParamTypeClasses, FunctionalDependencies, OverlappingInstances #-}
+{-# LANGUAGE CPP, FlexibleInstances, ScopedTypeVariables, FlexibleContexts, UndecidableInstances, TypeSynonymInstances, MultiParamTypeClasses, FunctionalDependencies #-}
 module LLVM.Util.Arithmetic(
     TValue,
     Cmp(..),
@@ -14,7 +14,7 @@ module LLVM.Util.Arithmetic(
     ) where
 import Data.Word
 import Data.Int
-import Data.TypeLevel (D4)
+import qualified Data.TypeLevel.Num as TypeNum
 import LLVM.Core
 import LLVM.Util.Loop(mapVector, mapVector2)
 
@@ -270,7 +270,7 @@ toArithFunction f = unwrapArgs (call f)
 
 -------------------------------------------
 
--- |Define a recursive 'arithFunction', gets pased itself as the first argument.
+-- |Define a recursive 'arithFunction', gets passed itself as the first argument.
 recursiveFunction ::
         (CallArgs a g,
          UnwrapArgs a11 a1 b1 b g r,
@@ -298,24 +298,32 @@ instance CallIntrinsic Double where
     callIntrinsic1' = callIntrinsicP1
     callIntrinsic2' = callIntrinsicP2
 
+{-
+I think such a special case for certain systems
+would be better handled as in LLVM.Extra.Extension.
+(lemming)
+-}
+macOS :: Bool
+#if defined(__MACOS__)
+macOS = True
+#else
+macOS = False
+#endif
+
 instance (Pos n, IsPrimitive a, CallIntrinsic a) => CallIntrinsic (Vector n a) where
-    callIntrinsic1' s = mapVector (callIntrinsic1' s)
+    callIntrinsic1' s x =
+       if macOS && TypeNum.toInt (undefined :: n) == 4 &&
+          elem s ["sqrt", "log", "exp", "sin", "cos", "tan"]
+         then do
+            op <- externFunction ("v" ++ s ++ "f")
+            r <- call op x
+            addAttributes r 0 [ReadNoneAttribute]
+            return r
+         else mapVector (callIntrinsic1' s) x
     callIntrinsic2' s = mapVector2 (callIntrinsic2' s)
 
 callIntrinsic1 :: (CallIntrinsic a) => String -> TValue r a -> TValue r a
 callIntrinsic1 s x = do x' <- x; callIntrinsic1' s x'
 
 callIntrinsic2 :: (CallIntrinsic a) => String -> TValue r a -> TValue r a -> TValue r a
-callIntrinsic2 s x y = do x' <- x; y' <- y; callIntrinsic2' s x' y'
-
-#if defined(__MACOS__)
-instance CallIntrinsic (Vector D4 Float) where
-    callIntrinsic1' s x | hasVFun   = do op <- externFunction ("v" ++ s ++ "f")
-    		      	  	         r <- call op x
-					 addAttributes r 0 [ReadNoneAttribute]
-					 return r
-    		        | otherwise = mapVector (callIntrinsic1' s) x
-      where hasVFun = s `elem` ["sqrt", "log", "exp", "sin", "cos", "tan"]
-    callIntrinsic2' s = mapVector2 (callIntrinsic2' s)
-#endif
-
+callIntrinsic2 s = binop (callIntrinsic2' s)
