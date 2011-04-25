@@ -308,14 +308,12 @@ insertelement (Value vec) (Value e) (Value i) =
     withCurrentBuilder $ \ bldPtr ->
       U.withEmptyCString $ FFI.buildInsertElement bldPtr vec e i
 
--- XXX The documentation say the mask and result can  different length from
--- the two first operand, but the C++ code doesn't do that.
 -- | Permute vector.
-shufflevector :: (Pos n)
+shufflevector :: (Pos n, Pos m)
               => Value (Vector n a)
               -> Value (Vector n a)
-              -> ConstValue (Vector n Word32)
-              -> CodeGenFunction r (Value (Vector n a))
+              -> ConstValue (Vector m Word32)
+              -> CodeGenFunction r (Value (Vector m a))
 shufflevector (Value a) (Value b) (ConstValue mask) =
     liftM Value $
     withCurrentBuilder $ \ bldPtr ->
