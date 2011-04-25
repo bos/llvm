@@ -14,6 +14,7 @@ module LLVM.Core.Instructions(
     add, sub, mul, neg,
     iadd, isub, imul, ineg,
     fadd, fsub, fmul, fneg,
+    idiv, irem,
     udiv, sdiv, fdiv, urem, srem, frem,
     -- * Logical binary operations
     -- |Logical instructions with the normal semantics.
@@ -195,6 +196,27 @@ isub = abinop FFI.constSub FFI.buildSub
 imul :: (IsInteger c, ABinOp a b (v c)) => a -> b -> CodeGenFunction r (v c)
 imul = abinop FFI.constMul FFI.buildMul
 
+-- | signed or unsigned integer division depending on the type
+idiv ::
+   forall a b c r v. (IsInteger c, ABinOp a b (v c)) =>
+   a -> b -> CodeGenFunction r (v c)
+idiv =
+   if isSigned (undefined :: c)
+     then abinop FFI.constSDiv FFI.buildSDiv
+     else abinop FFI.constUDiv FFI.buildUDiv
+-- | signed or unsigned remainder depending on the type
+irem ::
+   forall a b c r v. (IsInteger c, ABinOp a b (v c)) =>
+   a -> b -> CodeGenFunction r (v c)
+irem =
+   if isSigned (undefined :: c)
+     then abinop FFI.constSRem FFI.buildSRem
+     else abinop FFI.constURem FFI.buildURem
+
+{-# DEPRECATED udiv "use idiv instead" #-}
+{-# DEPRECATED sdiv "use idiv instead" #-}
+{-# DEPRECATED urem "use irem instead" #-}
+{-# DEPRECATED srem "use irem instead" #-}
 udiv :: (IsInteger c, ABinOp a b (v c)) => a -> b -> CodeGenFunction r (v c)
 udiv = abinop FFI.constUDiv FFI.buildUDiv
 sdiv :: (IsInteger c, ABinOp a b (v c)) => a -> b -> CodeGenFunction r (v c)

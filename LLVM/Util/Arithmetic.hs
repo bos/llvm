@@ -149,8 +149,8 @@ instance (IsArithmetic a, Cmp a b, Num a, IsConst a) => Real (TValue r a) where
     toRational _ = error "CodeGenFunction Value: toRational"
 
 instance (Cmp a b, Num a, IsConst a, IsInteger a) => Integral (TValue r a) where
-    quot = binop (if (isSigned (undefined :: a)) then sdiv else udiv)
-    rem  = binop (if (isSigned (undefined :: a)) then srem else urem)
+    quot = binop idiv
+    rem  = binop irem
     quotRem x y = (quot x y, rem x y)
     toInteger _ = error "CodeGenFunction Value: toInteger"
 
