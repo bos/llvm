@@ -204,21 +204,43 @@ binop op x y = do
     y' <- y
     op x' y'
 
+{-
+If we add the ReadNone attribute, then LLVM-2.8 complains:
+
+llvm/examples$ Arith_dyn.exe
+Attribute readnone only applies to the function!
+  %2 = call readnone double @llvm.sin.f64(double %0)
+Attribute readnone only applies to the function!
+  %3 = call readnone double @llvm.exp.f64(double %2)
+Broken module found, compilation aborted!
+Stack dump:
+0.      Running pass 'Function Pass Manager' on module '_module'.
+1.      Running pass 'Module Verifier' on function '@_fun1'
+Aborted
+-}
+addReadNone :: Value a -> CodeGenFunction r (Value a)
+addReadNone x = do
+--   addAttributes x 0 [ReadNoneAttribute]
+   return x
+
 callIntrinsicP1 :: forall a b r . (IsFirstClass a, IsFirstClass b, IsPrimitive a) =>
-	           String -> Value a -> TValue r b
+                   String -> Value a -> TValue r b
 callIntrinsicP1 fn x = do
     op :: Function (a -> IO b) <- externFunction ("llvm." ++ fn ++ "." ++ typeName (undefined :: a))
-    r <- call op x
-    addAttributes r 0 [ReadNoneAttribute]
-    return r
+{-
+You can add these attributes,
+but the verifier pass in the optimizer checks whether they match
+the attributes that are declared for that intrinsic.
+If we omit adding attributes then the right attributes are added automatically.
+    addFunctionAttributes op [NoUnwindAttribute, ReadOnlyAttribute]
+-}
+    call op x >>= addReadNone
 
 callIntrinsicP2 :: forall a b c r . (IsFirstClass a, IsFirstClass b, IsFirstClass c, IsPrimitive a) =>
-	           String -> Value a -> Value b -> TValue r c
+                   String -> Value a -> Value b -> TValue r c
 callIntrinsicP2 fn x y = do
     op :: Function (a -> b -> IO c) <- externFunction ("llvm." ++ fn ++ "." ++ typeName (undefined :: a))
-    r <- call op x y
-    addAttributes r 0 [ReadNoneAttribute]
-    return r
+    call op x y >>= addReadNone
 
 -------------------------------------------
 
@@ -318,9 +340,7 @@ instance (Pos n, IsPrimitive a, CallIntrinsic a) => CallIntrinsic (Vector n a) w
           elem s ["sqrt", "log", "exp", "sin", "cos", "tan"]
          then do
             op <- externFunction ("v" ++ s ++ "f")
-            r <- call op x
-            addAttributes r 0 [ReadNoneAttribute]
-            return r
+            call op x >>= addReadNone
          else mapVector (callIntrinsic1' s) x
     callIntrinsic2' s = mapVector2 (callIntrinsic2' s)
 
