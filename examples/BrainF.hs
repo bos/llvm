@@ -96,7 +96,7 @@ brainCompile _debug instrs wmemtotal = do
             defineBasicBlock loop
             cur <- phi [curbb]       -- will get one more input from the loop terminator.
             val <- load cur          -- load head byte.
-            eqz <- icmp IntEQ val (0::Word8) -- test if it is 0.
+            eqz <- cmp CmpEQ val (0::Word8) -- test if it is 0.
             condBr eqz exit body     -- and branch accordingly.
 
             defineBasicBlock body

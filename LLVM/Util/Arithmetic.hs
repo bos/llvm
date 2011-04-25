@@ -15,12 +15,14 @@ module LLVM.Util.Arithmetic(
 import Data.Word
 import Data.Int
 import qualified Data.TypeLevel.Num as TypeNum
-import LLVM.Core
+import qualified LLVM.Core as LLVM
+import LLVM.Core hiding (cmp, )
 import LLVM.Util.Loop(mapVector, mapVector2)
 
 -- |Synonym for @CodeGenFunction r (Value a)@.
 type TValue r a = CodeGenFunction r (Value a)
 
+{-# DEPRECATED cmp "use LLVM.Core.cmp instead" #-}
 class (CmpRet a b) => Cmp a b | a -> b where
     cmp :: IntPredicate -> Value a -> Value a -> TValue r b
 
@@ -73,13 +75,13 @@ adjFloat _ = error "adjFloat"
 
 infix  4  %==, %/=, %<, %<=, %>=, %>
 -- |Comparison functions.
-(%==), (%/=), (%<), (%<=), (%>), (%>=) :: (Cmp a b) => TValue r a -> TValue r a -> TValue r b
-(%==) = binop $ cmp IntEQ
-(%/=) = binop $ cmp IntNE
-(%>)  = binop $ cmp IntUGT
-(%>=) = binop $ cmp IntUGE
-(%<)  = binop $ cmp IntULT
-(%<=) = binop $ cmp IntULE
+(%==), (%/=), (%<), (%<=), (%>), (%>=) :: (CmpRet a b) => TValue r a -> TValue r a -> TValue r b
+(%==) = binop $ LLVM.cmp CmpEQ
+(%/=) = binop $ LLVM.cmp CmpNE
+(%>)  = binop $ LLVM.cmp CmpGT
+(%>=) = binop $ LLVM.cmp CmpGE
+(%<)  = binop $ LLVM.cmp CmpLT
+(%<=) = binop $ LLVM.cmp CmpLE
 
 infixr 3  %&&
 infixr 2  %||

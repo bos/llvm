@@ -59,7 +59,7 @@ buildMod = do
 
         -- Test if x is even/odd.
         a <- and x (1 :: Word32)
-        c <- icmp IntEQ a (0 :: Word32)
+        c <- cmp CmpEQ a (0 :: Word32)
         condBr c l1 l2
 
         -- Do x+y if even.
@@ -86,7 +86,7 @@ buildMod = do
         exit <- newBasicBlock
 
         -- Test if arg > 2
-        test <- icmp IntUGT arg (2::Word32)
+        test <- cmp CmpGT arg (2::Word32)
         condBr test recurse exit
 
         -- Just return 1 if not > 2

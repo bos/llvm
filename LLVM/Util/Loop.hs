@@ -69,7 +69,7 @@ forLoop low high start incr = do
     defineBasicBlock loop
     i <- phi [(low, top)]
     vars <- phis top start
-    t <- icmp IntNE i high
+    t <- cmp CmpNE i high
     condBr t body exit
 
     defineBasicBlock body

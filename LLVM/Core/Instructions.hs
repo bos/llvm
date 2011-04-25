@@ -41,9 +41,9 @@ module LLVM.Core.Instructions(
     ptrtoint, inttoptr,
     bitcast, bitcastUnify,
     -- * Comparison
-    IntPredicate(..), FPPredicate(..),
+    CmpPredicate(..), IntPredicate(..), FPPredicate(..),
     CmpRet,
-    icmp, fcmp,
+    cmp, pcmp, icmp, fcmp,
     select,
     -- * Other
     phi, addPhiInputs,
@@ -456,6 +456,46 @@ convert conv (Value a) =
 
 --------------------------------------
 
+data CmpPredicate =
+    CmpEQ                       -- ^ equal
+  | CmpNE                       -- ^ not equal
+  | CmpGT                       -- ^ greater than
+  | CmpGE                       -- ^ greater or equal
+  | CmpLT                       -- ^ less than
+  | CmpLE                       -- ^ less or equal
+    deriving (Eq, Ord, Enum, Show, Typeable)
+
+uintFromCmpPredicate :: CmpPredicate -> IntPredicate
+uintFromCmpPredicate p =
+   case p of
+      CmpEQ -> IntEQ
+      CmpNE -> IntNE
+      CmpGT -> IntUGT
+      CmpGE -> IntUGE
+      CmpLT -> IntULT
+      CmpLE -> IntULE
+
+sintFromCmpPredicate :: CmpPredicate -> IntPredicate
+sintFromCmpPredicate p =
+   case p of
+      CmpEQ -> IntEQ
+      CmpNE -> IntNE
+      CmpGT -> IntSGT
+      CmpGE -> IntSGE
+      CmpLT -> IntSLT
+      CmpLE -> IntSLE
+
+fpFromCmpPredicate :: CmpPredicate -> FPPredicate
+fpFromCmpPredicate p =
+   case p of
+      CmpEQ -> FPOEQ
+      CmpNE -> FPONE
+      CmpGT -> FPOGT
+      CmpGE -> FPOGE
+      CmpLT -> FPOLT
+      CmpLE -> FPOLE
+
+
 data IntPredicate =
     IntEQ                       -- ^ equal
   | IntNE                       -- ^ not equal
@@ -507,22 +547,63 @@ instance (IsConst a) => CmpOp a (Value a) a d where
 instance (IsConst a) => CmpOp (Value a) a a d where
     cmpop op a1 a2 = cmpop op a1 (valueOf a2)
 
-class CmpRet a b | a -> b
-instance CmpRet Float Bool
-instance CmpRet Double Bool
-instance CmpRet FP128 Bool
-instance CmpRet Bool Bool
-instance CmpRet Word8 Bool
-instance CmpRet Word16 Bool
-instance CmpRet Word32 Bool
-instance CmpRet Word64 Bool
-instance CmpRet Int8 Bool
-instance CmpRet Int16 Bool
-instance CmpRet Int32 Bool
-instance CmpRet Int64 Bool
-instance CmpRet (Ptr a) Bool
-instance (Pos n) => CmpRet (Vector n a) (Vector n Bool)
+class CmpRet c d | c -> d where
+    cmpBld :: c -> CmpPredicate -> FFIBinOp
+instance CmpRet Float   Bool where cmpBld _ = fcmpBld
+instance CmpRet Double  Bool where cmpBld _ = fcmpBld
+instance CmpRet FP128   Bool where cmpBld _ = fcmpBld
+instance CmpRet Bool    Bool where cmpBld _ = ucmpBld
+instance CmpRet Word8   Bool where cmpBld _ = ucmpBld
+instance CmpRet Word16  Bool where cmpBld _ = ucmpBld
+instance CmpRet Word32  Bool where cmpBld _ = ucmpBld
+instance CmpRet Word64  Bool where cmpBld _ = ucmpBld
+instance CmpRet Int8    Bool where cmpBld _ = scmpBld
+instance CmpRet Int16   Bool where cmpBld _ = scmpBld
+instance CmpRet Int32   Bool where cmpBld _ = scmpBld
+instance CmpRet Int64   Bool where cmpBld _ = scmpBld
+instance CmpRet (Ptr a) Bool where cmpBld _ = ucmpBld
+instance (CmpRet a b, IsPrimitive a, Pos n) =>
+            CmpRet (Vector n a) (Vector n b)
+                             where cmpBld _ = cmpBld (undefined :: a)
 
+
+{- |
+Compare values of ordered types
+and choose predicates according to the compared types.
+Floating point numbers are compared in \"ordered\" mode,
+that is @NaN@ operands yields 'False' as result.
+Pointers are compared unsigned.
+These choices are consistent with comparison in plain Haskell.
+-}
+cmp :: forall a b c d r.
+   (CmpOp a b c d, CmpRet c d) =>
+   CmpPredicate -> a -> b -> CodeGenFunction r (Value d)
+cmp p = cmpop (cmpBld (undefined :: c) p)
+
+ucmpBld :: CmpPredicate -> FFIBinOp
+ucmpBld p = flip FFI.buildICmp (fromIntPredicate (uintFromCmpPredicate p))
+
+scmpBld :: CmpPredicate -> FFIBinOp
+scmpBld p = flip FFI.buildICmp (fromIntPredicate (sintFromCmpPredicate p))
+
+fcmpBld :: CmpPredicate -> FFIBinOp
+fcmpBld p = flip FFI.buildFCmp (fromFPPredicate (fpFromCmpPredicate p))
+
+
+_ucmp :: (IsInteger c, CmpOp a b c d, CmpRet c d) =>
+        CmpPredicate -> a -> b -> CodeGenFunction r (Value d)
+_ucmp p = cmpop (flip FFI.buildICmp (fromIntPredicate (uintFromCmpPredicate p)))
+
+_scmp :: (IsInteger c, CmpOp a b c d, CmpRet c d) =>
+        CmpPredicate -> a -> b -> CodeGenFunction r (Value d)
+_scmp p = cmpop (flip FFI.buildICmp (fromIntPredicate (sintFromCmpPredicate p)))
+
+pcmp :: (CmpOp a b (Ptr c) d, CmpRet (Ptr c) d) =>
+        IntPredicate -> a -> b -> CodeGenFunction r (Value d)
+pcmp p = cmpop (flip FFI.buildICmp (fromIntPredicate p))
+
+
+{-# DEPRECATED icmp "use cmp or pcmp instead" #-}
 -- | Compare integers.
 icmp :: (IsIntegerOrPointer c, CmpOp a b c d, CmpRet c d) =>
         IntPredicate -> a -> b -> CodeGenFunction r (Value d)

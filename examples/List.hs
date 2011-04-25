@@ -39,7 +39,7 @@ arrayLoop len ptr start loopBody = do
    i <- phi [(len, top)]
    p <- phi [(ptr, top)]
    vars <- phis top start
-   t <- icmp IntNE i (valueOf 0 `asTypeOf` len)
+   t <- cmp CmpNE i (valueOf 0 `asTypeOf` len)
    condBr t body exit
 
    defineBasicBlock body
