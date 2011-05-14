@@ -24,6 +24,22 @@ Struct_dyn.exe:	Struct.hs structCheck.c
 
 run:	$(examples:%=%.run)
 
+%.s:	%.bc
+	llc -f $<
+
+# This would lead to a cycle with llvm-as.
+# %.ll: %.bc
+#	llvm-dis -f $<
+
+%-dis.ll:	%.bc
+	llvm-dis -o $@ -f $<
+
+%.bc:	%.ll
+	llvm-as -f $<
+
+%-opt.bc:	%.bc
+	opt -O3 < $< > $@
+
 N=40
 fastfib:	Fibonacci
 	@rm -f Fib.bc Fib.s
