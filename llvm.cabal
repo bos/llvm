@@ -1,10 +1,12 @@
 name:          llvm
-version:       0.9.1.0
+version:       0.9.1.1
 license:       BSD3
 license-file:  LICENSE
 synopsis:      Bindings to the LLVM compiler toolkit.
 description:
   Bindings to the LLVM compiler toolkit.
+  .
+  * New in 0.9.1.1: Builds against LLVM 2.9.
   .
   * New in 0.9.1.0: Util.Memory for memory related intrinsics
   .
@@ -21,14 +23,6 @@ description:
   * New in 0.7.0.1: MacOS fixes.
   .
   * New in 0.7.0.0: Adapted to LLVM 2.6;
-  .
-  * New in 0.6.8.0: Add functions to allow freeing function resources;
-  .
-  * New in 0.6.7.0: Struct types;
-  .
-  * New in 0.6.6.0: Bug fixes;
-  .
-  * New in 0.6.5.0: Adapted to LLVM 2.5;
 author:        Bryan O'Sullivan, Lennart Augustsson
 maintainer:    Bryan O'Sullivan <bos@serpentine.com>, Lennart Augustsson <lennart@augustsson.net>
 bug-reports:   Lennart Augustsson <lennart@augustsson.net>
