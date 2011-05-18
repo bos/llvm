@@ -94,13 +94,19 @@ LDFLAGS="$llvm_ldflags $LDFLAGS $TARGET_LDFLAGS"
 AC_CHECK_HEADERS([llvm-c/Core.h], [],
   [AC_MSG_ERROR(could not find LLVM C bindings)])
 
-LIBS="-lLLVMSupport -lLLVMSystem $LIBS"
-
 # We have to link using the C++ compiler.
 CC=$CXX
 
-AC_CHECK_LIB(LLVMCore, LLVMModuleCreateWithName, [],
-  [AC_MSG_ERROR(could not find LLVM C bindings)])
+save_LIBS="$LIBS"
+LIBS="-lLLVMSupport -lLLVMSystem $LIBS"
+
+AC_CHECK_LIB(LLVMCore, LLVMModuleCreateWithName, [], [])
+if test "$ac_cv_lib_LLVMCore_LLVMModuleCreateWithName" = "no"; then
+  unset ac_cv_lib_LLVMCore_LLVMModuleCreateWithName
+  LIBS="-lLLVMSupport $save_LIBS"
+  AC_CHECK_LIB(LLVMCore, LLVMModuleCreateWithName, [],
+    [AC_MSG_ERROR(could not find LLVM C bindings)])
+fi
 
 AC_SUBST([llvm_version])
 AC_SUBST([llvm_cppflags])
