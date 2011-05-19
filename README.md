@@ -1,27 +1,20 @@
 Haskell LLVM bindings
 ---------------------
 
-This package provides Haskell bindings for the popular LLVM compiler
-infrastructure project.  If you don't know what LLVM is, the main LLVM
-home page is here:
-
-  http://llvm.org/
+This package provides Haskell bindings for the popular
+[LLVM](http://llvm.org/) compiler infrastructure project.
 
 
 Configuration
 -------------
 
-By default, when you run "cabal install" or "runghc Setup configure",
-the Haskell bindings will be configured to install to /usr/local.  The
-configure script will look for your LLVM installation in that same
-directory.
+By default, when you run `cabal install`, the Haskell bindings will be
+configured to look for LLVM in `/usr/local`.
 
-If you have LLVM installed in a different location, e.g. /usr, you can
-tell the configure script where to find it as follows:
+If you have LLVM installed in a different location, e.g. `/usr`, you
+can tell the `configure` script where to find it as follows:
 
-  cabal install --configure-option=--with-llvm-prefix=/usr
-
-  runghc Setup configure --configure-option=--with-llvm-prefix=/usr
+    cabal install --configure-option=--with-llvm-prefix=/usr
 
 
 Package status - what to expect
@@ -43,8 +36,9 @@ Jump in and help!
 
 We welcome your comments and contributions.  You can send email to us
 at <bos@serpentine.com> or <lennart@augustsson.net>.  If you want to
-send patches, please get a copy of the darcs repository:
+send patches, please clone a copy of the
+[git repository](https://github.com/bos/llvm):
 
-  darcs get http://code.haskell.org/llvm/
+    git clone git://github.com/bos/llvm
 
 Thanks!

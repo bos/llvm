@@ -1,5 +1,5 @@
 name:          llvm
-version:       0.9.1.1
+version:       0.9.1.2
 license:       BSD3
 license-file:  LICENSE
 synopsis:      Bindings to the LLVM compiler toolkit.
@@ -25,19 +25,19 @@ description:
   * New in 0.7.0.0: Adapted to LLVM 2.6;
 author:        Bryan O'Sullivan, Lennart Augustsson
 maintainer:    Bryan O'Sullivan <bos@serpentine.com>, Lennart Augustsson <lennart@augustsson.net>
-bug-reports:   Lennart Augustsson <lennart@augustsson.net>
-homepage:      http://code.haskell.org/llvm/
+homepage:      https://github.com/bos/llvm
+bug-reports:   https://github.com/bos/llvm/issues
 stability:     experimental
 category:      Compilers/Interpreters, Code Generation
-tested-with:   GHC == 6.10.4, GHC == 6.12.3
+tested-with:   GHC == 6.10.4, GHC == 6.12.3, GHC == 7.0.3
 cabal-version: >= 1.10
 build-type:    Custom
 
 extra-source-files:
-    INSTALL.txt
+    INSTALL.md
     Makefile
-    PROBLEMS.txt
-    README.txt
+    PROBLEMS.md
+    README.md
     configure
     configure.ac
     examples/Align.hs
@@ -137,5 +137,9 @@ library
     cbits/free.c
 
 source-repository head
-  type:     darcs
-  location: http://code.haskell.org/llvm/
+  type:     git
+  location: https://github.com/bos/llvm/
+
+source-repository head
+  type:     mercurial
+  location: https://github.com/bos/llvm/

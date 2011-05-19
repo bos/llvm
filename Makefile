@@ -34,6 +34,11 @@ examples:
 tests:
 	$(MAKE) -C tests
 
+html: INSTALL.html PROBLEMS.html README.html
+
+%.html: %.md
+	pandoc -s -o $@ $<
+
 doc haddock: dist/setup-config
 	./setup haddock
 

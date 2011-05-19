@@ -1,0 +1,7 @@
+^(?:INSTALL.html|PROBLEMS.html|README.html|autom4te.cache|dist|llvm.buildinfo)$
+^config\.(?:status)$
+^tests/(?:\.hpc|ps)$
+\.(?:aux|eventlog|h[ip]|log|[oa]|orig|prof|ps|rej|swp)$
+~$
+syntax: glob
+.\#*
