@@ -98,7 +98,7 @@ AC_CHECK_HEADERS([llvm-c/Core.h], [],
 CC=$CXX
 
 save_LIBS="$LIBS"
-LIBS="-lLLVMSupport -lLLVMSystem $LIBS"
+LIBS="-lLLVMSupport -lLLVMSystem -lpthread -ldl $LIBS"
 
 AC_CHECK_LIB(LLVMCore, LLVMModuleCreateWithName, [], [])
 if test "$ac_cv_lib_LLVMCore_LLVMModuleCreateWithName" = "no"; then

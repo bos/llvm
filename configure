@@ -3910,7 +3910,7 @@ done
 CC=$CXX
 
 save_LIBS="$LIBS"
-LIBS="-lLLVMSupport -lLLVMSystem $LIBS"
+LIBS="-lLLVMSupport -lLLVMSystem -lpthread -ldl $LIBS"
 
 
 { echo "$as_me:$LINENO: checking for LLVMModuleCreateWithName in -lLLVMCore" >&5
