@@ -54,7 +54,7 @@ module LLVM.Core(
     CodeGenFunction, CodeGenModule,
     -- * Functions
     Function, newFunction, newNamedFunction, defineFunction, createFunction, createNamedFunction, setFuncCallConv,
-    TFunction,
+    TFunction, liftCodeGenModule,
     -- * Global variable creation
     Global, newGlobal, newNamedGlobal, defineGlobal, createGlobal, createNamedGlobal,
     externFunction, staticFunction,
@@ -74,7 +74,7 @@ module LLVM.Core(
 import qualified LLVM.FFI.Core as FFI
 import LLVM.Core.Util hiding (Function, BasicBlock, createModule, constString, constStringNul, constVector, constArray, constStruct, getModuleValues, valueHasType)
 import LLVM.Core.CodeGen
-import LLVM.Core.CodeGenMonad(CodeGenFunction, CodeGenModule, GlobalMappings, getGlobalMappings)
+import LLVM.Core.CodeGenMonad(CodeGenFunction, CodeGenModule, liftCodeGenModule, GlobalMappings, getGlobalMappings)
 import LLVM.Core.Data
 import LLVM.Core.Instructions
 import LLVM.Core.Type

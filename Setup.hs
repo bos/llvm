@@ -106,8 +106,7 @@ register' pkg@PackageDescription { library       = Just lib  }
     modeGenerateRegScript = fromFlag (regGenScript regFlags)
     inplace   = fromFlag (regInPlace regFlags)
     packageDb = case flagToList (regPackageDB regFlags) of
-                    [] -> [GlobalPackageDB,
-                           registrationPackageDB (withPackageDB lbi)]
+                    [] -> [registrationPackageDB (withPackageDB lbi)]
                     xs -> xs
     distPref  = fromFlag (regDistPref regFlags)
     verbosity = fromFlag (regVerbosity regFlags)
