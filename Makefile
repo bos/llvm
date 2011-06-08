@@ -20,7 +20,7 @@ dist/setup-config: setup configure llvm.cabal llvm.buildinfo.in
 	./setup configure --user --prefix=$(prefix) --libdir=$(prefix)/$(_lib) \
 	    --configure-option --with-llvm-prefix=$(llvm_prefix) $(user_flag)
 
-setup: Setup.lhs
+setup: Setup.hs
 	$(ghc) --make -O -o $@ $<
 
 configure: configure.ac
