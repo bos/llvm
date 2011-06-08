@@ -4,7 +4,7 @@ module LLVM.Core.CodeGenMonad(
     CodeGenModule, runCodeGenModule, genMSym, getModule,
     GlobalMappings(..), addGlobalMapping, getGlobalMappings,
     -- * Function code generation
-    CodeGenFunction, runCodeGenFunction, genFSym, getFunction, getBuilder, getFunctionModule, getExterns, putExterns,
+    CodeGenFunction, runCodeGenFunction, liftCodeGenModule, genFSym, getFunction, getBuilder, getFunctionModule, getExterns, putExterns,
     -- * Reexport
     liftIO
     ) where
@@ -112,4 +112,14 @@ runCodeGenFunction bld fn (CGF body) = do
 			 cgf_next = 1 }
     (a, cgf') <- liftIO $ runStateT body cgf
     put (cgf_module cgf')
+    return a
+
+--------------------------------------
+
+-- | Allows you to define part of a module while in the middle of defining a function.
+liftCodeGenModule :: CodeGenModule a -> CodeGenFunction r a
+liftCodeGenModule (CGM act) = do
+    cgf <- get
+    (a, cgm') <- liftIO $ runStateT act (cgf_module cgf)
+    put (cgf { cgf_module = cgm' })
     return a
