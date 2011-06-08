@@ -30,8 +30,6 @@ foreign import ccall unsafe "LLVMAddLICMPass" addLICMPass
     :: PassManagerRef -> IO ()
 foreign import ccall unsafe "LLVMAddLoopDeletionPass" addLoopDeletionPass
     :: PassManagerRef -> IO ()
-foreign import ccall unsafe "LLVMAddLoopIndexSplitPass" addLoopIndexSplitPass
-    :: PassManagerRef -> IO ()
 foreign import ccall unsafe "LLVMAddLoopRotatePass" addLoopRotatePass
     :: PassManagerRef -> IO ()
 foreign import ccall unsafe "LLVMAddLoopUnrollPass" addLoopUnrollPass
