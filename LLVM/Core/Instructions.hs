@@ -630,16 +630,16 @@ select (Value cnd) (Value thn) (Value els) =
 type Caller = FFI.BuilderRef -> [FFI.ValueRef] -> IO FFI.ValueRef
 
 -- |Acceptable arguments to 'call'.
-class CallArgs f g | f -> g, g -> f where
+class CallArgs r f g | g -> r f, f r -> g where
     doCall :: Caller -> [FFI.ValueRef] -> f -> g
 
-instance (CallArgs b b') => CallArgs (a -> b) (Value a -> b') where
+instance (CallArgs r b b') => CallArgs r (a -> b) (Value a -> b') where
     doCall mkCall args f (Value arg) = doCall mkCall (arg : args) (f (undefined :: a))
 
 --instance (CallArgs b b') => CallArgs (a -> b) (ConstValue a -> b') where
 --    doCall mkCall args f (ConstValue arg) = doCall mkCall (arg : args) (f (undefined :: a))
 
-instance CallArgs (IO a) (CodeGenFunction r (Value a)) where
+instance CallArgs r (IO a) (CodeGenFunction r (Value a)) where
     doCall = doCallDef
 
 doCallDef :: Caller -> [FFI.ValueRef] -> b -> CodeGenFunction r (Value a)
@@ -649,11 +649,11 @@ doCallDef mkCall args _ =
 
 -- | Call a function with the given arguments.  The 'call' instruction is variadic, i.e., the number of arguments
 -- it takes depends on the type of /f/.
-call :: (CallArgs f g) => Function f -> g
+call :: (CallArgs r f g) => Function f -> g
 call (Value f) = doCall (U.makeCall f) [] (undefined :: f)
 
 -- | Call a function with exception handling.
-invoke :: (CallArgs f g)
+invoke :: (CallArgs r f g)
        => BasicBlock         -- ^Normal return point.
        -> BasicBlock         -- ^Exception return point.
        -> Function f         -- ^Function to call.
@@ -668,7 +668,7 @@ invoke (BasicBlock norm) (BasicBlock expt) (Value f) =
 -- As LLVM itself defines, if the calling conventions of the calling
 -- /instruction/ and the function being /called/ are different, undefined
 -- behavior results.
-callWithConv :: (CallArgs f g) => FFI.CallingConvention -> Function f -> g
+callWithConv :: (CallArgs r f g) => FFI.CallingConvention -> Function f -> g
 callWithConv cc (Value f) = doCall (U.makeCallWithCc cc f) [] (undefined :: f)
 
 -- | Call a function with exception handling.
@@ -676,7 +676,7 @@ callWithConv cc (Value f) = doCall (U.makeCallWithCc cc f) [] (undefined :: f)
 -- As LLVM itself defines, if the calling conventions of the calling
 -- /instruction/ and the function being /called/ are different, undefined
 -- behavior results.
-invokeWithConv :: (CallArgs f g)
+invokeWithConv :: (CallArgs r f g)
                => FFI.CallingConvention -- ^Calling convention
                -> BasicBlock         -- ^Normal return point.
                -> BasicBlock         -- ^Exception return point.

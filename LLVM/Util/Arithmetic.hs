@@ -288,7 +288,7 @@ instance (UncurryN a (a1 -> CodeGenFunction r b1), LiftTuple r a1 b, UncurryN a2
     unwrapArgs f = curryN $ \ x -> do x' <- liftTuple x; uncurryN f x'
 
 -- |Lift a function from having @Value@ arguments to having @TValue@ arguments.
-toArithFunction :: (CallArgs f g, UnwrapArgs a a1 b1 b g r) =>
+toArithFunction :: (CallArgs r f g, UnwrapArgs a a1 b1 b g r) =>
                     Function f -> a
 toArithFunction f = unwrapArgs (call f)
 
@@ -296,8 +296,8 @@ toArithFunction f = unwrapArgs (call f)
 
 -- |Define a recursive 'arithFunction', gets passed itself as the first argument.
 recursiveFunction ::
-        (CallArgs a g,
-         UnwrapArgs a11 a1 b1 b g r,
+        (CallArgs r0 a g,
+         UnwrapArgs a11 a1 b1 b g r0,
          FunctionArgs a a2 (CodeGenFunction r1 ()),
          ArithFunction a3 a2,
          IsFunction a) =>
