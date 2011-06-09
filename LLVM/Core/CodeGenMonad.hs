@@ -81,14 +81,10 @@ putExterns es = do
     put (cgf { cgf_module = cgm' })
 
 addGlobalMapping ::
-    Function -> Ptr () -> CodeGenFunction r ()
-addGlobalMapping value func =
-    -- could be written in a nicer way using Data.Accessor
-    modify $ \cgf ->
-       let cgm = cgf_module cgf
-       in  cgf { cgf_module =
-              cgm { cgm_global_mappings =
-                 (value,func) : cgm_global_mappings cgm } }
+    Function -> Ptr () -> CodeGenModule ()
+addGlobalMapping value func = modify $ \cgm ->
+        cgm { cgm_global_mappings =
+                 (value,func) : cgm_global_mappings cgm }
 
 newtype GlobalMappings =
    GlobalMappings [(Function, Ptr ())]
