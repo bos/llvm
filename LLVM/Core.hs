@@ -58,6 +58,7 @@ module LLVM.Core(
     -- * Global variable creation
     Global, newGlobal, newNamedGlobal, defineGlobal, createGlobal, createNamedGlobal,
     externFunction, staticFunction,
+    externGlobal, staticGlobal,
     GlobalMappings, getGlobalMappings,
     TGlobal,
     -- * Globals
