@@ -15,6 +15,7 @@ module LLVM.Core.CodeGen(
     TFunction,
     -- * Global variable creation
     Global, newGlobal, newNamedGlobal, defineGlobal, createGlobal, createNamedGlobal, TGlobal,
+    externGlobal, staticGlobal,
     -- * Values
     Value(..), ConstValue(..),
     IsConst(..), valueOf, value,
@@ -33,7 +34,7 @@ import Control.Monad(liftM, when)
 import Data.Int
 import Data.Word
 import Foreign.StablePtr (StablePtr, castStablePtrToPtr)
-import Foreign.Ptr(minusPtr, nullPtr, FunPtr, castFunPtrToPtr)
+import Foreign.Ptr(minusPtr, nullPtr, castPtr, FunPtr, castFunPtrToPtr)
 import Foreign.Storable(sizeOf)
 import Data.TypeLevel hiding (Bool, Eq, (+), (==))
 import LLVM.Core.CodeGenMonad
@@ -327,18 +328,25 @@ fromLabel (Value ptr) = BasicBlock (FFI.valueAsBasicBlock ptr)
 
 --------------------------------------
 
+--- XXX: the functions in this section (and addGlobalMapping) don't actually use any
+-- Function state so should really be in the CodeGenModule monad
+
 -- | Create a reference to an external function while code generating for a function.
 -- If LLVM cannot resolve its name, then you may try 'staticFunction'.
 externFunction :: forall a r . (IsFunction a) => String -> CodeGenFunction r (Function a)
-externFunction name = do
+externFunction name = externCore name $ fmap (unValue :: Function a -> FFI.ValueRef) . newNamedFunction ExternalLinkage
+
+-- | As 'externFunction', but for 'Global's rather than 'Function's
+externGlobal :: forall a r . (IsType a) => Bool -> String -> CodeGenFunction r (Global a)
+externGlobal isConst name = externCore name $ fmap (unValue :: Global a -> FFI.ValueRef) . newNamedGlobal isConst ExternalLinkage
+
+externCore :: forall a r . String -> (String -> CodeGenModule FFI.ValueRef) -> CodeGenFunction r (Global a)
+externCore name act = do
     es <- getExterns
     case lookup name es of
         Just f -> return $ Value f
         Nothing -> do
-            let linkage = ExternalLinkage
-            modul <- getFunctionModule
-            let typ = typeRef (undefined :: a)
-            f <- liftIO $ U.addFunction modul linkage name typ
+            f <- liftCodeGenModule $ act name
             putExterns ((name, f) : es)
 	    return $ Value f
 
@@ -361,15 +369,18 @@ and installed by 'ExecutionEngine.addGlobalMappings'.
 \"Installing\" means calling LLVM's @addGlobalMapping@ according to
 <http://old.nabble.com/jit-with-external-functions-td7769793.html>.
 -}
-staticFunction :: (IsFunction f) => FunPtr f -> CodeGenFunction r (Function f)
-staticFunction func = do
-    modul <- getFunctionModule
-    let typ :: IsType a => FunPtr a -> a -> FFI.TypeRef
-        typ _ x = typeRef x
-    val <- liftIO $ U.addFunction modul ExternalLinkage
-           "" (typ func undefined)
-    addGlobalMapping val (castFunPtrToPtr func)
-    return $ Value val
+staticFunction :: forall f r. (IsFunction f) => FunPtr f -> CodeGenFunction r (Function f)
+staticFunction func = liftCodeGenModule $ do
+    val <- newNamedFunction ExternalLinkage ""
+    addGlobalMapping (unValue (val :: Function f)) (castFunPtrToPtr func)
+    return val
+
+-- | As 'staticFunction', but for 'Global's rather than 'Function's
+staticGlobal :: forall a r. (IsType a) => Bool -> Ptr a -> CodeGenFunction r (Global a)
+staticGlobal isConst gbl = liftCodeGenModule $ do
+    val <- newNamedGlobal isConst ExternalLinkage ""
+    addGlobalMapping (unValue (val :: Global a)) (castPtr gbl)
+    return val
 
 --------------------------------------
 
