@@ -1,4 +1,7 @@
-{-# LANGUAGE ScopedTypeVariables, EmptyDataDecls, FlexibleInstances, FlexibleContexts, UndecidableInstances, MultiParamTypeClasses, FunctionalDependencies, TypeSynonymInstances, IncoherentInstances, TypeOperators, DeriveDataTypeable #-}
+{-# LANGUAGE CPP, DeriveDataTypeable, EmptyDataDecls, FlexibleContexts,
+  FlexibleInstances, FunctionalDependencies, IncoherentInstances,
+  MultiParamTypeClasses, ScopedTypeVariables, TypeOperators,
+  TypeSynonymInstances, UndecidableInstances #-}
 -- |The LLVM type system is captured with a number of Haskell type classes.
 -- In general, an LLVM type @T@ is represented as @Value T@, where @T@ is some Haskell type.
 -- The various types @T@ are classified by various type classes, e.g., 'IsFirstClass' for
@@ -41,6 +44,8 @@ import Foreign.StablePtr (StablePtr, )
 import LLVM.Core.Util(functionType, structType)
 import LLVM.Core.Data
 import qualified LLVM.FFI.Core as FFI
+
+#include "MachDeps.h"
 
 -- TODO:
 -- Move IntN, WordN to a special module that implements those types
@@ -344,7 +349,14 @@ instance (StructFields as) => IsSized (Struct as) UnknownSize
 instance (StructFields as) => IsSized (PackedStruct as) UnknownSize
 
 type UnknownSize = D99   -- XXX this is wrong!
-type PtrSize = D32   -- XXX this is wrong!
+
+#if WORD_SIZE_IN_BITS == 32
+type PtrSize = D32
+#elif WORD_SIZE_IN_BITS == 64
+type PtrSize = D64
+#else
+#error cannot determine type of PtrSize
+#endif
 
 instance IsPrimitive Float
 instance IsPrimitive Double
