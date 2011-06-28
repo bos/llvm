@@ -79,7 +79,8 @@ library
     directory,
     mtl,
     process,
-    type-level
+    type-level,
+    containers
 
   ghc-options: -Wall
 
@@ -135,6 +136,7 @@ library
   C-Sources:
     cbits/malloc.c
     cbits/free.c
+    cbits/extra.cpp
 
 source-repository head
   type:     git

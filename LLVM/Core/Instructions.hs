@@ -1,5 +1,7 @@
 {-# LANGUAGE MultiParamTypeClasses, FunctionalDependencies, FlexibleInstances, UndecidableInstances, TypeSynonymInstances, ScopedTypeVariables, OverlappingInstances, FlexibleContexts, TypeOperators, DeriveDataTypeable, ForeignFunctionInterface #-}
 module LLVM.Core.Instructions(
+    -- * ADT representation of IR
+    BinOpDesc(..), InstrDesc(..), ArgDesc(..), getInstrDesc,
     -- * Terminator instructions
     ret,
     condBr,
@@ -60,6 +62,7 @@ import Data.Typeable
 import Control.Monad(liftM)
 import Data.Int
 import Data.Word
+import Data.Map(fromList, (!))
 import Foreign.Ptr (FunPtr, )
 import Foreign.C(CInt, CUInt)
 import Data.TypeLevel((:<:), (:>:), (:==:), D0, d1, toNum, Succ)
@@ -75,6 +78,136 @@ import qualified LLVM.Core.Util as U
 -- Add rest of instructions
 -- Use Terminate to ensure bb termination (how?)
 -- more intrinsics are needed to, e.g., create an empty vector
+
+data ArgDesc = AV String | AI Int | AL String | AE
+
+instance Show ArgDesc where
+    -- show (AV s) = "V_" ++ s
+    -- show (AI i) = "I_" ++ show i
+    -- show (AL l) = "L_" ++ l
+    show (AV s) = s
+    show (AI i) = show i
+    show (AL l) = l
+    show AE = "voidarg?"
+
+data BinOpDesc = BOAdd | BOAddNuw | BOAddNsw | BOAddNuwNsw | BOFAdd
+               | BOSub | BOSubNuw | BOSubNsw | BOSubNuwNsw | BOFSub
+               | BOMul | BOMulNuw | BOMulNsw | BOMulNuwNsw | BOFMul
+               | BOUDiv | BOSDiv | BOSDivExact | BOFDiv | BOURem | BOSRem | BOFRem
+               | BOShL | BOLShR | BOAShR | BOAnd | BOOr | BOXor
+    deriving Show
+
+-- FIXME: complete definitions for unimplemented instructions
+data InstrDesc =
+    -- terminators
+    IDRet TypeDesc ArgDesc | IDRetVoid
+  | IDBrCond ArgDesc ArgDesc ArgDesc | IDBrUncond ArgDesc
+  | IDSwitch [(ArgDesc, ArgDesc)]
+  | IDIndirectBr
+  | IDInvoke
+  | IDUnwind
+  | IDUnreachable
+    -- binary operators (including bitwise)
+  | IDBinOp BinOpDesc TypeDesc ArgDesc ArgDesc
+    -- memory access and addressing
+  | IDAlloca TypeDesc Int Int | IDLoad TypeDesc ArgDesc | IDStore TypeDesc ArgDesc ArgDesc
+  | IDGetElementPtr TypeDesc [ArgDesc]
+    -- conversion
+  | IDTrunc TypeDesc TypeDesc ArgDesc | IDZExt TypeDesc TypeDesc ArgDesc
+  | IDSExt TypeDesc TypeDesc ArgDesc | IDFPtoUI TypeDesc TypeDesc ArgDesc
+  | IDFPtoSI TypeDesc TypeDesc ArgDesc | IDUItoFP TypeDesc TypeDesc ArgDesc
+  | IDSItoFP TypeDesc TypeDesc ArgDesc
+  | IDFPTrunc TypeDesc TypeDesc ArgDesc | IDFPExt TypeDesc TypeDesc ArgDesc
+  | IDPtrToInt TypeDesc TypeDesc ArgDesc | IDIntToPtr TypeDesc TypeDesc ArgDesc
+  | IDBitcast TypeDesc TypeDesc ArgDesc
+    -- other
+  | IDICmp IntPredicate ArgDesc ArgDesc | IDFCmp FPPredicate ArgDesc ArgDesc
+  | IDPhi TypeDesc [(ArgDesc, ArgDesc)] | IDCall TypeDesc ArgDesc [ArgDesc]
+  | IDSelect TypeDesc ArgDesc ArgDesc | IDUserOp1 | IDUserOp2 | IDVAArg
+    -- vector operators
+  | IDExtractElement | IDInsertElement | IDShuffleVector
+    -- aggregate operators
+  | IDExtractValue | IDInsertValue
+    -- invalid
+  | IDInvalidOp
+    deriving Show
+
+-- TODO: overflow support for binary operations (add/sub/mul)
+getInstrDesc :: FFI.ValueRef -> IO (String, InstrDesc)
+getInstrDesc v = do
+    valueName <- U.getValueNameU v
+    opcode <- FFI.instGetOpcode v
+    t <- FFI.typeOf v >>= typeDesc2
+    -- FIXME: sizeof() does not work for types!
+    --tsize <- FFI.typeOf v -- >>= FFI.sizeOf -- >>= FFI.constIntGetZExtValue >>= return . fromIntegral
+    tsize <- return 1
+    os <- U.getOperands v >>= mapM getArgDesc
+    os0 <- if length os > 0 then return $ os !! 0 else return AE
+    os1 <- if length os > 1 then return $ os !! 1 else return AE
+    t2 <- (if not (null os) && (opcode >= 30 || opcode <= 41)
+            then U.getOperands v >>= return . snd . head >>= FFI.typeOf >>= typeDesc2
+            else return TDVoid)
+    p <- if opcode `elem` [42, 43] then FFI.cmpInstGetPredicate v else return 0
+    let instr =
+            (if opcode >= 8 && opcode <= 25 -- binary arithmetic
+             then IDBinOp (getBinOp opcode) t os0 os1
+             else if opcode >= 30 && opcode <= 41 -- conversion
+                  then (getConvOp opcode) t2 t os0
+                  else case opcode of
+                         { 1 -> if null os then IDRetVoid else IDRet t os0;
+                           2 -> if length os == 1 then IDBrUncond os0 else IDBrCond os0 (os !! 2) os1;
+                           3 -> IDSwitch $ toPairs os;
+                           -- TODO (can skip for now)
+                           -- 4 -> IndirectBr ; 5 -> Invoke ;
+                           6 -> IDUnwind; 7 -> IDUnreachable;
+                           26 -> IDAlloca (getPtrType t) tsize (getImmInt os0);
+                           27 -> IDLoad t os0; 28 -> IDStore t os0 os1;
+                           29 -> IDGetElementPtr t os;
+                           42 -> IDICmp (toIntPredicate p) os0 os1;
+                           43 -> IDFCmp (toFPPredicate p) os0 os1;
+                           44 -> IDPhi t $ toPairs os;
+                           -- FIXME: getelementptr arguments are not handled
+                           45 -> IDCall t (last os) (init os);
+                           46 -> IDSelect t os0 os1;
+                           -- TODO (can skip for now)
+                           -- 47 -> UserOp1 ; 48 -> UserOp2 ; 49 -> VAArg ;
+                           -- 50 -> ExtractElement ; 51 -> InsertElement ; 52 -> ShuffleVector ;
+                           -- 53 -> ExtractValue ; 54 -> InsertValue ;
+                           _ -> IDInvalidOp })
+    return (valueName, instr)
+    --if instr /= InvalidOp then return instr else fail $ "Invalid opcode: " ++ show opcode
+        where getBinOp o = fromList [(8, BOAdd), (9, BOFAdd), (10, BOSub), (11, BOFSub),
+                                     (12, BOMul), (13, BOFMul), (14, BOUDiv), (15, BOSDiv),
+                                     (16, BOFDiv), (17, BOURem), (18, BOSRem), (19, BOFRem),
+                                     (20, BOShL), (21, BOLShR), (22, BOAShR), (23, BOAnd),
+                                     (24, BOOr), (25, BOXor)] ! o
+              getConvOp o = fromList [(30, IDTrunc), (31, IDZExt), (32, IDSExt), (33, IDFPtoUI),
+                                      (34, IDFPtoSI), (35, IDUItoFP), (36, IDSItoFP), (37, IDFPTrunc),
+                                      (38, IDFPExt), (39, IDPtrToInt), (40, IDIntToPtr), (41, IDBitcast)] ! o
+              toPairs xs = zip (stride 2 xs) (stride 2 (drop 1 xs))
+              stride _ [] = []
+              stride n (x:xs) = x : stride n (drop (n-1) xs)
+              getPtrType (TDPtr t) = t
+              getPtrType _ = TDVoid
+              getImmInt (AI i) = i
+              getImmInt _ = 0
+
+-- TODO: fix for non-int constants
+getArgDesc :: (String, FFI.ValueRef) -> IO ArgDesc
+getArgDesc (vname, v) = do
+    isC <- U.isConstant v
+    t <- FFI.typeOf v >>= typeDesc2
+    if isC
+      then case t of
+             TDInt _ _ -> do
+                          cV <- FFI.constIntGetSExtValue v
+                          return $ AI $ fromIntegral cV
+             _ -> return AE
+      else case t of
+             TDLabel -> return $ AL vname
+             _ -> return $ AV vname
+
+--------------------------------------
 
 type Terminate = ()
 terminate :: Terminate
@@ -512,6 +645,9 @@ data IntPredicate =
 fromIntPredicate :: IntPredicate -> CInt
 fromIntPredicate p = fromIntegral (fromEnum p + 32)
 
+toIntPredicate :: Int -> IntPredicate
+toIntPredicate p = toEnum $ fromIntegral p - 32
+
 data FPPredicate =
     FPFalse           -- ^ Always false (always folded)
   | FPOEQ             -- ^ True if ordered and equal
@@ -533,6 +669,9 @@ data FPPredicate =
 
 fromFPPredicate :: FPPredicate -> CInt
 fromFPPredicate p = fromIntegral (fromEnum p)
+
+toFPPredicate :: Int -> FPPredicate
+toFPPredicate p = toEnum $ fromIntegral p
 
 -- |Acceptable operands to comparison instructions.
 class CmpOp a b c d | a b -> c where

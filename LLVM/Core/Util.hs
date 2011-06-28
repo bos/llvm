@@ -2,7 +2,7 @@
 module LLVM.Core.Util(
     -- * Module handling
     Module(..), withModule, createModule, destroyModule, writeBitcodeToFile, readBitcodeFromFile,
-    getModuleValues, valueHasType,
+    getModuleValues, getFunctions, getGlobalVariables, valueHasType,
     -- * Module provider handling
     ModuleProvider(..), withModuleProvider, createModuleProviderForExistingModule,
     -- * Pass manager handling
@@ -12,10 +12,10 @@ module LLVM.Core.Util(
     Builder(..), withBuilder, createBuilder, positionAtEnd, getInsertBlock,
     -- * Basic blocks
     BasicBlock,
-    appendBasicBlock,
+    appendBasicBlock, getBasicBlocks,
     -- * Functions
     Function,
-    addFunction, getParam,
+    addFunction, getParam, getParams,
     -- * Structs
     structType,
     -- * Globals
@@ -24,11 +24,12 @@ module LLVM.Core.Util(
     -- * Instructions
     makeCall, makeInvoke,
     makeCallWithCc, makeInvokeWithCc,
+    withValue, getInstructions, getOperands,
     -- * Misc
     CString, withArrayLen,
     withEmptyCString,
     functionType, buildEmptyPhi, addPhiIns,
-    showTypeOf, getValueNameU,
+    showTypeOf, getValueNameU, getObjList, annotateValueList, isConstant,
     -- * Transformation passes
     addCFGSimplificationPass, addConstantPropagationPass, addDemoteMemoryToRegisterPass,
     addGVNPass, addInstructionCombiningPass, addPromoteMemoryToRegisterPass, addReassociatePass,
@@ -36,7 +37,7 @@ module LLVM.Core.Util(
     ) where
 import Data.Typeable
 import Data.List(intercalate)
-import Control.Monad(liftM, when)
+import Control.Monad(liftM, filterM, when)
 import Foreign.C.String (withCString, withCStringLen, CString, peekCString)
 import Foreign.ForeignPtr (ForeignPtr, newForeignPtr, newForeignPtr_, withForeignPtr)
 import Foreign.Ptr (nullPtr)
@@ -133,24 +134,15 @@ readBitcodeFromFile name =
 
 getModuleValues :: Module -> IO [(String, Value)]
 getModuleValues mdl = do
-    withModule mdl $ \ mdlPtr -> do
-      ffst <- FFI.getFirstFunction mdlPtr
-      let floop p = if p == nullPtr then return [] else do
-              n <- FFI.getNextFunction p
-              ps <- floop n
-              sptr <- FFI.getValueName p
-              s <- peekCString sptr
-              return ((s, p) : ps)
-      fs <- floop ffst
-      gfst <- FFI.getFirstGlobal mdlPtr
-      let gloop p = if p == nullPtr then return [] else do
-              n <- FFI.getNextGlobal p
-              ps <- gloop n
-              sptr <- FFI.getValueName p
-              s <- peekCString sptr
-              return ((s, p) : ps)
-      gs <- gloop gfst
-      return (fs ++ gs)
+  fs <- getFunctions mdl
+  gs <- getGlobalVariables mdl
+  return (fs ++ gs)
+
+getFunctions :: Module -> IO [(String, Value)]
+getFunctions mdl = getObjList withModule FFI.getFirstFunction FFI.getNextFunction mdl >>= filterM isIntrinsic >>= annotateValueList
+
+getGlobalVariables :: Module -> IO [(String, Value)]
+getGlobalVariables mdl = getObjList withModule FFI.getFirstGlobal FFI.getNextGlobal mdl >>= annotateValueList
 
 -- This is safe because we just ask for the type of a value.
 valueHasType :: Value -> Type -> Bool
@@ -245,6 +237,9 @@ appendBasicBlock func name =
     withCString name $ \ namePtr ->
       FFI.appendBasicBlock func namePtr
 
+getBasicBlocks :: Value -> IO [(String, Value)]
+getBasicBlocks v = getObjList withValue FFI.getFirstBasicBlock FFI.getNextBasicBlock v >>= annotateValueList
+
 --------------------------------------
 
 type Function = FFI.ValueRef
@@ -259,6 +254,9 @@ addFunction modul linkage name typ =
 
 getParam :: Function -> Int -> Value
 getParam f = FFI.getParam f . fromIntegral
+
+getParams :: Value -> IO [(String, Value)]
+getParams v = getObjList withValue FFI.getFirstParam FFI.getNextParam v >>= annotateValueList
 
 --------------------------------------
 
@@ -285,6 +283,9 @@ constStringNul = constStringInternal True
 --------------------------------------
 
 type Value = FFI.ValueRef
+
+withValue :: Value -> (Value -> IO a) -> IO a
+withValue v f = f v
 
 makeCall :: Function -> FFI.BuilderRef -> [Value] -> IO Value
 makeCall = makeCallWithCc FFI.C
@@ -316,6 +317,19 @@ makeInvokeWithCc cc norm expt func bldPtr args =
           i <- FFI.buildInvoke bldPtr func argPtr (fromIntegral argLen) norm expt cstr
           FFI.setInstructionCallConv i (FFI.fromCallingConvention cc)
           return i
+
+getInstructions :: Value -> IO [(String, Value)]
+getInstructions bb = getObjList withValue FFI.getFirstInstruction FFI.getNextInstruction bb >>= annotateValueList
+
+getOperands :: Value -> IO [(String, Value)]
+getOperands ii = geto ii >>= annotateValueList
+    where geto i = do
+            num <- FFI.getNumOperands i
+            let oloop instr number total = if number >= total then return [] else do
+                    o <- FFI.getOperand instr number
+                    os <- oloop instr (number + 1) total
+                    return (o : os)
+            oloop i 0 num
 
 --------------------------------------
 
@@ -422,3 +436,26 @@ getValueNameU :: Value -> IO String
 getValueNameU a = do
     cs <- FFI.getValueName a
     peekCString cs
+
+getObjList withF firstF nextF obj = do
+    withF obj $ \ objPtr -> do
+      ofst <- firstF objPtr 
+      let oloop p = if p == nullPtr then return [] else do
+              n <- nextF p
+              ps <- oloop n
+              return (p : ps)
+      oloop ofst
+
+annotateValueList :: [Value] -> IO [(String, Value)]
+annotateValueList vs = do
+  names <- mapM getValueNameU vs
+  return $ zip names vs
+
+isConstant :: Value -> IO Bool
+isConstant v = do
+  isC <- FFI.isConstant v
+  if isC == 0 then return False else return True
+
+isIntrinsic :: Value -> IO Bool
+isIntrinsic v = do
+  if FFI.getIntrinsicID v == 0 then return True else return False

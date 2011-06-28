@@ -262,6 +262,9 @@ module LLVM.FFI.Core
     , getInsertBlock
     , getBasicBlockParent
 
+    -- * Instruction field accessors
+    , instGetOpcode, cmpInstGetPredicate
+
     -- * Instruction building
     , Builder
     , BuilderRef
@@ -486,6 +489,7 @@ module LLVM.FFI.Core
     , getMDKindIDInContext
     , getMetadata
     , getOperand
+    , getNumOperands
 --    , getUnionElementTypes
     , hasMetadata
     , insertIntoBuilder
@@ -1037,6 +1041,12 @@ foreign import ccall unsafe "LLVMInsertBasicBlock" insertBasicBlock
 
 foreign import ccall unsafe "LLVMDeleteBasicBlock" deleteBasicBlock
     :: BasicBlockRef -> IO ()
+
+foreign import ccall unsafe "LLVMInstGetOpcode" instGetOpcode
+    :: ValueRef -> IO Int
+
+foreign import ccall unsafe "LLVMCmpInstGetPredicate" cmpInstGetPredicate
+    :: ValueRef -> IO Int
 
 data Builder
     deriving (Typeable)
@@ -1661,6 +1671,8 @@ foreign import ccall unsafe "LLVMGetNextUse" getNextUse
     :: UseRef -> IO UseRef
 foreign import ccall unsafe "LLVMGetOperand" getOperand
     :: ValueRef -> CUInt -> IO ValueRef
+foreign import ccall unsafe "LLVMGetNumOperands" getNumOperands
+    :: ValueRef -> IO CUInt
 {-
 foreign import ccall unsafe "LLVMGetUnionElementTypes" getUnionElementTypes
     :: TypeRef -> (Ptr TypeRef) -> IO ()

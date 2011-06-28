@@ -33,6 +33,7 @@ module LLVM.Core.Type(
     isSigned,
     typeRef,
     typeName,
+    typeDesc2,
     VarArgs, CastVarArgs,
     ) where
 import Data.Typeable
@@ -88,11 +89,46 @@ typeName = code . typeDesc
                                     intercalate "," (map code as) ++
                                     (if packed then "}>" else "}")
 
+typeDesc2 :: FFI.TypeRef -> IO TypeDesc
+typeDesc2 t = do
+    tk <- FFI.getTypeKind t
+    case tk of
+      FFI.VoidTypeKind -> return TDVoid
+      FFI.FloatTypeKind -> return TDFloat
+      FFI.DoubleTypeKind -> return TDDouble
+      -- FIXME: FFI.X86_FP80TypeKind -> return "X86_FP80"
+      FFI.FP128TypeKind -> return TDFP128
+      -- FIXME: FFI.PPC_FP128TypeKind -> return "PPC_FP128"
+      FFI.LabelTypeKind -> return TDLabel
+      FFI.IntegerTypeKind -> do
+                n <- FFI.getIntTypeWidth t
+                return $ TDInt False (fromIntegral n)
+      -- FIXME: FFI.FunctionTypeKind
+      -- FIXME: FFI.StructTypeKind -> return "(Struct ...)"
+      FFI.ArrayTypeKind -> do
+                n <- FFI.getArrayLength t
+                et <- FFI.getElementType t
+                etd <- typeDesc2 et
+                return $ TDArray (fromIntegral n) etd
+      FFI.PointerTypeKind -> do
+                et <- FFI.getElementType t
+                etd <- typeDesc2 et
+                return $ TDPtr etd
+      -- FIXME: FFI.OpaqueTypeKind -> return "Opaque"
+      FFI.VectorTypeKind -> do
+                n <- FFI.getVectorSize t
+                et <- FFI.getElementType t
+                etd <- typeDesc2 et
+                return $ TDVector (fromIntegral n) etd
+      -- FIXME: LLVMMetadataTypeKind,    /**< Metadata */
+      -- FIXME: LLVMX86_MMXTypeKind      /**< X86 MMX */
+      _ -> return TDInvalidType
+
 -- |Type descriptor, used to convey type information through the LLVM API.
 data TypeDesc = TDFloat | TDDouble | TDFP128 | TDVoid | TDInt Bool Integer
               | TDArray Integer TypeDesc | TDVector Integer TypeDesc
 	      | TDPtr TypeDesc | TDFunction Bool [TypeDesc] TypeDesc | TDLabel
-              | TDStruct [TypeDesc] Bool
+              | TDStruct [TypeDesc] Bool | TDInvalidType
     deriving (Eq, Ord, Show, Typeable)
 
 -- XXX isFloating and typeName could be extracted from typeRef
