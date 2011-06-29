@@ -99,7 +99,8 @@ register' pkg@PackageDescription { library       = Just lib  }
      _ | modeGenerateRegFile   -> die "Generate Reg File not supported"
        | modeGenerateRegScript -> die "Generate Reg Script not supported"
        | otherwise             -> registerPackage verbosity
-                                    installedPkgInfo pkg lbi inplace packageDb
+--                                    installedPkgInfo pkg lbi inplace packageDb
+                                    installedPkgInfo pkg lbi inplace (withPackageDB lbi)
 
   where
     modeGenerateRegFile = isJust (flagToMaybe (regGenPkgConf regFlags))
