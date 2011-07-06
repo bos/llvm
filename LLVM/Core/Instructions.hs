@@ -65,7 +65,8 @@ import Data.Word
 import Data.Map(fromList, (!))
 import Foreign.Ptr (FunPtr, )
 import Foreign.C(CInt, CUInt)
-import Data.TypeLevel((:<:), (:>:), (:==:), D0, d1, toNum, Succ)
+import Data.TypeLevel((:<:), (:>:), (:==:), (:*),
+          D0, D1, D2, D3, D4, D5, D6, D7, D8, D9, d1, toNum, Succ)
 import qualified LLVM.FFI.Core as FFI
 import LLVM.Core.Data
 import LLVM.Core.Type
@@ -487,6 +488,41 @@ instance (IsFirstClass a, Nat n) => GetValue (Array n a) Word32 a where
 
 instance (IsFirstClass a, Nat n) => GetValue (Array n a) Word64 a where
     getIx _ n = fromIntegral n
+
+
+instance (IsFirstClass a, Nat n, Nat (i1:*i0), (i1:*i0) :<: n) => GetValue (Array n a) (i1:*i0) a where
+    getIx _ n = toNum n
+
+instance (IsFirstClass a, Nat n, D0 :<: n) => GetValue (Array n a) D0 a where
+    getIx _ n = toNum n
+
+instance (IsFirstClass a, Nat n, D1 :<: n) => GetValue (Array n a) D1 a where
+    getIx _ n = toNum n
+
+instance (IsFirstClass a, Nat n, D2 :<: n) => GetValue (Array n a) D2 a where
+    getIx _ n = toNum n
+
+instance (IsFirstClass a, Nat n, D3 :<: n) => GetValue (Array n a) D3 a where
+    getIx _ n = toNum n
+
+instance (IsFirstClass a, Nat n, D4 :<: n) => GetValue (Array n a) D4 a where
+    getIx _ n = toNum n
+
+instance (IsFirstClass a, Nat n, D5 :<: n) => GetValue (Array n a) D5 a where
+    getIx _ n = toNum n
+
+instance (IsFirstClass a, Nat n, D6 :<: n) => GetValue (Array n a) D6 a where
+    getIx _ n = toNum n
+
+instance (IsFirstClass a, Nat n, D7 :<: n) => GetValue (Array n a) D7 a where
+    getIx _ n = toNum n
+
+instance (IsFirstClass a, Nat n, D8 :<: n) => GetValue (Array n a) D8 a where
+    getIx _ n = toNum n
+
+instance (IsFirstClass a, Nat n, D9 :<: n) => GetValue (Array n a) D9 a where
+    getIx _ n = toNum n
+
 
 -- | Get a value from an aggregate.
 extractvalue :: forall r agg i a.
