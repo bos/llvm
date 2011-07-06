@@ -199,7 +199,7 @@ newFunction :: forall a . (IsFunction a)
 newFunction linkage = genMSym "fun" >>= newNamedFunction linkage
 
 -- | Define a function body.  The basic block returned by the function is the function entry point.
-defineFunction :: forall f g r . (FunctionArgs f g (CodeGenFunction r ()))
+defineFunction :: forall f g r . (FunctionArgs f g r)
                => Function f       -- ^ Function to define (created by 'newFunction').
                -> g                -- ^ Function body.
                -> CodeGenModule ()
@@ -213,7 +213,7 @@ defineFunction (Value fn) body = do
     return ()
 
 -- | Create a new function with the given body.
-createFunction :: (IsFunction f, FunctionArgs f g (CodeGenFunction r ()))
+createFunction :: (IsFunction f, FunctionArgs f g r)
                => Linkage
                -> g  -- ^ Function body.
                -> CodeGenModule (Function f)
@@ -223,7 +223,7 @@ createFunction linkage body = do
     return f
 
 -- | Create a new function with the given body.
-createNamedFunction :: (IsFunction f, FunctionArgs f g (CodeGenFunction r ()))
+createNamedFunction :: (IsFunction f, FunctionArgs f g r)
                => Linkage
 	       -> String
                -> g  -- ^ Function body.
@@ -252,9 +252,9 @@ addAttributes (Value f) i as = do
 -- Convert a function of type f = t1->t2->...-> IO r to
 -- g = Value t1 -> Value t2 -> ... CodeGenFunction r ()
 class FunctionArgs f g r | f -> g r, g r -> f where
-    apArgs :: Int -> FunctionRef -> g -> r
+    apArgs :: Int -> FunctionRef -> g -> FA r
 
-applyArgs :: (FunctionArgs f g r) => FunctionRef -> g -> r
+applyArgs :: (FunctionArgs f g r) => FunctionRef -> g -> FA r
 applyArgs = apArgs 0
 
 instance (FunctionArgs b b' r) => FunctionArgs (a -> b) (Value a -> b') r where
@@ -263,32 +263,32 @@ instance (FunctionArgs b b' r) => FunctionArgs (a -> b) (Value a -> b') r where
 -- XXX instances for all IsFirstClass functions,
 -- because Haskell can't deal with the context and the FD
 type FA a = CodeGenFunction a ()
-instance FunctionArgs (IO Float)        (FA Float)        (FA Float)        where apArgs _ _ g = g
-instance FunctionArgs (IO Double)       (FA Double)       (FA Double)       where apArgs _ _ g = g
-instance FunctionArgs (IO FP128)        (FA FP128)        (FA FP128)        where apArgs _ _ g = g
+instance FunctionArgs (IO Float)         (FA Float)         Float         where apArgs _ _ g = g
+instance FunctionArgs (IO Double)        (FA Double)        Double        where apArgs _ _ g = g
+instance FunctionArgs (IO FP128)         (FA FP128)         FP128         where apArgs _ _ g = g
 instance (Pos n) => 
-         FunctionArgs (IO (IntN n))     (FA (IntN n))     (FA (IntN n))     where apArgs _ _ g = g
+         FunctionArgs (IO (IntN n))      (FA (IntN n))      (IntN n)      where apArgs _ _ g = g
 instance (Pos n) =>
-         FunctionArgs (IO (WordN n))    (FA (WordN n))    (FA (WordN n))    where apArgs _ _ g = g
-instance FunctionArgs (IO Bool)         (FA Bool)         (FA Bool)         where apArgs _ _ g = g
-instance FunctionArgs (IO Int8)         (FA Int8)         (FA Int8)         where apArgs _ _ g = g
-instance FunctionArgs (IO Int16)        (FA Int16)        (FA Int16)        where apArgs _ _ g = g
-instance FunctionArgs (IO Int32)        (FA Int32)        (FA Int32)        where apArgs _ _ g = g
-instance FunctionArgs (IO Int64)        (FA Int64)        (FA Int64)        where apArgs _ _ g = g
-instance FunctionArgs (IO Word8)        (FA Word8)        (FA Word8)        where apArgs _ _ g = g
-instance FunctionArgs (IO Word16)       (FA Word16)       (FA Word16)       where apArgs _ _ g = g
-instance FunctionArgs (IO Word32)       (FA Word32)       (FA Word32)       where apArgs _ _ g = g
-instance FunctionArgs (IO Word64)       (FA Word64)       (FA Word64)       where apArgs _ _ g = g
-instance FunctionArgs (IO ())           (FA ())           (FA ())           where apArgs _ _ g = g
+         FunctionArgs (IO (WordN n))     (FA (WordN n))     (WordN n)     where apArgs _ _ g = g
+instance FunctionArgs (IO Bool)          (FA Bool)          Bool          where apArgs _ _ g = g
+instance FunctionArgs (IO Int8)          (FA Int8)          Int8          where apArgs _ _ g = g
+instance FunctionArgs (IO Int16)         (FA Int16)         Int16         where apArgs _ _ g = g
+instance FunctionArgs (IO Int32)         (FA Int32)         Int32         where apArgs _ _ g = g
+instance FunctionArgs (IO Int64)         (FA Int64)         Int64         where apArgs _ _ g = g
+instance FunctionArgs (IO Word8)         (FA Word8)         Word8         where apArgs _ _ g = g
+instance FunctionArgs (IO Word16)        (FA Word16)        Word16        where apArgs _ _ g = g
+instance FunctionArgs (IO Word32)        (FA Word32)        Word32        where apArgs _ _ g = g
+instance FunctionArgs (IO Word64)        (FA Word64)        Word64        where apArgs _ _ g = g
+instance FunctionArgs (IO ())            (FA ())            ()            where apArgs _ _ g = g
 instance (Pos n, IsPrimitive a) =>
-         FunctionArgs (IO (Vector n a)) (FA (Vector n a)) (FA (Vector n a)) where apArgs _ _ g = g
+         FunctionArgs (IO (Vector n a))  (FA (Vector n a))  (Vector n a)  where apArgs _ _ g = g
 instance (IsType a) => 
-         FunctionArgs (IO (Ptr a))      (FA (Ptr a))      (FA (Ptr a))      where apArgs _ _ g = g
-instance FunctionArgs (IO (StablePtr a)) (FA (StablePtr a)) (FA (StablePtr a))      where apArgs _ _ g = g
+         FunctionArgs (IO (Ptr a))       (FA (Ptr a))       (Ptr a)       where apArgs _ _ g = g
+instance FunctionArgs (IO (StablePtr a)) (FA (StablePtr a)) (StablePtr a) where apArgs _ _ g = g
 
 -- |This class is just to simplify contexts.
-class (FunctionArgs (IO a) (CodeGenFunction a ()) (CodeGenFunction a ())) => FunctionRet a
-instance (FunctionArgs (IO a) (CodeGenFunction a ()) (CodeGenFunction a ())) => FunctionRet a
+class (FunctionArgs (IO a) (CodeGenFunction a ()) a) => FunctionRet a
+instance (FunctionArgs (IO a) (CodeGenFunction a ()) a) => FunctionRet a
 
 --------------------------------------
 
