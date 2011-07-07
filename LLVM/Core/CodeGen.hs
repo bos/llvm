@@ -24,7 +24,7 @@ module LLVM.Core.CodeGen(
     withString, withStringNul,
     constVector, constArray, constStruct, constPackedStruct,
     -- * Basic blocks
-    BasicBlock(..), newBasicBlock, newNamedBasicBlock, defineBasicBlock, createBasicBlock, getCurrentBasicBlock,
+    BasicBlock(..), newBasicBlock, newNamedBasicBlock, defineBasicBlock, createBasicBlock, createNamedBasicBlock, getCurrentBasicBlock,
     fromLabel, toLabel,
     -- * Misc
     withCurrentBuilder
@@ -300,6 +300,12 @@ newtype BasicBlock = BasicBlock FFI.BasicBlockRef
 createBasicBlock :: CodeGenFunction r BasicBlock
 createBasicBlock = do
     b <- newBasicBlock
+    defineBasicBlock b
+    return b
+
+createNamedBasicBlock :: String -> CodeGenFunction r BasicBlock
+createNamedBasicBlock name = do
+    b <- newNamedBasicBlock name
     defineBasicBlock b
     return b
 

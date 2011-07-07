@@ -64,7 +64,7 @@ module LLVM.Core(
     -- * Globals
     Linkage(..),
     -- * Basic blocks
-    BasicBlock, newBasicBlock, newNamedBasicBlock, defineBasicBlock, createBasicBlock, getCurrentBasicBlock,
+    BasicBlock, newBasicBlock, newNamedBasicBlock, defineBasicBlock, createBasicBlock, createNamedBasicBlock, getCurrentBasicBlock,
     getBasicBlocks,              
     fromLabel, toLabel,
     getInstructions, getOperands, hasUsers, getUsers, getUses, getUser, isChildOf, getDep,
