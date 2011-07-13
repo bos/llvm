@@ -248,7 +248,6 @@ addAttributes :: Value a -> Int -> [FFI.Attribute] -> CodeGenFunction r ()
 addAttributes (Value f) i as = do
     liftIO $ FFI.addInstrAttribute f (fromIntegral i) (sum $ map FFI.fromAttribute as)
 
--- XXX This is ugly, it must be possible to make it simpler
 -- Convert a function of type f = t1->t2->...-> IO r to
 -- g = Value t1 -> Value t2 -> ... CodeGenFunction r ()
 class FunctionArgs f g r | f -> g r, g r -> f where
