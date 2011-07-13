@@ -298,7 +298,7 @@ toArithFunction f = unwrapArgs (call f)
 recursiveFunction ::
         (CallArgs a g r0,
          UnwrapArgs a11 a1 b1 b g r0,
-         FunctionArgs a a2 (CodeGenFunction r1 ()),
+         FunctionArgs a a2 r1,
          ArithFunction a3 a2,
          IsFunction a) =>
         (a11 -> a3) -> CodeGenModule (Function a)
