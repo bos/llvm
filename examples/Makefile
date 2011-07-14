@@ -13,6 +13,7 @@ Vector:	Convert.hs
 %_dyn.exe: %.hs
 	$(ghc) $(ghcflags) -dynamic --make -o $@ -main-is $(basename $<).main $<
 
+Struct.exe: ghcflags += -fcontext-stack=27
 Struct.exe:	Struct.hs structCheck.c
 	$(ghc) $(ghcflags) --make -o $@ -main-is Struct.main $^
 
