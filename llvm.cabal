@@ -117,4 +117,4 @@ source-repository head
 
 source-repository head
   type:     mercurial
-  location: https://github.com/bos/llvm/
+  location: https://bitbucket.org/bos/llvm/
