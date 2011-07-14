@@ -10,7 +10,10 @@ ifeq ($(prefix),$(HOME))
 user_flag := --user
 endif
 
-all: build
+all: configure build
+
+configure: configure.ac
+	autoreconf
 
 .PHONY: build
 build: dist/setup-config
