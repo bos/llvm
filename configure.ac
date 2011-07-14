@@ -1,4 +1,4 @@
-AC_INIT([Haskell LLVM bindings], [0.4.0.3], [bos@serpentine.com], [llvm])
+AC_INIT([Haskell LLVM bindings], [0.9.1.2], [bos@serpentine.com], [llvm])
 
 AC_CONFIG_SRCDIR([LLVM/ExecutionEngine.hs])
 
@@ -24,7 +24,7 @@ AC_ARG_WITH(llvm_bindir,
   llvm_bindir="$withval",
   llvm_bindir="$llvm_prefix/bin")dnl
 
-AC_PATH_PROGS(llvm_config, [llvm-config-2.7 llvm-config],
+AC_PATH_PROGS(llvm_config, [llvm-config],
   [AC_MSG_ERROR(could not find llvm-config in $llvm_bindir)],
   ["$llvm_bindir:$PATH"])
   
