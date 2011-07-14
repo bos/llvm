@@ -2,6 +2,7 @@
 ^config\.(?:status)$
 ^tests/(?:\.hpc|ps)$
 \.(?:aux|bc|eventlog|exe|h[ip]|log|[oa]|orig|prof|ps|rej|swp)$
+^examples/listcontent.u32$
 ~$
 syntax: glob
 .\#*
