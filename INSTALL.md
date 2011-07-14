@@ -10,8 +10,8 @@ Prerequisites
 -------------
 
 Firstly, you'll need to have LLVM.  I recommend installing LLVM
-version 2.8 or later (from [llvm.org](http://llvm.org/releases/)), which is what
-this package has been tested with.
+version 2.9 (from [llvm.org](http://llvm.org/releases/)), which is
+what this package has been tested with.
 
 It's easy to install LLVM itself from source:
 

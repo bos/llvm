@@ -5,6 +5,15 @@ This package provides Haskell bindings for the popular
 [LLVM](http://llvm.org/) compiler infrastructure project.
 
 
+Compatibility
+-------------
+
+We try to stay up to date with LLVM releases.  The current version of
+this package is compatible with LLVM 2.9.  Please understand that the
+package may or may not work against older LLVM releases; we don't have
+the time or resources to test across multiple releases.
+
+
 Configuration
 -------------
 
@@ -31,14 +40,19 @@ protect against everything that can go wrong, so take care.  And, of
 course, there's no way to guarantee anything about the generated code.
 
 
-Jump in and help!
------------------
+Staying in touch
+----------------
 
-We welcome your comments and contributions.  You can send email to us
-at <bos@serpentine.com> or <lennart@augustsson.net>.  If you want to
-send patches, please clone a copy of the
+There is a low-volume mailing list named
+[haskell-llvm@projects.haskellorg](http://projects.haskell.org/cgi-bin/mailman/listinfo/haskell-llvm).
+If you use the LLVM bindings, you should think about joining.
+
+If you want to contribute patches, please clone a copy of the
 [git repository](https://github.com/bos/llvm):
 
     git clone git://github.com/bos/llvm
 
-Thanks!
+Patches are best submitted via the github "pull request" interface.
+
+To file a bug or a request for an enhancement, please use the
+[github issue tracker](https://github.com/bos/llvm/issues).

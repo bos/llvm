@@ -8,21 +8,9 @@ description:
   .
   * New in 0.9.1.1: Builds against LLVM 2.9.
   .
-  * New in 0.9.1.0: Util.Memory for memory related intrinsics
+  * New in 0.9.1.0: Util.Memory for memory related intrinsics.
   .
-  * New in 0.9.0.0: Adapted to LLVM 2.8 (removed support for Union types);
-  .
-  * New in 0.8.2.0: Support for GHC calling convention.
-  .
-  * New in 0.8.1.0: Numerous small changes.
-  .
-  * New in 0.8.0.0: Adapted to LLVM 2.7;
-  .
-  * New in 0.7.1.0: More attributes
-  .
-  * New in 0.7.0.1: MacOS fixes.
-  .
-  * New in 0.7.0.0: Adapted to LLVM 2.6;
+  * New in 0.9.0.0: Adapted to LLVM 2.8 (removed support for Union types).
 author:        Bryan O'Sullivan, Lennart Augustsson
 maintainer:    Bryan O'Sullivan <bos@serpentine.com>, Lennart Augustsson <lennart@augustsson.net>
 homepage:      https://github.com/bos/llvm
