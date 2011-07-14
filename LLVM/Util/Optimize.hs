@@ -14,6 +14,7 @@ import Control.Monad(when)
 
 import LLVM.Core.Util(Module, withModule)
 import qualified LLVM.FFI.Core as FFI
+import qualified LLVM.FFI.Support as FFI
 -- import LLVM.FFI.Target(addTargetData, createTargetData)
 import LLVM.FFI.Transforms.IPO
 import LLVM.FFI.Transforms.Scalar
@@ -92,15 +93,9 @@ addOptimizationPasses passes fPasses optLevel = do
     let inline = addFunctionInliningPass
     createStandardModulePasses passes optLevel True (optLevel > 1) True True inline
 
--- llvm/Support/StandardPasses.h: createStandardFunctionPasses
 createStandardFunctionPasses :: FFI.PassManagerRef -> Int -> IO ()
-createStandardFunctionPasses fPasses optLevel = do
-  when (optLevel > 0) $ do
-    addCFGSimplificationPass fPasses
-    if optLevel == 1
-      then addPromoteMemoryToRegisterPass fPasses
-      else addScalarReplAggregatesPass fPasses
-    addInstructionCombiningPass fPasses
+createStandardFunctionPasses fPasses optLevel =
+    FFI.createStandardFunctionPasses fPasses (fromIntegral optLevel)
 
 -- llvm/Support/StandardPasses.h: createStandardModulePasses
 createStandardModulePasses :: FFI.PassManagerRef -> Int -> Bool -> Bool -> Bool -> Bool -> (FFI.PassManagerRef -> IO()) -> IO ()
