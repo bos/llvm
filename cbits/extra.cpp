@@ -34,6 +34,8 @@
  * Python bindings.
  */
 
+#include "hs_llvm_config.h"
+
 // standard includes
 #include <cassert>
 #include <cstdlib>
@@ -57,7 +59,11 @@
 #include "llvm/IntrinsicInst.h"
 #include "llvm/Analysis/Verifier.h"
 #include "llvm/Assembly/Parser.h"
-#include "llvm/Support/DynamicLibrary.h"
+#ifdef HAVE_LLVM_SUPPORT_DYNAMICLIBRARY_H
+# include "llvm/Support/DynamicLibrary.h"
+#else
+# include "llvm/System/DynamicLibrary.h"
+#endif
 #include "llvm/PassManager.h"
 #include "llvm/ExecutionEngine/ExecutionEngine.h"
 #include "llvm/Analysis/LoopPass.h"

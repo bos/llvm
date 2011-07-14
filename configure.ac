@@ -4,7 +4,11 @@ AC_CONFIG_SRCDIR([LLVM/ExecutionEngine.hs])
 
 AC_CONFIG_FILES([llvm.buildinfo])
 
+AC_CONFIG_HEADERS([include/hs_llvm_config.h])
+
 AC_PROG_CXX
+
+AC_LANG(C++)
 
 AC_ARG_WITH(compiler,
   [AS_HELP_STRING([--with-compiler],
@@ -94,8 +98,7 @@ LDFLAGS="$llvm_ldflags $LDFLAGS $TARGET_LDFLAGS"
 AC_CHECK_HEADERS([llvm-c/Core.h], [],
   [AC_MSG_ERROR(could not find LLVM C bindings)])
 
-# We have to link using the C++ compiler.
-CC=$CXX
+AC_CHECK_HEADERS([llvm/Support/DynamicLibrary.h])
 
 save_LIBS="$LIBS"
 LIBS="-lLLVMSupport -lLLVMSystem -lpthread -ldl $LIBS"

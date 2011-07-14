@@ -1,5 +1,6 @@
-^(?:INSTALL.html|PROBLEMS.html|README.html|autom4te.cache|dist|llvm.buildinfo)$
+^(?:INSTALL.html|PROBLEMS.html|README.html|autom4te.cache|cabal-dev|configure|dist|llvm.buildinfo)$
 ^config\.(?:status)$
+^include/hs_llvm_config.h$
 ^tests/(?:\.hpc|ps)$
 \.(?:aux|bc|eventlog|exe|h[ip]|log|[oa]|orig|prof|ps|rej|swp)$
 ^examples/listcontent.u32$

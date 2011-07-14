@@ -24,11 +24,12 @@ build-type:    Custom
 extra-source-files:
     *.md
     Makefile
-    cbits/*.h
-    configure
     configure.ac
     examples/*.c
     examples/*.hs
+    include/extra.h
+    include/hs_llvm_config.h.in
+    include/support.h
     llvm.buildinfo.in
     llvm.buildinfo.windows.in
     tests/*.hs
@@ -40,6 +41,8 @@ extra-tmp-files:
     autom4te.cache
     config.log
     config.status
+    configure
+    include/hs_llvm_config.h
     llvm.buildinfo
 
 library
@@ -105,6 +108,7 @@ library
       LLVM.Target.X86
       LLVM.Target.XCore
 
+  include-dirs: include
   C-Sources:
     cbits/extra.cpp
     cbits/free.c
