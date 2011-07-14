@@ -10,8 +10,6 @@ between 'optimizeModule' and the @opt@ shell command.
 -}
 module LLVM.Util.Optimize(optimizeModule) where
 
-import Control.Monad(when)
-
 import LLVM.Core.Util(Module, withModule)
 import qualified LLVM.FFI.Core as FFI
 import qualified LLVM.FFI.Support as FFI
@@ -87,88 +85,21 @@ http://llvm.org/bugs/show_bug.cgi?id=6394
 -- tools/opt/opt.cpp: AddOptimizationPasses
 addOptimizationPasses :: FFI.PassManagerRef -> FFI.PassManagerRef -> Int -> IO ()
 addOptimizationPasses passes fPasses optLevel = do
-    createStandardFunctionPasses fPasses optLevel
-
-    -- if optLevel > 1 then addFunctionInliningPass else const (return ())
-    let inline = addFunctionInliningPass
-    createStandardModulePasses passes optLevel True (optLevel > 1) True True inline
+  createStandardFunctionPasses fPasses optLevel
+  createStandardModulePasses passes optLevel True True (optLevel > 1) True True True
 
 createStandardFunctionPasses :: FFI.PassManagerRef -> Int -> IO ()
 createStandardFunctionPasses fPasses optLevel =
     FFI.createStandardFunctionPasses fPasses (fromIntegral optLevel)
 
 -- llvm/Support/StandardPasses.h: createStandardModulePasses
-createStandardModulePasses :: FFI.PassManagerRef -> Int -> Bool -> Bool -> Bool -> Bool -> (FFI.PassManagerRef -> IO()) -> IO ()
-createStandardModulePasses passes optLevel unitAtATime unrollLoops simplifyLibCalls haveExceptions inliningPass = do
-  if optLevel == 0
-    then inliningPass passes
-    else do
-      when unitAtATime $ do
-        addGlobalOptimizerPass passes     -- Optimize out global vars
-
-        addIPSCCPPass passes              -- IP SCCP
-        addDeadArgEliminationPass passes  -- Dead argument elimination
-
-      addInstructionCombiningPass passes  -- Clean up after IPCP & DAE
-      addCFGSimplificationPass passes     -- Clean up after IPCP & DAE
-
-      -- Start of CallGraph SCC passes.
-      when (unitAtATime && haveExceptions) $
-        addPruneEHPass passes             -- Remove dead EH info
-      inliningPass passes
-      when unitAtATime $
-        addFunctionAttrsPass passes       -- Set readonly/readnone attrs
-      when (optLevel > 2) $
-        addArgumentPromotionPass passes   -- Scalarize uninlined fn args
-
-      -- Start of function pass.
-      addScalarReplAggregatesPass passes  -- Break up aggregate allocas
-      when simplifyLibCalls $
-        addSimplifyLibCallsPass passes    -- Library Call Optimizations
-      addInstructionCombiningPass passes  -- Cleanup for scalarrepl.
-      addJumpThreadingPass passes         -- Thread jumps.
-      addCFGSimplificationPass passes     -- Merge & remove BBs
-      addInstructionCombiningPass passes  -- Combine silly seq's
-
-      addTailCallEliminationPass passes   -- Eliminate tail calls
-      addCFGSimplificationPass passes     -- Merge & remove BBs
-      addReassociatePass passes           -- Reassociate expressions
-      addLoopRotatePass passes            -- Rotate Loop
-      addLICMPass passes                  -- Hoist loop invariants
-      -- The C interface does not allow to pass the optimizeForSize parameter
-      -- addLoopUnswitchPass(optimizeSize || optLevel < 3));
-      addInstructionCombiningPass passes
-      addIndVarSimplifyPass passes        -- Canonicalize indvars
-      addLoopDeletionPass passes          -- Delete dead loops
-      when unrollLoops $
-        addLoopUnrollPass passes          -- Unroll small loops
-      addInstructionCombiningPass passes  -- Clean up after the unroller
-      when (optLevel > 1) $
-        addGVNPass passes                 -- Remove redundancies
-      addMemCpyOptPass passes             -- Remove memcpy / form memset
-      addSCCPPass passes                  -- Constant prop with SCCP
-
-      -- Run instcombine after redundancy elimination to exploit opportunities
-      -- opened up by them.
-      addInstructionCombiningPass passes
-      addJumpThreadingPass passes         -- Thread jumps
-      -- Not available in C interface
-      -- addCorrelatedValuePropagationPass
-      addDeadStoreEliminationPass passes  -- Delete dead stores
-      addAggressiveDCEPass passes         -- Delete dead instructions
-      addCFGSimplificationPass passes     -- Merge & remove BBs
-
-      when unitAtATime $ do
-        addStripDeadPrototypesPass passes -- Get rid of dead prototypes
-        addDeadTypeEliminationPass passes -- Eliminate dead types
-
-        -- GlobalOpt already deletes dead functions and globals, at -O3 try a
-        -- late pass of GlobalDCE.  It is capable of deleting dead cycles.
-        when (optLevel > 2) $
-          addGlobalDCEPass passes         -- Remove dead fns and globals.
-
-        when (optLevel > 1) $
-          addConstantMergePass passes     -- Merge dup global constants
+createStandardModulePasses :: FFI.PassManagerRef -> Int -> Bool -> Bool -> Bool -> Bool -> Bool -> Bool -> IO ()
+createStandardModulePasses passes optLevel optSize unitAtATime unrollLoops simplifyLibCalls haveExceptions inliningPass =
+  FFI.createStandardModulePasses passes (fromIntegral optLevel) (f optSize)
+     (f unitAtATime) (f unrollLoops) (f simplifyLibCalls) (f haveExceptions)
+     (f (not inliningPass))
+  where f True = 1
+        f _    = 0
 
 
 {-
