@@ -22,35 +22,18 @@ cabal-version: >= 1.10
 build-type:    Custom
 
 extra-source-files:
-    INSTALL.md
+    *.md
     Makefile
-    PROBLEMS.md
-    README.md
+    cbits/*.h
     configure
     configure.ac
-    examples/Align.hs
-    examples/Arith.hs
-    examples/Array.hs
-    examples/BrainF.hs
-    examples/Convert.hs
-    examples/DotProd.hs
-    examples/Fibonacci.hs
-    examples/HelloJIT.hs
-    examples/List.hs
-    examples/Makefile
-    examples/Struct.hs
-    examples/Varargs.hs
-    examples/Vector.hs
-    examples/mainfib.c
-    examples/structCheck.c
+    examples/*.c
+    examples/*.hs
     llvm.buildinfo.in
     llvm.buildinfo.windows.in
+    tests/*.hs
     tests/Makefile
-    tests/TestValue.hs
-    tools/DiffFFI.hs
-    tools/FunctionMangler.hs
-    tools/FunctionMangulation.hs
-    tools/IntrinsicMangler.hs
+    tools/*.hs
     tools/Makefile
 
 extra-tmp-files:
@@ -85,6 +68,7 @@ library
       LLVM.FFI.BitWriter
       LLVM.FFI.Core
       LLVM.FFI.ExecutionEngine
+      LLVM.FFI.Support
       LLVM.FFI.Target
       LLVM.FFI.Transforms.IPO
       LLVM.FFI.Transforms.Scalar
@@ -122,9 +106,10 @@ library
       LLVM.Target.XCore
 
   C-Sources:
-    cbits/malloc.c
-    cbits/free.c
     cbits/extra.cpp
+    cbits/free.c
+    cbits/malloc.c
+    cbits/support.cpp
 
 source-repository head
   type:     git
