@@ -111,23 +111,6 @@ if test "$ac_cv_lib_LLVMCore_LLVMModuleCreateWithName" = "no"; then
     [AC_MSG_ERROR(could not find LLVM C bindings)])
 fi
 
-AC_MSG_CHECKING(path to libstdc++.so)
-libstdcxx="`gcc -print-file-name=libstdc++.so`"
-libstdcxx_path="`dirname $libstdcxx`"
-if test "$libstdcxx_path" = .; then
-  AC_MSG_RESULT(not found)
-  AC_MSG_CHECKING(path to libstdc++.dylib)
-  libstdcxx="`gcc -print-file-name=libstdc++.dylib`"
-  libstdcxx_path="`dirname $libstdcxx`"
-fi
-
-if test "$libstdcxx_path" = .; then
-  AC_MSG_ERROR(not found)
-else
-  AC_MSG_RESULT($libstdcxx_path)
-  llvm_extra_libdirs="$llvm_extra_libdirs $libstdcxx_path"
-fi
-
 AC_SUBST([llvm_version])
 AC_SUBST([llvm_cppflags])
 AC_SUBST([llvm_extra_libs])
