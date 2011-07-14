@@ -9,9 +9,9 @@ Compatibility
 -------------
 
 We try to stay up to date with LLVM releases.  The current version of
-this package is compatible with LLVM 2.9.  Please understand that the
-package may or may not work against older LLVM releases; we don't have
-the time or resources to test across multiple releases.
+this package is compatible with LLVM 2.9 and 2.8.  Please understand
+that the package may or may not work against older LLVM releases; we
+don't have the time or resources to test across multiple releases.
 
 
 Configuration
