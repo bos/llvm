@@ -15,6 +15,7 @@ import Distribution.Simple.LocalBuildInfo
 import Distribution.Simple.Install
 import Distribution.Simple.Register
 import Distribution.Simple.Utils
+import Distribution.Text ( display )
 
 main = do
     let hooks = autoconfUserHooks { postConf = if os == "mingw32" 
@@ -96,7 +97,7 @@ register' pkg@PackageDescription { library       = Just lib  }
 
      -- Three different modes:
     case () of
-     _ | modeGenerateRegFile   -> die "Generate Reg File not supported"
+     _ | modeGenerateRegFile   -> writeRegistrationFile installedPkgInfo
        | modeGenerateRegScript -> die "Generate Reg Script not supported"
        | otherwise             -> registerPackage verbosity
                                     installedPkgInfo pkg lbi inplace
@@ -110,6 +111,11 @@ register' pkg@PackageDescription { library       = Just lib  }
                       maybeToList (flagToMaybe  (regPackageDB regFlags))
     distPref  = fromFlag (regDistPref regFlags)
     verbosity = fromFlag (regVerbosity regFlags)
+    regFile             = fromMaybe (display (packageId pkg) <.> "conf")
+                                    (fromFlag (regGenPkgConf regFlags))
+    writeRegistrationFile installedPkgInfo = do
+      notice verbosity ("Creating package registration file: " ++ regFile)
+      writeUTF8File regFile (showInstalledPackageInfo installedPkgInfo)
 
 register' _ _ regFlags = notice verbosity "No package to register"
   where
