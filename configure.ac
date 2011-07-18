@@ -87,10 +87,11 @@ llvm_extra_ghci_libs=""
 llvm_ldoptions=""
 for opt in $llvm_all_libs $llvm_ldflags; do
   case $opt in
-    -l*)  llvm_extra_libs="$llvm_extra_libs `echo $opt | sed 's/-l//'`";;
-    -L*)  llvm_extra_libdirs="$llvm_extra_libdirs `echo $opt | sed 's/-L//'`";;
-    *.so) llvm_extra_ghci_libs="$llvm_extra_ghci_libs `basename $opt .so`";;
-    *)    llvm_ldoptions="$llvm_ldoptions $opt";;
+    -l*) llvm_extra_libs="$llvm_extra_libs `echo $opt | sed 's/^-l//'`";;
+    -L*) llvm_extra_libdirs="$llvm_extra_libdirs `echo $opt | sed 's/^-L//'`";;
+    */lib*.so)
+         llvm_extra_ghci_libs="$llvm_extra_ghci_libs `basename $opt .so | sed 's/^lib//'`";;
+    *)   llvm_ldoptions="$llvm_ldoptions $opt";;
   esac
 done
 
