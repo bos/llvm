@@ -83,12 +83,14 @@ llvm_target="`$llvm_config --libs engine | sed 's/.*LLVM\(.[[^ ]]*\)CodeGen.*/\1
 dnl We need to separate libraries that need to be linked from other linker options.
 llvm_extra_libs=""
 llvm_extra_libdirs=""
+llvm_extra_ghci_libs=""
 llvm_ldoptions=""
 for opt in $llvm_all_libs $llvm_ldflags; do
   case $opt in
-    -l*) llvm_extra_libs="$llvm_extra_libs `echo $opt | sed 's/-l//'`";;
-    -L*) llvm_extra_libdirs="$llvm_extra_libdirs `echo $opt | sed 's/-L//'`";;
-    *)   llvm_ldoptions="$llvm_ldoptions $opt";;
+    -l*)  llvm_extra_libs="$llvm_extra_libs `echo $opt | sed 's/-l//'`";;
+    -L*)  llvm_extra_libdirs="$llvm_extra_libdirs `echo $opt | sed 's/-L//'`";;
+    *.so) llvm_extra_ghci_libs="$llvm_extra_ghci_libs `basename $opt .so`";;
+    *)    llvm_ldoptions="$llvm_ldoptions $opt";;
   esac
 done
 
@@ -115,6 +117,7 @@ AC_SUBST([llvm_version])
 AC_SUBST([llvm_cppflags])
 AC_SUBST([llvm_extra_libs])
 AC_SUBST([llvm_extra_libdirs])
+AC_SUBST([llvm_extra_ghci_libs])
 AC_SUBST([llvm_target])
 AC_SUBST([llvm_includedir])
 AC_SUBST([llvm_ldoptions])
