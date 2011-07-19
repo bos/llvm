@@ -85,6 +85,7 @@ module LLVM.FFI.Core
     , isPackedStruct
 
     -- * Type handles
+    , TypeHandleRef
     , createTypeHandle
     , refineType
     , resolveTypeHandle
