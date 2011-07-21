@@ -80,23 +80,30 @@ llvm_ldflags="`$llvm_config --ldflags`"
 llvm_all_libs="`$llvm_config --libs all`"
 llvm_target="`$llvm_config --libs engine | sed 's/.*LLVM\(.[[^ ]]*\)CodeGen.*/\1/'`"
 
+CPPFLAGS="$llvm_cppflags $CPPFLAGS $TARGET_CPPFLAGS"
+LDFLAGS="$llvm_ldflags $LDFLAGS $TARGET_LDFLAGS"
+
+llvm_extra_ghci_libs=""
+
+AC_SEARCH_LIBS([LLVMModuleCreateWithName],[LLVM-2.7 LLVM-2.8 LLVM-2.9]) 
+if test "$ac_cv_search_LLVMModuleCreateWithName" = "no"; then
+   llvm_all_libs="`$llvm_config --libs all`"
+else
+   llvm_extra_ghci_libs="LLVM-$llvm_version"
+   llvm_all_libs="$LIBS"
+fi
+
 dnl We need to separate libraries that need to be linked from other linker options.
 llvm_extra_libs=""
 llvm_extra_libdirs=""
-llvm_extra_ghci_libs=""
 llvm_ldoptions=""
 for opt in $llvm_all_libs $llvm_ldflags; do
   case $opt in
     -l*) llvm_extra_libs="$llvm_extra_libs `echo $opt | sed 's/^-l//'`";;
     -L*) llvm_extra_libdirs="$llvm_extra_libdirs `echo $opt | sed 's/^-L//'`";;
-    */lib*.so|*/lib*.dylib)
-         llvm_extra_ghci_libs="$llvm_extra_ghci_libs `echo $opt | sed -e 's,^.*/lib\([^/]*\),\1,' -e 's/\.so$//' -e 's/\.dylib$//'`";;
     *)   llvm_ldoptions="$llvm_ldoptions $opt";;
   esac
 done
-
-CPPFLAGS="$llvm_cppflags $CPPFLAGS $TARGET_CPPFLAGS"
-LDFLAGS="$llvm_ldflags $LDFLAGS $TARGET_LDFLAGS"
 
 AC_CHECK_HEADERS([llvm-c/Core.h], [],
   [AC_MSG_ERROR(could not find LLVM C bindings)])
