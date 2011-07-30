@@ -38,8 +38,8 @@ module LLVM.Core.Instructions(
     -- * Conversions
     trunc, zext, sext,
     fptrunc, fpext,
-    fptoui, fptosi,
-    uitofp, sitofp,
+    fptoui, fptosi, fptoint,
+    uitofp, sitofp, inttofp,
     ptrtoint, inttoptr,
     bitcast, bitcastUnify,
     -- * Comparison
@@ -579,21 +579,43 @@ fpext :: (IsFloating a, IsFloating b, IsPrimitive a, IsPrimitive b, IsSized a sa
       => Value a -> CodeGenFunction r (Value b)
 fpext = convert FFI.buildFPExt
 
+{-# DEPRECATED fptoui "use fptoint since it is type-safe with respect to signs" #-}
 -- | Convert a floating point value to an unsigned integer.
 fptoui :: (IsFloating a, IsInteger b, NumberOfElements n a, NumberOfElements n b) => Value a -> CodeGenFunction r (Value b)
 fptoui = convert FFI.buildFPToUI
 
+{-# DEPRECATED fptosi "use fptoint since it is type-safe with respect to signs" #-}
 -- | Convert a floating point value to a signed integer.
 fptosi :: (IsFloating a, IsInteger b, NumberOfElements n a, NumberOfElements n b) => Value a -> CodeGenFunction r (Value b)
 fptosi = convert FFI.buildFPToSI
 
+-- | Convert a floating point value to an integer.
+-- It is mapped to @fptosi@ or @fptoui@ depending on the type @a@.
+fptoint :: forall r n a b. (IsFloating a, IsInteger b, NumberOfElements n a, NumberOfElements n b) => Value a -> CodeGenFunction r (Value b)
+fptoint =
+   if isSigned (undefined :: b)
+     then convert FFI.buildFPToSI
+     else convert FFI.buildFPToUI
+
+
+{-# DEPRECATED uitofp "use inttofp since it is type-safe with respect to signs" #-}
 -- | Convert an unsigned integer to a floating point value.
 uitofp :: (IsInteger a, IsFloating b, NumberOfElements n a, NumberOfElements n b) => Value a -> CodeGenFunction r (Value b)
 uitofp = convert FFI.buildUIToFP
 
+{-# DEPRECATED sitofp "use inttofp since it is type-safe with respect to signs" #-}
 -- | Convert a signed integer to a floating point value.
 sitofp :: (IsInteger a, IsFloating b, NumberOfElements n a, NumberOfElements n b) => Value a -> CodeGenFunction r (Value b)
 sitofp = convert FFI.buildSIToFP
+
+-- | Convert an integer to a floating point value.
+-- It is mapped to @sitofp@ or @uitofp@ depending on the type @a@.
+inttofp :: forall r n a b. (IsInteger a, IsFloating b, NumberOfElements n a, NumberOfElements n b) => Value a -> CodeGenFunction r (Value b)
+inttofp =
+   if isSigned (undefined :: a)
+     then convert FFI.buildSIToFP
+     else convert FFI.buildUIToFP
+
 
 -- | Convert a pointer to an integer.
 ptrtoint :: (IsInteger b, IsPrimitive b) => Value (Ptr a) -> CodeGenFunction r (Value b)
