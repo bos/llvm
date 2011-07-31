@@ -25,6 +25,8 @@ module LLVM.Core.Util(
     makeCall, makeInvoke,
     makeCallWithCc, makeInvokeWithCc,
     withValue, getInstructions, getOperands,
+    -- * Uses and Users
+    hasUsers, getUsers, getUses, getUser, isChildOf, getDep,
     -- * Misc
     CString, withArrayLen,
     withEmptyCString,
@@ -434,8 +436,10 @@ constStruct xs packed = unsafePerformIO $ do
 
 getValueNameU :: Value -> IO String
 getValueNameU a = do
+    -- sometimes void values need explicit names too
     cs <- FFI.getValueName a
-    peekCString cs
+    str <- peekCString cs
+    if str == "" then return (show a) else return str
 
 getObjList withF firstF nextF obj = do
     withF obj $ \ objPtr -> do
@@ -459,3 +463,32 @@ isConstant v = do
 isIntrinsic :: Value -> IO Bool
 isIntrinsic v = do
   if FFI.getIntrinsicID v == 0 then return True else return False
+
+--------------------------------------
+
+type Use = FFI.UseRef
+
+hasUsers :: Value -> IO Bool
+hasUsers v = do
+  nU <- FFI.getNumUses v
+  if nU == 0 then return False else return True
+
+getUses :: Value -> IO [Use]
+getUses = getObjList withValue FFI.getFirstUse FFI.getNextUse
+
+getUsers :: [Use] -> IO [(String, Value)]
+getUsers us = mapM FFI.getUser us >>= annotateValueList
+
+getUser :: Use -> IO Value
+getUser = FFI.getUser
+
+isChildOf :: BasicBlock -> Value -> IO Bool
+isChildOf bb v = do
+  bb2 <- FFI.getInstructionParent v
+  if bb == bb2 then return True else return False
+
+getDep :: Use -> IO (String, String)
+getDep u = do
+  producer <- FFI.getUsedValue u >>= getValueNameU
+  consumer <- FFI.getUser u >>= getValueNameU
+  return (producer, consumer)

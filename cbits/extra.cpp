@@ -295,6 +295,15 @@ unsigned LLVMValueGetUses(LLVMValueRef value, LLVMValueRef **refs)
     return n;
 }
 
+unsigned LLVMValueIsUsedInBasicBlock(LLVMValueRef value, LLVMBasicBlockRef bb)
+{
+    llvm::Value *valuep = llvm::unwrap(value);
+    assert(valuep);
+    llvm::BasicBlock *bbp = llvm::unwrap(bb);
+    assert(bbp);
+    return valuep->isUsedInBasicBlock(bbp);
+}
+
 void LLVMDisposeValueRefArray(LLVMValueRef *refs)
 {
     assert(refs);
