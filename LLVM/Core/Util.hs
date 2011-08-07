@@ -42,7 +42,7 @@ import Data.List(intercalate)
 import Control.Monad(liftM, filterM, when)
 import Foreign.C.String (withCString, withCStringLen, CString, peekCString)
 import Foreign.ForeignPtr (ForeignPtr, newForeignPtr, newForeignPtr_, withForeignPtr)
-import Foreign.Ptr (nullPtr)
+import Foreign.Ptr (Ptr, nullPtr)
 import Foreign.Marshal.Array (withArrayLen, withArray, allocaArray, peekArray)
 import Foreign.Marshal.Alloc (alloca)
 import Foreign.Storable (Storable(..))
@@ -441,6 +441,8 @@ getValueNameU a = do
     str <- peekCString cs
     if str == "" then return (show a) else return str
 
+getObjList :: (t1 -> (t2 -> IO [Ptr a]) -> t) -> (t2 -> IO (Ptr a))
+           -> (Ptr a -> IO (Ptr a)) -> t1 -> t
 getObjList withF firstF nextF obj = do
     withF obj $ \ objPtr -> do
       ofst <- firstF objPtr 
