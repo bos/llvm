@@ -78,6 +78,8 @@ unsigned LLVMValueGetNumUses(LLVMValueRef value);
  * subsequent call to LLVMDisposeValueRefArray(). */
 unsigned LLVMValueGetUses(LLVMValueRef value, LLVMValueRef **refs);
 
+/* Wraps llvm::Value::isUsedInBasicBlock(). */
+unsigned LLVMValueIsUsedInBasicBlock(LLVMValueRef value, LLVMBasicBlockRef bb);
 /* See above. */
 void LLVMDisposeValueRefArray(LLVMValueRef *refs);
 
