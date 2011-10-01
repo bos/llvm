@@ -518,8 +518,10 @@ module LLVM.FFI.Core
     , UseRef
     , getFirstUse
     , getNextUse
+    , getNumUses
     , getUsedValue
     , getUser
+    , isUsedInBasicBlock
 
     ) where
 import Data.Typeable(Typeable)
@@ -1678,6 +1680,10 @@ foreign import ccall unsafe "LLVMGetNumOperands" getNumOperands
 foreign import ccall unsafe "LLVMGetUnionElementTypes" getUnionElementTypes
     :: TypeRef -> (Ptr TypeRef) -> IO ()
 -}
+foreign import ccall unsafe "LLVMValueIsUsedInBasicBlock" isUsedInBasicBlock
+    :: BasicBlockRef -> ValueRef -> IO CInt
+foreign import ccall unsafe "LLVMValueGetNumUses" getNumUses
+    :: ValueRef -> IO CUInt
 foreign import ccall unsafe "LLVMGetUsedValue" getUsedValue
     :: UseRef -> IO ValueRef
 foreign import ccall unsafe "LLVMGetUser" getUser

@@ -67,7 +67,7 @@ module LLVM.Core(
     BasicBlock, newBasicBlock, newNamedBasicBlock, defineBasicBlock, createBasicBlock, getCurrentBasicBlock,
     getBasicBlocks,              
     fromLabel, toLabel,
-    getInstructions, getOperands,
+    getInstructions, getOperands, hasUsers, getUsers, getUses, getUser, isChildOf, getDep,
     -- * Misc
     addAttributes, Attribute(..),
     castVarArgs,
