@@ -10,6 +10,8 @@
 module LLVM.Core.Type(
     -- * Type classifier
     IsType(..),
+    -- * StructFields classifier
+    StructFields,
     -- ** Special type classifiers
     Nat,
     Pos,
