@@ -66,7 +66,6 @@ http://llvm.org/bugs/show_bug.cgi?id=6394
 
     -- tools/opt/opt.cpp: AddStandardCompilePasses
     addVerifierPass passes
-    addLowerSetJmpPass passes
     addOptimizationPasses passes fPasses optLevel
 
     {- if we wanted to do so, we could loop through all functions and optimize them.
