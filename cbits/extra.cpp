@@ -53,7 +53,8 @@
 #include "llvm/Constants.h"
 #include "llvm/DerivedTypes.h"
 #include "llvm/GlobalVariable.h"
-#include "llvm/TypeSymbolTable.h"
+// Removed in LLVM_3.0
+// #include "llvm/TypeSymbolTable.h"
 #include "llvm/Support/MemoryBuffer.h"
 #include "llvm/Support/CallSite.h"
 #include "llvm/IntrinsicInst.h"
@@ -80,11 +81,17 @@
 // LLVM-C includes
 #include "llvm-c/Core.h"
 #include "llvm-c/ExecutionEngine.h"
+#include "llvm-c/Target.h"
 
 // our includes
 #include "extra.h"
 
 //using namespace llvm;
+
+unsigned LLVMInitNativeTarget()
+{
+    return LLVMInitializeNativeTarget();
+}
 
 char *LLVMDumpModuleToString(LLVMModuleRef module)
 {
@@ -346,14 +353,14 @@ LLVMValueRef LLVMGetIntrinsic(LLVMModuleRef module, int id,
 {
     assert(types);
 
-    std::vector<const llvm::Type*> types_vec;
-    unwrap_cvec(types, n_types, types_vec);
+    std::vector<llvm::Type*> types_vec;
+    unwrap_vec(types, n_types, types_vec);
 
     llvm::Module *modulep = llvm::unwrap(module);
     assert(modulep);
 
     llvm::Function *intfunc = llvm::Intrinsic::getDeclaration(modulep, 
-        llvm::Intrinsic::ID(id), &types_vec[0], types_vec.size());
+        llvm::Intrinsic::ID(id), types_vec);
 
     return wrap(intfunc);
 }
@@ -495,7 +502,8 @@ void LLVMAdd ## P ## Pass (LLVMPassManagerRef passmgr) { \
 define_pass( AAEval )
 define_pass( AliasAnalysisCounter )
 define_pass( AlwaysInliner )
-define_pass( BasicAliasAnalysis )
+// Name conflicts with those in LLVM proper, have a safer prefix?
+// define_pass( BasicAliasAnalysis )
 define_pass( BlockPlacement )
 define_pass( BreakCriticalEdges )
 define_pass( CodeGenPrepare )
@@ -534,8 +542,8 @@ define_pass( ProfileVerifier )
 define_pass( ScalarEvolutionAliasAnalysis )
 define_pass( SingleLoopExtractor )
 define_pass( StripNonDebugSymbols )
-define_pass( StructRetPromotion )
-define_pass( TailDuplication )
+// define_pass( StructRetPromotion )
+// define_pass( TailDuplication )
 define_pass( UnifyFunctionExitNodes )
 
 /* we support only internalize(true) */

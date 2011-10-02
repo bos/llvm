@@ -35,8 +35,10 @@ module LLVM.FFI.Core
     -- * Types
     , Type
     , TypeRef
-    , addTypeName
-    , deleteTypeName
+    -- Removed in LLVM_3.0
+    -- , addTypeName
+    -- Removed in LLVM_3.0
+    -- , deleteTypeName
 
     , getTypeKind
     , TypeKind(..)
@@ -67,7 +69,8 @@ module LLVM.FFI.Core
     -- ** Other types
     , voidType
     , labelType
-    , opaqueType
+    -- Removed in LLVM_3.0
+    -- , opaqueType
 
     -- ** Array, pointer, and vector types
     , arrayType
@@ -86,10 +89,14 @@ module LLVM.FFI.Core
 
     -- * Type handles
     , TypeHandleRef
-    , createTypeHandle
-    , refineType
-    , resolveTypeHandle
-    , disposeTypeHandle
+    -- Removed in LLVM_3.0
+    -- , createTypeHandle
+    -- Removed in LLVM_3.0
+    -- , refineType
+    -- Removed in LLVM_3.0
+    -- , resolveTypeHandle
+    -- Removed in LLVM_3.0
+    -- , disposeTypeHandle
 
     -- * Values
     , Value
@@ -288,7 +295,8 @@ module LLVM.FFI.Core
     , buildCondBr
     , buildSwitch
     , buildInvoke
-    , buildUnwind
+    -- Removed in LLVM_3.0
+    -- , buildUnwind
     , buildUnreachable
 
     -- ** Arithmetic
@@ -460,7 +468,8 @@ module LLVM.FFI.Core
     , int8TypeInContext
     , intTypeInContext
     , labelTypeInContext
-    , opaqueTypeInContext
+    -- Removed in LLVM_3.0
+    -- , opaqueTypeInContext
     , pPCFP128TypeInContext
     , structTypeInContext
     , voidTypeInContext
@@ -634,11 +643,13 @@ foreign import ccall unsafe "LLVMVectorType" vectorType
     -> CUInt                    -- ^ element count
     -> TypeRef
 
-foreign import ccall unsafe "LLVMAddTypeName" addTypeName
-    :: ModuleRef -> CString -> TypeRef -> IO CInt
+-- Removed in LLVM_3.0
+-- foreign import ccall unsafe "LLVMAddTypeName" addTypeName
+--     :: ModuleRef -> CString -> TypeRef -> IO CInt
 
-foreign import ccall unsafe "LLVMDeleteTypeName" deleteTypeName
-    :: ModuleRef -> CString -> IO ()
+-- Removed in LLVM_3.0
+-- foreign import ccall unsafe "LLVMDeleteTypeName" deleteTypeName
+--     :: ModuleRef -> CString -> IO ()
 
 -- | Get the type of a sequential type's elements.
 foreign import ccall unsafe "LLVMGetElementType" getElementType
@@ -1080,8 +1091,9 @@ foreign import ccall unsafe "LLVMBuildSwitch" buildSwitch
 foreign import ccall unsafe "LLVMBuildInvoke" buildInvoke
     :: BuilderRef -> ValueRef -> Ptr ValueRef -> CUInt
     -> BasicBlockRef -> BasicBlockRef -> CString -> IO ValueRef
-foreign import ccall unsafe "LLVMBuildUnwind" buildUnwind
-    :: BuilderRef -> IO ValueRef
+-- Removed in LLVM_3.0
+-- foreign import ccall unsafe "LLVMBuildUnwind" buildUnwind
+--     :: BuilderRef -> IO ValueRef
 foreign import ccall unsafe "LLVMBuildUnreachable" buildUnreachable
     :: BuilderRef -> IO ValueRef
 
@@ -1245,14 +1257,16 @@ foreign import ccall unsafe "LLVMCreateMemoryBufferWithContentsOfFile" createMem
     :: CString -> Ptr MemoryBufferRef -> Ptr CString -> IO CInt
 foreign import ccall unsafe "LLVMCreateMemoryBufferWithSTDIN" createMemoryBufferWithSTDIN
     :: Ptr MemoryBufferRef -> Ptr CString -> IO CInt
-foreign import ccall unsafe "LLVMCreateTypeHandle" createTypeHandle
-    :: TypeRef -> IO TypeHandleRef
+-- Removed in LLVM_3.0
+-- foreign import ccall unsafe "LLVMCreateTypeHandle" createTypeHandle
+--     :: TypeRef -> IO TypeHandleRef
 foreign import ccall unsafe "LLVMDisposeMemoryBuffer" disposeMemoryBuffer
     :: MemoryBufferRef -> IO ()
 foreign import ccall unsafe "LLVMDisposeMessage" disposeMessage
     :: CString -> IO ()
-foreign import ccall unsafe "LLVMDisposeTypeHandle" disposeTypeHandle
-    :: TypeHandleRef -> IO ()
+-- Removed in LLVM_3.0
+-- foreign import ccall unsafe "LLVMDisposeTypeHandle" disposeTypeHandle
+--     :: TypeHandleRef -> IO ()
 foreign import ccall unsafe "LLVMGetArrayLength" getArrayLength
     :: TypeRef -> IO CUInt
 foreign import ccall unsafe "LLVMGetIntTypeWidth" getIntTypeWidth
@@ -1265,10 +1279,12 @@ foreign import ccall unsafe "LLVMGetTypeKind" getTypeKindCUInt
     :: TypeRef -> IO CUInt
 foreign import ccall unsafe "LLVMGetVectorSize" getVectorSize
     :: TypeRef -> IO CUInt
-foreign import ccall unsafe "LLVMRefineType" refineType
-    :: TypeRef -> TypeRef -> IO ()
-foreign import ccall unsafe "LLVMResolveTypeHandle" resolveTypeHandle
-    :: TypeHandleRef -> IO TypeRef
+-- Removed in LLVM_3.0
+-- foreign import ccall unsafe "LLVMRefineType" refineType
+--     :: TypeRef -> TypeRef -> IO ()
+-- Removed in LLVM_3.0
+-- foreign import ccall unsafe "LLVMResolveTypeHandle" resolveTypeHandle
+--     :: TypeHandleRef -> IO TypeRef
 foreign import ccall unsafe "LLVMSetTarget" setTarget
     :: ModuleRef -> CString -> IO ()
 foreign import ccall unsafe "LLVMSizeOf" sizeOf
@@ -1420,8 +1436,9 @@ foreign import ccall unsafe "LLVMInitializeFunctionPassManager" initializeFuncti
     :: PassManagerRef -> IO CInt
 foreign import ccall unsafe "LLVMLabelType" labelType
     :: TypeRef
-foreign import ccall unsafe "LLVMOpaqueType" opaqueType
-    :: TypeRef
+-- Removed in LLVM_3.0
+-- foreign import ccall unsafe "LLVMOpaqueType" opaqueType
+--     :: TypeRef
 foreign import ccall unsafe "LLVMPositionBuilder" positionBuilder
     :: BuilderRef -> BasicBlockRef -> ValueRef -> IO ()
 foreign import ccall unsafe "LLVMRunFunctionPassManager" runFunctionPassManager
@@ -1566,8 +1583,9 @@ foreign import ccall unsafe "LLVMLabelTypeInContext" labelTypeInContext
     :: ContextRef -> IO TypeRef
 foreign import ccall unsafe "LLVMModuleCreateWithNameInContext" moduleCreateWithNameInContext
     :: CString -> ContextRef -> IO ModuleRef
-foreign import ccall unsafe "LLVMOpaqueTypeInContext" opaqueTypeInContext
-    :: ContextRef -> IO TypeRef
+-- Removed in LLVM_3.0
+-- foreign import ccall unsafe "LLVMOpaqueTypeInContext" opaqueTypeInContext
+--     :: ContextRef -> IO TypeRef
 foreign import ccall unsafe "LLVMPPCFP128TypeInContext" pPCFP128TypeInContext
     :: ContextRef -> IO TypeRef
 foreign import ccall unsafe "LLVMRemoveFunctionAttr" removeFunctionAttr
