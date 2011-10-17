@@ -2,7 +2,7 @@
 module LLVM.Core.Util(
     -- * Module handling
     Module(..), withModule, createModule, destroyModule, writeBitcodeToFile, readBitcodeFromFile,
-    getModuleValues, getFunctions, getGlobalVariables, valueHasType,
+    getModuleValues, getFunctions, getGlobalVariables, dumpGlobalVariable, GlobalDesc(..), Field(..), valueHasType,
     -- * Module provider handling
     ModuleProvider(..), withModuleProvider, createModuleProviderForExistingModule,
     -- * Pass manager handling
@@ -32,6 +32,7 @@ module LLVM.Core.Util(
     withEmptyCString,
     functionType, buildEmptyPhi, addPhiIns,
     showTypeOf, getValueNameU, getObjList, annotateValueList, isConstant,
+    isZeroInitialized,
     -- * Transformation passes
     addCFGSimplificationPass, addConstantPropagationPass, addDemoteMemoryToRegisterPass,
     addGVNPass, addInstructionCombiningPass, addPromoteMemoryToRegisterPass, addReassociatePass,
@@ -145,6 +146,45 @@ getFunctions mdl = getObjList withModule FFI.getFirstFunction FFI.getNextFunctio
 
 getGlobalVariables :: Module -> IO [(String, Value)]
 getGlobalVariables mdl = getObjList withModule FFI.getFirstGlobal FFI.getNextGlobal mdl >>= annotateValueList
+
+type Name = String
+data GlobalDesc = Constant Name Field | Collection Name [GlobalDesc]
+               | Zeroes Name Int | Ascii Name String
+data Field = Byte Int | Half Int | Word Int | Undef
+
+dumpGlobalVariable :: String -> Value -> IO GlobalDesc
+dumpGlobalVariable gname v = do
+  t <- FFI.typeOf v
+  tk <- FFI.getTypeKind t
+  case tk of
+    FFI.ArrayTypeKind -> do
+            isZ <- isZeroInitialized v
+            isS <- isCString v
+            n <- FFI.getArrayLength t
+            if isZ
+             then return $ Zeroes gname $ fromIntegral n
+             else if isS
+                   then do
+                     s <- getAsCString v
+                     return $ Ascii gname s
+                   else do
+                     e <- getOperands v
+                     e' <- mapM ((dumpGlobalVariable "") . snd) e
+                     return $ Collection gname e'
+    FFI.StructTypeKind -> do
+                     e <- getOperands v
+                     e' <- mapM ((dumpGlobalVariable "") . snd) e
+                     return $ Collection gname e'
+    FFI.IntegerTypeKind -> do
+            w <- FFI.getIntTypeWidth t
+            vv <- FFI.constIntGetSExtValue v
+            return $ Constant gname $ case w of
+                       8 -> Byte $ fromIntegral vv
+                       16 -> Half $ fromIntegral vv
+                       32 -> Word $ fromIntegral vv
+                       _ -> Undef
+    _ -> return $ Constant gname Undef
+--  return $ Constant gname $ Word 0
 
 -- This is safe because we just ask for the type of a value.
 valueHasType :: Value -> Type -> Bool
@@ -466,6 +506,23 @@ isIntrinsic :: Value -> IO Bool
 isIntrinsic v = do
   if FFI.getIntrinsicID v == 0 then return True else return False
 
+isZeroInitialized :: Value -> IO Bool
+isZeroInitialized v = do
+  isZ <- FFI.isZeroInitialized v
+  if isZ == 0 then return False else return True
+
+isCString :: Value -> IO Bool
+isCString v = do
+  isS <- FFI.isCString v
+  if isS == 0 then return False else return True
+
+getAsCString :: Value -> IO String
+getAsCString a = do
+    -- sometimes void values need explicit names too
+    cs <- FFI.getAsCString a
+    str <- peekCString cs
+    if str == "" then return (show a) else return str
+
 --------------------------------------
 
 type Use = FFI.UseRef
@@ -491,6 +548,6 @@ isChildOf bb v = do
 
 getDep :: Use -> IO (String, String)
 getDep u = do
-  producer <- FFI.getUsedValue u >>= getValueNameU
-  consumer <- FFI.getUser u >>= getValueNameU
-  return (producer, consumer)
+  def <- FFI.getUsedValue u >>= getValueNameU
+  use <- FFI.getUser u >>= getValueNameU
+  return (def, use)

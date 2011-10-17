@@ -480,6 +480,24 @@ int LLVMInlineFunction(LLVMValueRef call)
 }
 
 
+LLVMBool LLVMIsZeroInitialized(LLVMValueRef Ty) {
+  return llvm::isa<llvm::ConstantAggregateZero>(llvm::unwrap(Ty));
+}
+
+LLVMBool LLVMIsCString(LLVMValueRef Val) {
+  if (llvm::ConstantArray *C = llvm::dyn_cast<llvm::ConstantArray>(llvm::unwrap(Val)))
+    return C->isCString();
+  return false;
+}
+
+const char *LLVMGetAsCString(LLVMValueRef Val) {
+  if (llvm::ConstantArray *C = llvm::dyn_cast<llvm::ConstantArray>(llvm::unwrap(Val)))
+    return (C->getAsString()).c_str();
+  return NULL;
+}
+
+
+
 /* Passes. A few passes (listed below) are used directly from LLVM-C,
  * rest are defined here.
  */

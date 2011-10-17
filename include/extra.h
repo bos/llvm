@@ -185,6 +185,15 @@ void *LLVMGetPointerToFunction(LLVMExecutionEngineRef ee, LLVMValueRef fn);
  * containing the call is still in a proper state (not changed). */
 int LLVMInlineFunction(LLVMValueRef call);
 
+/* Checks if a constant was declared with zeroinitializer */
+LLVMBool LLVMIsZeroInitialized(LLVMValueRef Ty);
+
+/* Checks if a constant is an ASCII string */
+LLVMBool LLVMIsCString(LLVMValueRef Val);
+
+/* Returns string content (zero-terminated) */
+const char *LLVMGetAsCString(LLVMValueRef Val);
+
 /* Passes. Some passes are used directly from LLVM-C, rest are declared
  * here. */
 

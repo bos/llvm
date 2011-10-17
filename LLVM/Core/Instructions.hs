@@ -80,7 +80,7 @@ import qualified LLVM.Core.Util as U
 -- Use Terminate to ensure bb termination (how?)
 -- more intrinsics are needed to, e.g., create an empty vector
 
-data ArgDesc = AV String | AI Int | AL String | AE
+data ArgDesc = AV String | AI Int | AL String | AE deriving Eq
 
 instance Show ArgDesc where
     -- show (AV s) = "V_" ++ s
