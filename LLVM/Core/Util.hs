@@ -2,7 +2,7 @@
 module LLVM.Core.Util(
     -- * Module handling
     Module(..), withModule, createModule, destroyModule, writeBitcodeToFile, readBitcodeFromFile,
-    getModuleValues, getFunctions, getGlobalVariables, dumpGlobalVariable, GlobalDesc(..), Field(..), valueHasType,
+    getModuleValues, getFunctions, getGlobalVariables, getGlobalDesc, GlobalDesc(..), Field(..), valueHasType,
     -- * Module provider handling
     ModuleProvider(..), withModuleProvider, createModuleProviderForExistingModule,
     -- * Pass manager handling
@@ -152,8 +152,8 @@ data GlobalDesc = Constant Name Field | Collection Name [GlobalDesc]
                | Zeroes Name Int | Ascii Name String
 data Field = Byte Int | Half Int | Word Int | Undef
 
-dumpGlobalVariable :: String -> Value -> IO GlobalDesc
-dumpGlobalVariable gname v = do
+getGlobalDesc :: String -> Value -> IO GlobalDesc
+getGlobalDesc gname v = do
   t <- FFI.typeOf v
   tk <- FFI.getTypeKind t
   case tk of
@@ -169,11 +169,11 @@ dumpGlobalVariable gname v = do
                      return $ Ascii gname s
                    else do
                      e <- getOperands v
-                     e' <- mapM ((dumpGlobalVariable "") . snd) e
+                     e' <- mapM ((getGlobalDesc "") . snd) e
                      return $ Collection gname e'
     FFI.StructTypeKind -> do
                      e <- getOperands v
-                     e' <- mapM ((dumpGlobalVariable "") . snd) e
+                     e' <- mapM ((getGlobalDesc "") . snd) e
                      return $ Collection gname e'
     FFI.IntegerTypeKind -> do
             w <- FFI.getIntTypeWidth t

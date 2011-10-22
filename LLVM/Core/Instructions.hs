@@ -1,7 +1,7 @@
 {-# LANGUAGE MultiParamTypeClasses, FunctionalDependencies, FlexibleInstances, UndecidableInstances, TypeSynonymInstances, ScopedTypeVariables, OverlappingInstances, FlexibleContexts, TypeOperators, DeriveDataTypeable, ForeignFunctionInterface #-}
 module LLVM.Core.Instructions(
     -- * ADT representation of IR
-    BinOpDesc(..), InstrDesc(..), ArgDesc(..), getInstrDesc,
+    BinOpDesc(..), InstrDesc(..), ArgDesc(..), getInstrDesc, isValConvOp, getValConvArg,
     -- * Terminator instructions
     ret,
     condBr,
@@ -134,9 +134,8 @@ data InstrDesc =
     deriving Show
 
 -- TODO: overflow support for binary operations (add/sub/mul)
-getInstrDesc :: FFI.ValueRef -> IO (String, InstrDesc)
+getInstrDesc :: FFI.ValueRef -> IO InstrDesc
 getInstrDesc v = do
-    valueName <- U.getValueNameU v
     opcode <- FFI.instGetOpcode v
     t <- FFI.typeOf v >>= typeDesc2
     -- FIXME: sizeof() does not work for types!
@@ -175,7 +174,7 @@ getInstrDesc v = do
                            -- 50 -> ExtractElement ; 51 -> InsertElement ; 52 -> ShuffleVector ;
                            -- 53 -> ExtractValue ; 54 -> InsertValue ;
                            _ -> IDInvalidOp })
-    return (valueName, instr)
+    return instr
     --if instr /= InvalidOp then return instr else fail $ "Invalid opcode: " ++ show opcode
         where getBinOp o = fromList [(8, BOAdd), (9, BOFAdd), (10, BOSub), (11, BOFSub),
                                      (12, BOMul), (13, BOFMul), (14, BOUDiv), (15, BOSDiv),
@@ -192,6 +191,35 @@ getInstrDesc v = do
               getPtrType _ = TDVoid
               getImmInt (AI i) = i
               getImmInt _ = 0
+
+isValConvOp :: InstrDesc -> Bool
+isValConvOp (IDTrunc _ _ (AV _)) = True
+isValConvOp (IDZExt _ _ (AV _)) = True
+isValConvOp (IDSExt _ _ (AV _)) = True
+isValConvOp (IDFPtoUI _ _ (AV _)) = True
+isValConvOp (IDFPtoSI _ _ (AV _)) = True
+isValConvOp (IDUItoFP _ _ (AV _)) = True
+isValConvOp (IDSItoFP _ _ (AV _)) = True
+isValConvOp (IDFPTrunc _ _ (AV _)) = True
+isValConvOp (IDFPExt _ _ (AV _)) = True
+isValConvOp (IDPtrToInt _ _ (AV _)) = True
+isValConvOp (IDIntToPtr _ _ (AV _)) = True
+isValConvOp (IDBitcast _ _ (AV _)) = True
+isValConvOp _ = False
+
+getValConvArg :: InstrDesc -> String
+getValConvArg (IDTrunc _ _ (AV a)) = a
+getValConvArg (IDZExt _ _ (AV a)) = a
+getValConvArg (IDSExt _ _ (AV a)) = a
+getValConvArg (IDFPtoUI _ _ (AV a)) = a
+getValConvArg (IDFPtoSI _ _ (AV a)) = a
+getValConvArg (IDUItoFP _ _ (AV a)) = a
+getValConvArg (IDSItoFP _ _ (AV a)) = a
+getValConvArg (IDFPTrunc _ _ (AV a)) = a
+getValConvArg (IDFPExt _ _ (AV a)) = a
+getValConvArg (IDPtrToInt _ _ (AV a)) = a
+getValConvArg (IDIntToPtr _ _ (AV a)) = a
+getValConvArg (IDBitcast _ _ (AV a)) = a
 
 -- TODO: fix for non-int constants
 getArgDesc :: (String, FFI.ValueRef) -> IO ArgDesc
