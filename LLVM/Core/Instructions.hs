@@ -51,6 +51,7 @@ module LLVM.Core.Instructions(
     -- * Other
     phi, addPhiInputs,
     call, callWithConv,
+    sizeOf, alignOf,
 
     -- * Classes and types
     Terminate,
@@ -977,8 +978,8 @@ free ptr = do
 -- | If we want to export that, then we should have a Size type
 -- This is the official implementation,
 -- but it suffers from the ptrtoint(gep) bug.
-_sizeOf :: forall a r s . (IsSized a s) => a -> CodeGenFunction r (Value Word64)
-_sizeOf a =
+sizeOf :: forall a r s . (IsSized a s) => a -> CodeGenFunction r (Value Word64)
+sizeOf a =
     liftIO $ liftM Value $
     FFI.sizeOf (typeRef a)
 
