@@ -177,6 +177,24 @@ unsigned LLVMInstIsVolatile(LLVMValueRef v)
             (isa<StoreInst>(*ip) && cast<StoreInst>(*ip).isVolatile()) );
 }
 
+LLVMBool LLVMIsConstantExpr(LLVMValueRef Ty) {
+  using namespace llvm;
+  return isa<ConstantExpr>(unwrap(Ty));
+}
+
+LLVMBool LLVMIsCast(LLVMValueRef Ty) {
+  llvm::ConstantExpr *cep = llvm::unwrap<llvm::ConstantExpr>(Ty);
+  assert(cep);
+  return cep->isCast();
+}
+
+LLVMBool LLVMIsStaticGEP(LLVMValueRef Ty) {
+  llvm::ConstantExpr *cep = llvm::unwrap<llvm::ConstantExpr>(Ty);
+  assert(cep);
+  return cep->isGEPWithNoNotionalOverIndexing();
+}
+
+
 const char *LLVMInstGetOpcodeName(LLVMValueRef inst)
 {
     llvm::Instruction *instp = llvm::unwrap<llvm::Instruction>(inst);

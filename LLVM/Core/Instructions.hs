@@ -80,7 +80,7 @@ import qualified LLVM.Core.Util as U
 -- Use Terminate to ensure bb termination (how?)
 -- more intrinsics are needed to, e.g., create an empty vector
 
-data ArgDesc = AV String | AI Int | AL String | AE deriving Eq
+data ArgDesc = AV String | AI Int | AL String | ALO String Int | AE deriving Eq
 
 instance Show ArgDesc where
     -- show (AV s) = "V_" ++ s
@@ -89,6 +89,7 @@ instance Show ArgDesc where
     show (AV s) = s
     show (AI i) = show i
     show (AL l) = l
+    show (ALO l o) = l ++ "+" ++ show o
     show AE = "voidarg?"
 
 data BinOpDesc = BOAdd | BOAddNuw | BOAddNsw | BOAddNuwNsw | BOFAdd
@@ -139,7 +140,7 @@ getInstrDesc v = do
     opcode <- FFI.instGetOpcode v
     t <- FFI.typeOf v >>= typeDesc2
     -- FIXME: sizeof() does not work for types!
-    --tsize <- FFI.typeOf v -- >>= FFI.sizeOf -- >>= FFI.constIntGetZExtValue >>= return . fromIntegral
+    --tsize <- FFI.typeOf v -- >>= FFI.sizeOf -- >>= FFI.constIntGetZExtValue >>= 2return . fromIntegral
     tsize <- return 1
     os <- U.getOperands v >>= mapM getArgDesc
     os0 <- if length os > 0 then return $ os !! 0 else return AE
@@ -225,16 +226,45 @@ getValConvArg (IDBitcast _ _ (AV a)) = a
 getArgDesc :: (String, FFI.ValueRef) -> IO ArgDesc
 getArgDesc (vname, v) = do
     isC <- U.isConstant v
+    isCE <- U.isConstantExpr v
     t <- FFI.typeOf v >>= typeDesc2
     if isC
-      then case t of
-             TDInt _ _ -> do
+     then
+         if isCE
+          then do
+            c <- U.isCast v
+            g <- U.isStaticGEP v
+            os <- U.getOperands v
+            if c
+              then getArgDesc . head $ os 
+              else if g
+                    then do 
+                      offset <- evalStaticGEPOffset 0 $ tail os
+                      return $ ALO vname offset
+                    else return AE -- $ AV vname
+          else case t of
+                 TDInt _ _ -> do
                           cV <- FFI.constIntGetSExtValue v
                           return $ AI $ fromIntegral cV
-             _ -> return AE
-      else case t of
-             TDLabel -> return $ AL vname
-             _ -> return $ AV vname
+                 TDPtr (TDFunction _ _ _) -> return $ AL vname
+                 TDPtr _ -> do
+                          isN <- U.isNull v
+                          if isN then return $ AI 0 else return $ AV vname
+                 _ -> return AE
+     else case t of
+            TDLabel -> return $ AL vname
+            _ -> return $ AV vname
+
+evalStaticGEPOffset :: Int -> [(String, FFI.ValueRef)] -> IO Int
+evalStaticGEPOffset i ((oname, o):os) = do
+      t <- FFI.typeOf o >>= typeDesc2
+      case t of
+        TDInt _ _ ->
+            do
+              offset <- FFI.constIntGetSExtValue o >>= return . fromIntegral
+              evalStaticGEPOffset (i+offset) os
+        _ -> evalStaticGEPOffset i os
+evalStaticGEPOffset i [] = return i
 
 --------------------------------------
 

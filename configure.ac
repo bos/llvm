@@ -28,7 +28,7 @@ AC_ARG_WITH(llvm_bindir,
   llvm_bindir="$withval",
   llvm_bindir="$llvm_prefix/bin")dnl
 
-AC_PATH_PROGS(llvm_config, [llvm-config],
+AC_PATH_PROGS(llvm_config, [llvm-config-2.9],
   [AC_MSG_ERROR(could not find llvm-config in $llvm_bindir)],
   ["$llvm_bindir:$PATH"])
   
@@ -106,13 +106,13 @@ AC_CHECK_HEADERS([llvm/Support/DynamicLibrary.h])
 save_LIBS="$LIBS"
 LIBS="-lLLVMSupport -lLLVMSystem -lpthread -ldl $LIBS"
 
-AC_CHECK_LIB(LLVMCore, LLVMModuleCreateWithName, [], [])
-if test "$ac_cv_lib_LLVMCore_LLVMModuleCreateWithName" = "no"; then
-  unset ac_cv_lib_LLVMCore_LLVMModuleCreateWithName
-  LIBS="-lLLVMSupport $save_LIBS"
-  AC_CHECK_LIB(LLVMCore, LLVMModuleCreateWithName, [],
-    [AC_MSG_ERROR(could not find LLVM C bindings)])
-fi
+dnl AC_CHECK_LIB(LLVMCore, LLVMModuleCreateWithName, [], [])
+dnl if test "$ac_cv_lib_LLVMCore_LLVMModuleCreateWithName" = "no"; then
+dnl   unset ac_cv_lib_LLVMCore_LLVMModuleCreateWithName
+dnl   LIBS="-lLLVMSupport $save_LIBS"
+dnl   AC_CHECK_LIB(LLVMCore, LLVMModuleCreateWithName, [],
+dnl     [AC_MSG_ERROR(could not find LLVM C bindings)])
+dnl fi
 
 AC_SUBST([llvm_version])
 AC_SUBST([llvm_cppflags])

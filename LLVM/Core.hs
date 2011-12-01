@@ -70,7 +70,7 @@ module LLVM.Core(
     getInstructions, getOperands, hasUsers, getUsers, getUses, getUser, isChildOf, getDep,
     -- * Misc
     addAttributes, Attribute(..),
-    castVarArgs,
+    castVarArgs, isCast,
     -- * Debugging
     dumpValue, dumpType, getValueName, getValueNameU, annotateValueList, showTypeOf
     ) where

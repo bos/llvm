@@ -141,6 +141,12 @@ unsigned LLVMInstIsTrapping        (LLVMValueRef inst);
 /* As above, but these are wrap methods from subclasses of Instruction. */
 unsigned LLVMInstIsVolatile        (LLVMValueRef inst);
 
+LLVMBool LLVMIsConstantExpr(LLVMValueRef Ty);
+
+LLVMBool LLVMIsCast(LLVMValueRef Ty);
+
+LLVMBool LLVMIsStaticGEP(LLVMValueRef Ty);
+
 /* Wraps llvm::Instruction::getOpcodeName(). */
 const char *LLVMInstGetOpcodeName(LLVMValueRef inst);
 

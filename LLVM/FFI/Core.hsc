@@ -104,6 +104,9 @@ module LLVM.FFI.Core
     , constAllOnes
     , getUndef
     , isConstant
+    , isConstantExpr
+    , isCast
+    , isStaticGEP
     , isZeroInitialized
     , isCString
     , getAsCString
@@ -701,6 +704,15 @@ foreign import ccall unsafe "LLVMConstNull" constNull
     :: TypeRef -> ValueRef
 
 foreign import ccall unsafe "LLVMIsConstant" isConstant
+    :: ValueRef -> IO CInt
+
+foreign import ccall unsafe "LLVMIsConstantExpr" isConstantExpr
+    :: ValueRef -> IO CInt
+
+foreign import ccall unsafe "LLVMIsCast" isCast
+    :: ValueRef -> IO CInt
+
+foreign import ccall unsafe "LLVMIsStaticGEP" isStaticGEP
     :: ValueRef -> IO CInt
 
 foreign import ccall unsafe "LLVMIsZeroInitialized" isZeroInitialized

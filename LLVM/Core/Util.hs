@@ -32,7 +32,7 @@ module LLVM.Core.Util(
     withEmptyCString,
     functionType, buildEmptyPhi, addPhiIns,
     showTypeOf, getValueNameU, getObjList, annotateValueList, isConstant,
-    isZeroInitialized,
+    isConstantExpr, isCast, isStaticGEP, isZeroInitialized, isNull,
     -- * Transformation passes
     addCFGSimplificationPass, addConstantPropagationPass, addDemoteMemoryToRegisterPass,
     addGVNPass, addInstructionCombiningPass, addPromoteMemoryToRegisterPass, addReassociatePass,
@@ -502,6 +502,25 @@ isConstant v = do
   isC <- FFI.isConstant v
   if isC == 0 then return False else return True
 
+isConstantExpr :: Value -> IO Bool
+isConstantExpr v = do
+  isCE <- FFI.isConstantExpr v
+  if isCE == 0 then return False else return True
+
+isCast :: Value -> IO Bool
+isCast v = do
+  isCE <- FFI.isConstantExpr v
+  if isCE == 0 then return False else do
+                                  i <- FFI.isCast v
+                                  if i == 0 then return False else return True
+
+isStaticGEP :: Value -> IO Bool
+isStaticGEP v = do
+  isCE <- FFI.isConstantExpr v
+  if isCE == 0 then return False else do
+                                  i <- FFI.isStaticGEP v
+                                  if i == 0 then return False else return True
+
 isIntrinsic :: Value -> IO Bool
 isIntrinsic v = do
   if FFI.getIntrinsicID v == 0 then return True else return False
@@ -510,6 +529,11 @@ isZeroInitialized :: Value -> IO Bool
 isZeroInitialized v = do
   isZ <- FFI.isZeroInitialized v
   if isZ == 0 then return False else return True
+
+isNull :: Value -> IO Bool
+isNull v = do
+  isN <- FFI.isNull v
+  if isN == 0 then return False else return True
 
 isCString :: Value -> IO Bool
 isCString v = do
@@ -551,3 +575,4 @@ getDep u = do
   def <- FFI.getUsedValue u >>= getValueNameU
   use <- FFI.getUser u >>= getValueNameU
   return (def, use)
+
