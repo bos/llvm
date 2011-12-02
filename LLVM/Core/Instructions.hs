@@ -88,7 +88,7 @@ instance Show ArgDesc where
     -- show (AL l) = "L_" ++ l
     show (AV s) = s
     show (AI i) = show i
-    show (AL l) = l
+    show (AL l) = "$L" ++ l
     show (ALO l o) = l ++ "+" ++ show o
     show AE = "voidarg?"
 
