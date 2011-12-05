@@ -29,28 +29,12 @@ build-type:    Custom
 
 extra-source-files:
     *.md
-    Makefile
-    configure.ac
-    configure
     examples/*.c
     examples/*.hs
-    include/extra.h
-    include/hs_llvm_config.h.in
-    include/support.h
-    llvm.buildinfo.in
-    llvm.buildinfo.windows.in
     tests/*.hs
     tests/Makefile
     tools/*.hs
     tools/Makefile
-
-extra-tmp-files:
-    autom4te.cache
-    config.log
-    config.status
-    configure
-    include/hs_llvm_config.h
-    llvm.buildinfo
 
 library
   default-language: Haskell98
@@ -65,11 +49,6 @@ library
     containers
 
   ghc-options: -Wall
-
-  if os(darwin)
-    ld-options: -w 
-    frameworks: vecLib
-    cpp-options: -D__MACOS__
 
   exposed-modules:
       LLVM.Core
@@ -89,8 +68,6 @@ library
       LLVM.Core.Vector
       LLVM.ExecutionEngine.Engine
       LLVM.ExecutionEngine.Target
-
-  include-dirs: include
 
 source-repository head
   type:     git
