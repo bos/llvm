@@ -101,7 +101,11 @@ LDFLAGS="$llvm_ldflags $LDFLAGS $TARGET_LDFLAGS"
 AC_CHECK_HEADERS([llvm-c/Core.h], [],
   [AC_MSG_ERROR(could not find LLVM C bindings)])
 
-AC_CHECK_HEADERS([llvm/Support/DynamicLibrary.h])
+AC_CHECK_HEADERS([llvm/ADT/StringRef.h])
+AC_CHECK_HEADERS([llvm/Support/DynamicLibrary.h], [], [],
+[#ifdef HAVE_LLVM_ADT_STRINGREF_H
+# include <llvm/ADT/StringRef.h>
+#endif])
 
 save_LIBS="$LIBS"
 LIBS="-lLLVMSupport -lLLVMSystem -lpthread -ldl $LIBS"

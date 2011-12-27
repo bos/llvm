@@ -3,16 +3,29 @@
 
 #include "llvm-c/Core.h"
 #include "llvm/PassManager.h"
-#include "llvm/Support/StandardPasses.h"
+#include "llvm/DefaultPasses.h"
+#include "llvm/Transforms/IPO/PassManagerBuilder.h"
+#include "llvm/Transforms/IPO.h"
 
 #include "support.h"
 
 using namespace llvm;
 
 void LLVMCreateStandardFunctionPasses(LLVMPassManagerRef PM,
-				      unsigned OptimizationLevel)
+					unsigned OptimizationLevel)
 {
-  createStandardFunctionPasses(unwrap(PM), OptimizationLevel);
+  llvm::PassManagerBuilder Builder;
+  Builder.OptLevel = OptimizationLevel;
+
+  llvm::PassManagerBase *pass_man = unwrap(PM);
+  llvm::FunctionPassManager *func_man =
+    dynamic_cast <FunctionPassManager*>(pass_man);
+
+  if (func_man) {
+    Builder.populateFunctionPassManager (*func_man);
+  } else {
+    // printf ("Cannot create function passes for module pass manager\n");
+  }
 }
 
 void LLVMCreateStandardModulePasses(LLVMPassManagerRef PM,
@@ -24,6 +37,13 @@ void LLVMCreateStandardModulePasses(LLVMPassManagerRef PM,
 				    int HaveExceptions,
 				    int DisableInline)
 {
+  llvm::PassManagerBuilder Builder;
+  Builder.OptLevel = OptLevel;
+  Builder.SizeLevel = OptimizeSize;
+  Builder.DisableUnrollLoops = !UnrollLoops;
+  Builder.DisableSimplifyLibCalls = !SimplifyLibCalls;
+  Builder.DisableUnitAtATime = !UnitAtATime;
+    
   Pass *InliningPass = 0;
 
   if (DisableInline) {
@@ -32,12 +52,10 @@ void LLVMCreateStandardModulePasses(LLVMPassManagerRef PM,
     unsigned Threshold = 225;
     if (OptLevel > 2)
       Threshold = 275;
-    InliningPass = createFunctionInliningPass(Threshold);
+    Builder.Inliner = createFunctionInliningPass(Threshold);
   } else {
-    InliningPass = createAlwaysInlinerPass();
+    Builder.Inliner = createAlwaysInlinerPass();
   }
 
-  createStandardModulePasses(unwrap(PM), OptLevel, OptimizeSize,
-			     UnitAtATime, UnrollLoops, SimplifyLibCalls,
-			     HaveExceptions, InliningPass);
+  Builder.populateModulePassManager (*unwrap(PM));
 }

@@ -6,6 +6,9 @@
 /* Define to 1 if you have the `LLVMCore' library (-lLLVMCore). */
 #undef HAVE_LIBLLVMCORE
 
+/* Define to 1 if you have the <llvm/ADT/StringRef.h> header file. */
+#undef HAVE_LLVM_ADT_STRINGREF_H
+
 /* Define to 1 if you have the <llvm-c/Core.h> header file. */
 #undef HAVE_LLVM_C_CORE_H
 
