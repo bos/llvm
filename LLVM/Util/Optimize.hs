@@ -13,10 +13,8 @@ module LLVM.Util.Optimize(optimizeModule) where
 import LLVM.Core.Util(Module, withModule)
 import qualified LLVM.FFI.Core as FFI
 import qualified LLVM.FFI.Support as FFI
--- import LLVM.FFI.Target(addTargetData, createTargetData)
-import LLVM.FFI.Transforms.IPO
 import LLVM.FFI.Transforms.Scalar
-import Control.Exception (bracket, )
+import Control.Exception (bracket)
 
 
 {- |
