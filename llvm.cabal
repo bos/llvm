@@ -1,5 +1,5 @@
 name:          llvm
-version:       0.10.0.1
+version:       3.0.0.0
 license:       BSD3
 license-file:  LICENSE
 synopsis:      Bindings to the LLVM compiler toolkit.
@@ -25,32 +25,14 @@ stability:     experimental
 category:      Compilers/Interpreters, Code Generation
 tested-with:   GHC == 6.10.4, GHC == 6.12.3, GHC == 7.0.3
 cabal-version: >= 1.10
-build-type:    Custom
+build-type:    Simple
 
 extra-source-files:
     *.md
-    Makefile
-    configure.ac
-    configure
     examples/*.c
     examples/*.hs
-    include/extra.h
-    include/hs_llvm_config.h.in
-    include/support.h
-    llvm.buildinfo.in
-    llvm.buildinfo.windows.in
     tests/*.hs
     tests/Makefile
-    tools/*.hs
-    tools/Makefile
-
-extra-tmp-files:
-    autom4te.cache
-    config.log
-    config.status
-    configure
-    include/hs_llvm_config.h
-    llvm.buildinfo
 
 library
   default-language: Haskell98
@@ -58,6 +40,7 @@ library
     base >= 3 && < 5,
     bytestring >= 0.9,
     directory,
+    llvm-base == 3.0.*,
     mtl,
     process,
     type-level,
@@ -73,15 +56,6 @@ library
   exposed-modules:
       LLVM.Core
       LLVM.ExecutionEngine
-      LLVM.FFI.Analysis
-      LLVM.FFI.BitReader
-      LLVM.FFI.BitWriter
-      LLVM.FFI.Core
-      LLVM.FFI.ExecutionEngine
-      LLVM.FFI.Support
-      LLVM.FFI.Target
-      LLVM.FFI.Transforms.IPO
-      LLVM.FFI.Transforms.Scalar
       LLVM.Util.Arithmetic
       LLVM.Util.File
       LLVM.Util.Foreign
@@ -99,32 +73,10 @@ library
       LLVM.Core.Vector
       LLVM.ExecutionEngine.Engine
       LLVM.ExecutionEngine.Target
-      LLVM.Target.ARM
-      LLVM.Target.Alpha
-      LLVM.Target.Blackfin
-      LLVM.Target.CBackend
-      LLVM.Target.CellSPU
-      LLVM.Target.CppBackend
-      LLVM.Target.MSP430
-      LLVM.Target.Mips
-      LLVM.Target.Native
-      LLVM.Target.PIC16
-      LLVM.Target.PowerPC
-      LLVM.Target.Sparc
-      LLVM.Target.SystemZ
-      LLVM.Target.X86
-      LLVM.Target.XCore
-
-  include-dirs: include
-  C-Sources:
-    cbits/extra.cpp
-    cbits/free.c
-    cbits/malloc.c
-    cbits/support.cpp
 
 source-repository head
   type:     git
-  location: https://github.com/bos/llvm/
+  location: git://github.com/bos/llvm.git
 
 source-repository head
   type:     mercurial

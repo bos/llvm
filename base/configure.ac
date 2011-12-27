@@ -1,8 +1,8 @@
-AC_INIT([Haskell LLVM bindings], [0.9.1.2], [bos@serpentine.com], [llvm])
+AC_INIT([Haskell LLVM FFI bindings], [3.0.0.0], [bos@serpentine.com], [llvm-base])
 
-AC_CONFIG_SRCDIR([LLVM/ExecutionEngine.hs])
+AC_CONFIG_SRCDIR([LLVM/FFI/Core.hsc])
 
-AC_CONFIG_FILES([llvm.buildinfo])
+AC_CONFIG_FILES([llvm-base.buildinfo])
 
 AC_CONFIG_HEADERS([include/hs_llvm_config.h])
 
