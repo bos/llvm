@@ -526,7 +526,7 @@ module LLVM.FFI.Core
     ) where
 import Data.Typeable(Typeable)
 import Foreign.C.String (CString)
-import Foreign.C.Types (CDouble, CInt, CUInt, CLLong, CULLong)
+import Foreign.C.Types (CDouble(..), CInt(..), CUInt(..), CLLong(..), CULLong(..))
 import Foreign.Ptr (Ptr, FunPtr)
 
 #include <llvm-c/Core.h>
