@@ -1,4 +1,4 @@
-{-# LANGUAGE ForeignFunctionInterface, EmptyDataDecls, DeriveDataTypeable #-}
+{-# LANGUAGE CPP, ForeignFunctionInterface, EmptyDataDecls, DeriveDataTypeable #-}
 
 module LLVM.FFI.ExecutionEngine
     (
@@ -45,7 +45,11 @@ module LLVM.FFI.ExecutionEngine
     ) where
 import Data.Typeable
 import Foreign.C.String (CString)
+#if __GLASGOW_HASKELL__ >= 704
+import Foreign.C.Types (CDouble(..), CInt(..), CUInt(..), CULLong(..))
+#else
 import Foreign.C.Types (CDouble, CInt, CUInt, CULLong)
+#endif
 import Foreign.Ptr (Ptr, FunPtr)
 
 import LLVM.FFI.Core (ModuleRef, ModuleProviderRef, TypeRef, ValueRef)

@@ -1,9 +1,13 @@
-{-# LANGUAGE ForeignFunctionInterface, EmptyDataDecls, DeriveDataTypeable #-}
+{-# LANGUAGE CPP, ForeignFunctionInterface, EmptyDataDecls, DeriveDataTypeable #-}
 
 module LLVM.FFI.Target where
 import Data.Typeable
 import Foreign.C.String (CString)
+#if __GLASGOW_HASKELL__ >= 704
+import Foreign.C.Types (CInt(..), CUInt(..), CULLong(..))
+#else
 import Foreign.C.Types (CInt, CUInt, CULLong)
+#endif
 import Foreign.Ptr (Ptr)
 
 import LLVM.FFI.Core

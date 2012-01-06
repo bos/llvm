@@ -39,7 +39,7 @@
 /* Define to 1 if you have the <unistd.h> header file. */
 #undef HAVE_UNISTD_H
 
-/* Version of LLVM. */
+/* Define to the version of LLVM, e.g. 209 for 2.9. */
 #undef HS_LLVM_VERSION
 
 /* Define to the address where bug reports for this package should be sent. */
