@@ -1,6 +1,8 @@
 #define __STDC_LIMIT_MACROS
 #define __STDC_CONSTANT_MACROS
 
+#include "hs_llvm_config.h"
+
 #include "llvm-c/Core.h"
 #include "llvm/PassManager.h"
 #if HS_LLVM_VERSION >= 300
