@@ -49,16 +49,18 @@ extra-tmp-files:
     include/hs_llvm_config.h
     llvm-base.buildinfo
 
+flag developer
+  description: operate in developer mode
+  default: False
+
 library
   build-depends:
     base >= 3 && < 5
 
   ghc-options: -Wall
 
---  if os(darwin)
---    ld-options: -w 
- --   frameworks: vecLib
-  --  cpp-options: -D__MACOS__
+  if flag(developer)
+    ghc-options: -Werror
 
   exposed-modules:
       LLVM.FFI.Analysis

@@ -23,7 +23,7 @@ homepage:      https://github.com/bos/llvm
 bug-reports:   https://github.com/bos/llvm/issues
 stability:     experimental
 category:      Compilers/Interpreters, Code Generation
-tested-with:   GHC == 6.10.4, GHC == 6.12.3, GHC == 7.0.3
+tested-with:   GHC == 6.12.3, GHC == 7.0.4, GHC == 7.2.2
 cabal-version: >= 1.10
 build-type:    Simple
 
@@ -33,6 +33,10 @@ extra-source-files:
     examples/*.hs
     tests/*.hs
     tests/Makefile
+
+flag developer
+  description: operate in developer mode
+  default: False
 
 library
   default-language: Haskell98
@@ -47,6 +51,9 @@ library
     containers
 
   ghc-options: -Wall
+
+  if flag(developer)
+    ghc-options: -Werror
 
   if os(darwin)
     ld-options: -w 
