@@ -7,6 +7,7 @@ module LLVM.FFI.Support
 #if HS_LLVM_VERSION >= 300
     , addEmitObjectPass
 #endif
+    , disablePrettyStackTrace
     ) where
 
 #if __GLASGOW_HASKELL__ >= 704
@@ -27,3 +28,6 @@ foreign import ccall unsafe "LLVMCreateStandardModulePasses" createStandardModul
 foreign import ccall unsafe "LLVMAddEmitObjectPass" addEmitObjectPass
     :: ModuleRef -> CString -> IO CUInt    
 #endif
+
+foreign import ccall unsafe "LLVMDisablePrettyStackTrace" disablePrettyStackTrace
+    :: IO ()

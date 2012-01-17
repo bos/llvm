@@ -17,6 +17,8 @@ void LLVMCreateStandardModulePasses(LLVMPassManagerRef PM,
 				    int HaveExceptions,
 				    int DisableInlining);
 
+void LLVMDisablePrettyStackTrace();
+
 #ifdef __cplusplus
 } /* extern "C" */
 #endif
