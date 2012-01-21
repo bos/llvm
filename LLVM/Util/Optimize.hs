@@ -13,10 +13,8 @@ module LLVM.Util.Optimize(optimizeModule) where
 import LLVM.Core.Util(Module, withModule)
 import qualified LLVM.FFI.Core as FFI
 import qualified LLVM.FFI.Support as FFI
--- import LLVM.FFI.Target(addTargetData, createTargetData)
-import LLVM.FFI.Transforms.IPO
 import LLVM.FFI.Transforms.Scalar
-import Control.Exception (bracket, )
+import Control.Exception (bracket)
 
 
 {- |
@@ -66,7 +64,6 @@ http://llvm.org/bugs/show_bug.cgi?id=6394
 
     -- tools/opt/opt.cpp: AddStandardCompilePasses
     addVerifierPass passes
-    addLowerSetJmpPass passes
     addOptimizationPasses passes fPasses optLevel
 
     {- if we wanted to do so, we could loop through all functions and optimize them.
@@ -120,7 +117,6 @@ This would simplify to get consistent behaviour between opt and optimizeModule.
 -licm                      addLICMPass
 -loop-deletion             addLoopDeletionPass
 -loop-rotate               addLoopRotatePass
--lowersetjmp               addLowerSetJmpPass
 -memcpyopt                 addMemCpyOptPass
 -prune-eh                  addPruneEHPass
 -reassociate               addReassociatePass

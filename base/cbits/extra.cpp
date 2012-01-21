@@ -53,7 +53,9 @@
 #include "llvm/Constants.h"
 #include "llvm/DerivedTypes.h"
 #include "llvm/GlobalVariable.h"
+#if HS_LLVM_VERSION < 300
 #include "llvm/TypeSymbolTable.h"
+#endif
 #include "llvm/Support/MemoryBuffer.h"
 #include "llvm/Support/CallSite.h"
 #include "llvm/IntrinsicInst.h"
@@ -80,6 +82,7 @@
 // LLVM-C includes
 #include "llvm-c/Core.h"
 #include "llvm-c/ExecutionEngine.h"
+#include "llvm-c/Target.h"
 
 // our includes
 #include "extra.h"
@@ -364,15 +367,24 @@ LLVMValueRef LLVMGetIntrinsic(LLVMModuleRef module, int id,
 {
     assert(types);
 
+#if HS_LLVM_VERSION >= 300
+    std::vector<llvm::Type*> types_vec;
+    unwrap_vec(types, n_types, types_vec);
+#else
     std::vector<const llvm::Type*> types_vec;
     unwrap_cvec(types, n_types, types_vec);
+#endif
 
     llvm::Module *modulep = llvm::unwrap(module);
     assert(modulep);
 
+#if HS_LLVM_VERSION >= 300
+    llvm::Function *intfunc = llvm::Intrinsic::getDeclaration(modulep, 
+        llvm::Intrinsic::ID(id), types_vec);
+#else
     llvm::Function *intfunc = llvm::Intrinsic::getDeclaration(modulep, 
         llvm::Intrinsic::ID(id), &types_vec[0], types_vec.size());
-
+#endif
     return wrap(intfunc);
 }
 
@@ -418,7 +430,8 @@ LLVMModuleRef LLVMGetModuleFromBitcode(const char *bitcode, unsigned bclen,
     return wrap(modulep);
 }
 
-unsigned LLVMLinkModules(LLVMModuleRef dest, LLVMModuleRef src, char **out)
+unsigned LLVMLinkModules(LLVMModuleRef dest, LLVMModuleRef src, unsigned mode,
+			 char **out)
 {
     llvm::Module *sourcep = llvm::unwrap(src);
     assert(sourcep);
@@ -426,7 +439,15 @@ unsigned LLVMLinkModules(LLVMModuleRef dest, LLVMModuleRef src, char **out)
     assert(destinationp);
 
     std::string msg;
-    if (llvm::Linker::LinkModules(destinationp, sourcep, &msg)) {
+    bool err;
+
+#if HS_LLVM_VERSION >= 300    
+    err = llvm::Linker::LinkModules(destinationp, sourcep, mode, &msg);
+#else
+    err = llvm::Linker::LinkModules(destinationp, sourcep, &msg);
+#endif
+
+    if (err) {
         *out = strdup(msg.c_str());
         return 0;
     }
@@ -570,8 +591,6 @@ define_pass( ProfileVerifier )
 define_pass( ScalarEvolutionAliasAnalysis )
 define_pass( SingleLoopExtractor )
 define_pass( StripNonDebugSymbols )
-define_pass( StructRetPromotion )
-define_pass( TailDuplication )
 define_pass( UnifyFunctionExitNodes )
 
 /* we support only internalize(true) */
