@@ -63,7 +63,7 @@ functionType :: Bool -> Type -> [Type] -> Type
 functionType varargs retType paramTypes = unsafePerformIO $
     withArrayLen paramTypes $ \ len ptr ->
         return $ FFI.functionType retType ptr (fromIntegral len)
-	       	 		  (fromBool varargs)
+                                  (fromBool varargs)
 
 -- unsafePerformIO just to wrap the non-effecting withArrayLen call
 structType :: [Type] -> Bool -> Type
@@ -125,7 +125,7 @@ readBitcodeFromFile name =
          else do
             buf <- peek bufPtr
             prc <- FFI.parseBitcode buf modPtr errStr
-	    if prc /= 0 then do
+            if prc /= 0 then do
                 msg <- peek errStr >>= peekCString
                 ioError $ userError $ "readBitcodeFromFile: parse return code " ++ show prc ++ ", " ++ msg
              else do
@@ -200,27 +200,27 @@ showType' p = do
     pk <- FFI.getTypeKind p
     case pk of
         FFI.VoidTypeKind -> return "()"
-	FFI.FloatTypeKind -> return "Float"
-	FFI.DoubleTypeKind -> return "Double"
-	FFI.X86_FP80TypeKind -> return "X86_FP80"
-	FFI.FP128TypeKind -> return "FP128"
-	FFI.PPC_FP128TypeKind -> return "PPC_FP128"
-	FFI.LabelTypeKind -> return "Label"
-	FFI.IntegerTypeKind -> do w <- FFI.getIntTypeWidth p; return $ "(IntN " ++ show w ++ ")"
-	FFI.FunctionTypeKind -> do
+        FFI.FloatTypeKind -> return "Float"
+        FFI.DoubleTypeKind -> return "Double"
+        FFI.X86_FP80TypeKind -> return "X86_FP80"
+        FFI.FP128TypeKind -> return "FP128"
+        FFI.PPC_FP128TypeKind -> return "PPC_FP128"
+        FFI.LabelTypeKind -> return "Label"
+        FFI.IntegerTypeKind -> do w <- FFI.getIntTypeWidth p; return $ "(IntN " ++ show w ++ ")"
+        FFI.FunctionTypeKind -> do
             r <- FFI.getReturnType p
-	    c <- FFI.countParamTypes p
-	    let n = fromIntegral c
-	    as <- allocaArray n $ \ args -> do
-		     FFI.getParamTypes p args
-		     peekArray n args
-	    ts <- mapM showType' (as ++ [r])
-	    return $ "(" ++ intercalate " -> " ts ++ ")"
-	FFI.StructTypeKind -> return "(Struct ...)"
-	FFI.ArrayTypeKind -> do n <- FFI.getArrayLength p; t <- FFI.getElementType p >>= showType'; return $ "(Array " ++ show n ++ " " ++ t ++ ")"
-	FFI.PointerTypeKind -> do t <- FFI.getElementType p >>= showType'; return $ "(Ptr " ++ t ++ ")"
-	FFI.OpaqueTypeKind -> return "Opaque"
-	FFI.VectorTypeKind -> do n <- FFI.getVectorSize p; t <- FFI.getElementType p >>= showType'; return $ "(Vector " ++ show n ++ " " ++ t ++ ")"
+            c <- FFI.countParamTypes p
+            let n = fromIntegral c
+            as <- allocaArray n $ \ args -> do
+                     FFI.getParamTypes p args
+                     peekArray n args
+            ts <- mapM showType' (as ++ [r])
+            return $ "(" ++ intercalate " -> " ts ++ ")"
+        FFI.StructTypeKind -> return "(Struct ...)"
+        FFI.ArrayTypeKind -> do n <- FFI.getArrayLength p; t <- FFI.getElementType p >>= showType'; return $ "(Array " ++ show n ++ " " ++ t ++ ")"
+        FFI.PointerTypeKind -> do t <- FFI.getElementType p >>= showType'; return $ "(Ptr " ++ t ++ ")"
+        FFI.OpaqueTypeKind -> return "Opaque"
+        FFI.VectorTypeKind -> do n <- FFI.getVectorSize p; t <- FFI.getElementType p >>= showType'; return $ "(Vector " ++ show n ++ " " ++ t ++ ")"
 
 --------------------------------------
 -- Handle module providers
@@ -479,13 +479,16 @@ getValueNameU a = do
     -- sometimes void values need explicit names too
     cs <- FFI.getValueName a
     str <- peekCString cs
-    if str == "" then return (show a) else return str
+    if str == "" then (if (head . show a) `elem` ""
+                         then return ("v" ++ show a)
+                         else return $ show a)
+      else return str
 
 getObjList :: (t1 -> (t2 -> IO [Ptr a]) -> t) -> (t2 -> IO (Ptr a))
            -> (Ptr a -> IO (Ptr a)) -> t1 -> t
 getObjList withF firstF nextF obj = do
     withF obj $ \ objPtr -> do
-      ofst <- firstF objPtr 
+      ofst <- firstF objPtr
       let oloop p = if p == nullPtr then return [] else do
               n <- nextF p
               ps <- oloop n
@@ -575,4 +578,3 @@ getDep u = do
   def <- FFI.getUsedValue u >>= getValueNameU
   use <- FFI.getUser u >>= getValueNameU
   return (def, use)
-

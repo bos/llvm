@@ -80,7 +80,7 @@ import qualified LLVM.Core.Util as U
 -- Use Terminate to ensure bb termination (how?)
 -- more intrinsics are needed to, e.g., create an empty vector
 
-data ArgDesc = AV String | AI Int | AL String | ALO String Int | AE deriving Eq
+data ArgDesc = AV String | AI Int | AL String | ALO String Int | AF String | AE deriving Eq
 
 instance Show ArgDesc where
     -- show (AV s) = "V_" ++ s
@@ -90,6 +90,7 @@ instance Show ArgDesc where
     show (AI i) = show i
     show (AL l) = "$L" ++ l
     show (ALO l o) = l ++ "+" ++ show o
+    show (AF f) = f
     show AE = "voidarg?"
 
 data BinOpDesc = BOAdd | BOAddNuw | BOAddNsw | BOAddNuwNsw | BOFAdd
@@ -168,7 +169,7 @@ getInstrDesc v = do
                            43 -> IDFCmp (toFPPredicate p) os0 os1;
                            44 -> IDPhi t $ toPairs os;
                            -- FIXME: getelementptr arguments are not handled
-                           45 -> IDCall t (last os) (init os);
+                           45 -> IDCall t (AF $ fromAV . last $ os) (init os);
                            46 -> IDSelect t os0 os1;
                            -- TODO (can skip for now)
                            -- 47 -> UserOp1 ; 48 -> UserOp2 ; 49 -> VAArg ;
@@ -192,6 +193,8 @@ getInstrDesc v = do
               getPtrType _ = TDVoid
               getImmInt (AI i) = i
               getImmInt _ = 0
+              fromAV (AV x) = x
+              fromAV _ = ""
 
 isValConvOp :: InstrDesc -> Bool
 isValConvOp (IDTrunc _ _ (AV _)) = True
@@ -236,9 +239,9 @@ getArgDesc (vname, v) = do
             g <- U.isStaticGEP v
             os <- U.getOperands v
             if c
-              then getArgDesc . head $ os 
+              then getArgDesc . head $ os
               else if g
-                    then do 
+                    then do
                       offset <- evalStaticGEPOffset 0 $ tail os
                       return $ ALO vname offset
                     else return AE -- $ AV vname
