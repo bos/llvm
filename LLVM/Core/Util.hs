@@ -479,7 +479,7 @@ getValueNameU a = do
     -- sometimes void values need explicit names too
     cs <- FFI.getValueName a
     str <- peekCString cs
-    if str == "" then (if (head . show a) `elem` ""
+    if str == "" then (if (head . show $ a) `elem` ""
                          then return ("v" ++ show a)
                          else return $ show a)
       else return str
