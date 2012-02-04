@@ -129,6 +129,7 @@ llvm_num_version="`echo $llvm_version | tr . 0`"
 AC_DEFINE_UNQUOTED([HS_LLVM_VERSION], [$llvm_num_version],
   [Define to the version of LLVM, e.g. 209 for 2.9.])
 
+AC_SUBST([llvm_num_version])
 AC_SUBST([llvm_version])
 AC_SUBST([llvm_cppflags])
 AC_SUBST([llvm_extra_libs])
