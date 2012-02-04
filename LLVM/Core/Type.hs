@@ -74,6 +74,7 @@ typeRef = code . typeDesc
 	code (TDFunction va as b) = functionType va (code b) (map code as)
 	code TDLabel = FFI.labelType
         code (TDStruct ts packed) = structType (map code ts) packed
+        code TDInvalidType = error "typeRef TDInvalidType"
 
 typeName :: (IsType a) => a -> String
 typeName = code . typeDesc
@@ -90,6 +91,7 @@ typeName = code . typeDesc
         code (TDStruct as packed) = (if packed then "<{" else "{") ++
                                     intercalate "," (map code as) ++
                                     (if packed then "}>" else "}")
+        code TDInvalidType = error "typeName TDInvalidType"
 
 typeDesc2 :: FFI.TypeRef -> IO TypeDesc
 typeDesc2 t = do

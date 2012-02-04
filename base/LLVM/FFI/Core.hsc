@@ -535,7 +535,11 @@ module LLVM.FFI.Core
     ) where
 import Data.Typeable(Typeable)
 import Foreign.C.String (CString)
+#if __GLASGOW_HASKELL__ >= 704
+import Foreign.C.Types (CDouble(..), CInt(..), CUInt(..), CLLong(..), CULLong(..))
+#else
 import Foreign.C.Types (CDouble, CInt, CUInt, CLLong, CULLong)
+#endif
 import Foreign.Ptr (Ptr, FunPtr)
 
 #include <llvm-c/Core.h>

@@ -3,7 +3,6 @@ module LLVM.Core.Data(IntN(..), WordN(..), FP128(..),
        		      Array(..), Vector(..), Ptr, Label, Struct(..), PackedStruct(..)) where
 import Data.Typeable
 import Foreign.Ptr(Ptr)
-import Data.TypeLevel
 
 -- TODO:
 -- Make instances IntN, WordN to actually do the right thing.
@@ -41,4 +40,3 @@ newtype Struct a = Struct a
     deriving (Show, Typeable)
 newtype PackedStruct a = PackedStruct a
     deriving (Show, Typeable)
-

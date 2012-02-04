@@ -1,0 +1,106 @@
+name:          llvm-base
+version:       3.0.0.0
+license:       BSD3
+license-file:  LICENSE
+synopsis:      FFI bindings to the LLVM compiler toolkit.
+description:
+  FFI bindings to the LLVM compiler toolkit.
+  .
+  We try to stay up to date with LLVM releases.  The current version
+  of this package is compatible with LLVM 3.0 and 2.9.  Please
+  understand that the package may or may not work against older LLVM
+  releases; we don't have the time or resources to test across
+  multiple releases.
+  .
+  * New in 3.0: Builds against LLVM 3.0.
+  .
+  * New in 0.9.1.1: Builds against LLVM 2.9.
+  .
+  * New in 0.9.1.0: Util.Memory for memory related intrinsics.
+  .
+  * New in 0.9.0.0: Adapted to LLVM 2.8 (removed support for Union types).
+author:        Bryan O'Sullivan, Lennart Augustsson
+maintainer:    Bryan O'Sullivan <bos@serpentine.com>, Lennart Augustsson <lennart@augustsson.net>
+homepage:      https://github.com/bos/llvm
+bug-reports:   https://github.com/bos/llvm/issues
+stability:     experimental
+category:      Compilers/Interpreters, Code Generation
+tested-with:   GHC == 6.12.3, GHC == 7.0.3, GHC == 7.2.2
+cabal-version: >= 1.6
+build-type:    Custom
+
+extra-source-files:
+    *.md
+    configure.ac
+    configure
+    include/extra.h
+    include/hs_llvm_config.h.in
+    include/support.h
+    llvm-base.buildinfo.in
+    llvm-base.buildinfo.windows.in
+    tools/*.hs
+    tools/Makefile
+
+extra-tmp-files:
+    autom4te.cache
+    config.log
+    config.status
+    configure
+    include/hs_llvm_config.h
+    llvm-base.buildinfo
+
+flag developer
+  description: operate in developer mode
+  default: False
+
+library
+  build-depends:
+    base >= 3 && < 5
+
+  ghc-options: -Wall
+
+  if flag(developer)
+    ghc-options: -Werror
+
+  exposed-modules:
+      LLVM.FFI.Analysis
+      LLVM.FFI.BitReader
+      LLVM.FFI.BitWriter
+      LLVM.FFI.Core
+      LLVM.FFI.ExecutionEngine
+      LLVM.FFI.Support
+      LLVM.FFI.Target
+      LLVM.FFI.Transforms.IPO
+      LLVM.FFI.Transforms.Scalar
+      LLVM.Target.Native
+
+  other-modules:
+      LLVM.Target.ARM
+      LLVM.Target.Alpha
+      LLVM.Target.Blackfin
+      LLVM.Target.CBackend
+      LLVM.Target.CellSPU
+      LLVM.Target.CppBackend
+      LLVM.Target.MSP430
+      LLVM.Target.Mips
+      LLVM.Target.PIC16
+      LLVM.Target.PowerPC
+      LLVM.Target.Sparc
+      LLVM.Target.SystemZ
+      LLVM.Target.X86
+      LLVM.Target.XCore
+
+  include-dirs: include
+  C-Sources:
+    cbits/extra.cpp
+    cbits/free.c
+    cbits/malloc.c
+    cbits/support.cpp
+
+source-repository head
+  type:     git
+  location: git://github.com/bos/llvm.git
+
+source-repository head
+  type:     mercurial
+  location: https://bitbucket.org/bos/llvm/

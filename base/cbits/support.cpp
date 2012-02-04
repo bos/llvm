@@ -1,26 +1,31 @@
 #define __STDC_LIMIT_MACROS
 #define __STDC_CONSTANT_MACROS
 
+#include "hs_llvm_config.h"
+
 #include "llvm-c/Core.h"
 #include "llvm/PassManager.h"
-// #include "llvm/Support/StandardPasses.h"
-#include <llvm/Transforms/IPO/PassManagerBuilder.h>
-#include <llvm/Transforms/IPO.h>
-// For LLVM_3.0
-#include "llvm/Support/TargetSelect.h"
+#if HS_LLVM_VERSION >= 300
+# include "llvm/DefaultPasses.h"
+# include "llvm/Transforms/IPO/PassManagerBuilder.h"
+# include "llvm/Transforms/IPO.h"
+#else
+# include "llvm/Support/StandardPasses.h"
+#endif
 
 #include "support.h"
 
 using namespace llvm;
 
 void LLVMCreateStandardFunctionPasses(LLVMPassManagerRef PM,
-				      unsigned OptimizationLevel)
+					unsigned OptimizationLevel)
 {
+#if HS_LLVM_VERSION >= 300
   llvm::PassManagerBuilder Builder;
   Builder.OptLevel = OptimizationLevel;
 
-  llvm::PassManagerBase* pass_man = unwrap(PM);
-  llvm::FunctionPassManager* func_man = 
+  llvm::PassManagerBase *pass_man = unwrap(PM);
+  llvm::FunctionPassManager *func_man =
     dynamic_cast <FunctionPassManager*>(pass_man);
 
   if (func_man) {
@@ -28,6 +33,9 @@ void LLVMCreateStandardFunctionPasses(LLVMPassManagerRef PM,
   } else {
     // printf ("Cannot create function passes for module pass manager\n");
   }
+#else
+  createStandardFunctionPasses(unwrap(PM), OptimizationLevel);
+#endif
 }
 
 void LLVMCreateStandardModulePasses(LLVMPassManagerRef PM,
@@ -39,6 +47,7 @@ void LLVMCreateStandardModulePasses(LLVMPassManagerRef PM,
 				    int HaveExceptions,
 				    int DisableInline)
 {
+#if HS_LLVM_VERSION >= 300
   llvm::PassManagerBuilder Builder;
   Builder.OptLevel = OptLevel;
   Builder.SizeLevel = OptimizeSize;
@@ -46,7 +55,6 @@ void LLVMCreateStandardModulePasses(LLVMPassManagerRef PM,
   Builder.DisableSimplifyLibCalls = !SimplifyLibCalls;
   Builder.DisableUnitAtATime = !UnitAtATime;
     
-
   Pass *InliningPass = 0;
 
   if (DisableInline) {
@@ -59,6 +67,24 @@ void LLVMCreateStandardModulePasses(LLVMPassManagerRef PM,
   } else {
     Builder.Inliner = createAlwaysInlinerPass();
   }
-  Builder.populateModulePassManager (*unwrap(PM));
 
+  Builder.populateModulePassManager (*unwrap(PM));
+#else
+  Pass *InliningPass = 0;
+
+  if (DisableInline) {
+    // No inlining pass
+  } else if (OptLevel) {
+    unsigned Threshold = 225;
+    if (OptLevel > 2)
+      Threshold = 275;
+    InliningPass = createFunctionInliningPass(Threshold);
+  } else {
+    InliningPass = createAlwaysInlinerPass();
+  }
+
+  createStandardModulePasses(unwrap(PM), OptLevel, OptimizeSize,
+                             UnitAtATime, UnrollLoops, SimplifyLibCalls,
+                             HaveExceptions, InliningPass);
+#endif
 }

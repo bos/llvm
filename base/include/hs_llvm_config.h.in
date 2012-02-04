@@ -6,6 +6,9 @@
 /* Define to 1 if you have the `LLVMCore' library (-lLLVMCore). */
 #undef HAVE_LIBLLVMCORE
 
+/* Define to 1 if you have the <llvm/ADT/StringRef.h> header file. */
+#undef HAVE_LLVM_ADT_STRINGREF_H
+
 /* Define to 1 if you have the <llvm-c/Core.h> header file. */
 #undef HAVE_LLVM_C_CORE_H
 
@@ -35,6 +38,9 @@
 
 /* Define to 1 if you have the <unistd.h> header file. */
 #undef HAVE_UNISTD_H
+
+/* Define to the version of LLVM, e.g. 209 for 2.9. */
+#undef HS_LLVM_VERSION
 
 /* Define to the address where bug reports for this package should be sent. */
 #undef PACKAGE_BUGREPORT

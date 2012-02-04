@@ -1,8 +1,8 @@
-AC_INIT([Haskell LLVM bindings], [0.9.1.2], [bos@serpentine.com], [llvm])
+AC_INIT([Haskell LLVM FFI bindings], [3.0.0.0], [bos@serpentine.com], [llvm-base])
 
-AC_CONFIG_SRCDIR([LLVM/ExecutionEngine.hs])
+AC_CONFIG_SRCDIR([LLVM/FFI/Core.hsc])
 
-AC_CONFIG_FILES([llvm.buildinfo])
+AC_CONFIG_FILES([llvm-base.buildinfo])
 
 AC_CONFIG_HEADERS([include/hs_llvm_config.h])
 
@@ -108,9 +108,11 @@ done
 AC_CHECK_HEADERS([llvm-c/Core.h], [],
   [AC_MSG_ERROR(could not find LLVM C bindings)])
 
-AC_CHECK_HEADERS([llvm/Support/DynamicLibrary.h],[],[],
-[#include <llvm/ADT/StringRef.h>
-])
+AC_CHECK_HEADERS([llvm/ADT/StringRef.h])
+AC_CHECK_HEADERS([llvm/Support/DynamicLibrary.h], [], [],
+[#ifdef HAVE_LLVM_ADT_STRINGREF_H
+# include <llvm/ADT/StringRef.h>
+#endif])
 
 save_LIBS="$LIBS"
 LIBS="-lLLVMSupport -lpthread -ldl $LIBS"
@@ -122,6 +124,10 @@ if test "$ac_cv_lib_LLVMCore_LLVMModuleCreateWithName" = "no"; then
   AC_CHECK_LIB(LLVMCore, LLVMModuleCreateWithName, [],
     [AC_MSG_ERROR(could not find LLVM C bindings)])
 fi
+
+llvm_num_version="`echo $llvm_version | tr . 0`"
+AC_DEFINE_UNQUOTED([HS_LLVM_VERSION], [$llvm_num_version],
+  [Define to the version of LLVM, e.g. 209 for 2.9.])
 
 AC_SUBST([llvm_version])
 AC_SUBST([llvm_cppflags])
