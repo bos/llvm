@@ -79,6 +79,20 @@
 #include "llvm/Linker.h"
 #include "llvm/Support/SourceMgr.h"
 
+#if HS_LLVM_VERSION >= 300
+// Imports for direct object emission
+// Target selection
+#include "llvm/Target/TargetData.h"
+#include "llvm/Target/TargetMachine.h"
+#include "llvm/Support/TargetSelect.h"
+#include "llvm/Support/TargetRegistry.h"
+#include "llvm/Support/Host.h"
+
+// File output
+#include "llvm/Support/raw_ostream.h"
+#include "llvm/Support/FormattedStream.h"
+#endif
+
 // LLVM-C includes
 #include "llvm-c/Core.h"
 #include "llvm-c/ExecutionEngine.h"
@@ -505,6 +519,66 @@ int LLVMInlineFunction(LLVMValueRef call)
     return llvm::InlineFunction(cs, unused);
 }
 
+#if HS_LLVM_VERSION >= 300
+// Emits an object file based on the host system's machine specification.
+// The object is emitted to the filename given as an argument.
+bool LLVMAddEmitObjectPass (LLVMModuleRef modRef, const char* filename)
+{
+  llvm::InitializeAllTargetInfos ();
+  llvm::InitializeAllTargets ();
+  llvm::InitializeAllTargetMCs ();
+  llvm::InitializeNativeTarget ();
+  llvm::InitializeAllAsmPrinters ();
+
+  // will be true post 3.0 I think
+  // std::string triple = sys::getDefaultTargetTriple ();
+
+  std::string triple = llvm::sys::getHostTriple ();
+  std::string err;
+  const llvm::Target* Target = llvm::TargetRegistry::lookupTarget (triple, err);
+
+  std::string cpu = llvm::sys::getHostCPUName ();
+  std::string features = "";
+
+  // llvm::StringMap <bool> featureMap (10);
+  
+  // // this returns false at the moment, but it appears to not make a huge difference
+  // // as the next iteration just doesn't do anything.
+  // llvm::sys::getHostCPUFeatures (featureMap);
+
+  // for (  llvm::StringMap <bool>::const_iterator it = featureMap.begin ();
+  //        it != featureMap.end ();
+  //        ++it) {
+  //   if (it->second) {
+  //     features += it->first.str() + " ";
+  //   }
+  // }
+
+
+  llvm::TargetMachine *machine = 
+    Target->createTargetMachine (triple, cpu, features);
+
+
+  llvm::PassManager pass_manager;
+
+  pass_manager.add(new llvm::TargetData (*machine->getTargetData()));
+
+  std::string outfile_err;
+  llvm::raw_fd_ostream raw_out (filename, outfile_err);
+  llvm::formatted_raw_ostream out (raw_out);
+
+  if (machine->addPassesToEmitFile (pass_manager, out,
+                                    llvm::TargetMachine::CGFT_ObjectFile,
+                                    llvm::CodeGenOpt::Default, false))
+    return false;
+
+  
+  llvm::Module *mod = llvm::unwrap (modRef);
+  pass_manager.run (*mod);
+
+  return true;
+}
+#endif
 
 /* Passes. A few passes (listed below) are used directly from LLVM-C,
  * rest are defined here.

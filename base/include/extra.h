@@ -191,6 +191,10 @@ void *LLVMGetPointerToFunction(LLVMExecutionEngineRef ee, LLVMValueRef fn);
  * containing the call is still in a proper state (not changed). */
 int LLVMInlineFunction(LLVMValueRef call);
 
+#if HS_LLVM_VERSION >= 300
+bool LLVMAddEmitObjectPass (LLVMModuleRef modRef, const char* filename);
+#endif
+
 /* Passes. Some passes are used directly from LLVM-C, rest are declared
  * here. */
 
