@@ -204,7 +204,8 @@ bool LLVMAddEmitObjectPass (LLVMModuleRef modRef, const char* filename);
 declare_pass( AAEval )
 declare_pass( AliasAnalysisCounter )
 declare_pass( AlwaysInliner )
-declare_pass( BasicAliasAnalysis )
+// Name conflicts with those in LLVM proper, have a safer prefix?
+// declare_pass( BasicAliasAnalysis )
 declare_pass( BlockPlacement )
 declare_pass( BreakCriticalEdges )
 declare_pass( CodeGenPrepare )
