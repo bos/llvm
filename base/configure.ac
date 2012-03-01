@@ -77,15 +77,15 @@ llvm_cppflags="`$llvm_config --cppflags`"
 llvm_includedir="`$llvm_config --includedir`"
 llvm_ldflags="`$llvm_config --ldflags`"
 
-llvm_all_libs="`$llvm_config --libs all`"
+llvm_all_libs="`$llvm_config --libfiles all`"
 llvm_target="`$llvm_config --libs engine | sed 's/.*LLVM\(.[[^ ]]*\)CodeGen.*/\1/'`"
 
 dnl We need to separate libraries that need to be linked from other linker options.
 llvm_extra_libs=""
 llvm_extra_libdirs=""
 llvm_extra_ghci_libs=""
-llvm_ldoptions=""
-for opt in $llvm_all_libs $llvm_ldflags; do
+llvm_ldoptions="$llvm_all_libs"
+for opt in $llvm_ldflags; do
   case $opt in
     -l*) llvm_extra_libs="$llvm_extra_libs `echo $opt | sed 's/^-l//'`";;
     -L*) llvm_extra_libdirs="$llvm_extra_libdirs `echo $opt | sed 's/^-L//'`";;

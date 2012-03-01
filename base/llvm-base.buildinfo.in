@@ -1,7 +1,6 @@
 cpp-options: @llvm_cppflags@ -DTARGET=@llvm_target@
 ghc-options: -pgml @CXX@
-extra-libraries: @llvm_extra_libs@ stdc++
+extra-libraries: LLVM-3.0 stdc++
 extra-lib-dirs: @llvm_extra_libdirs@
-x-extra-ghci-libraries: @llvm_extra_ghci_libs@
 ld-options: @llvm_ldoptions@
 include-dirs: @llvm_includedir@
