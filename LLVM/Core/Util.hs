@@ -271,16 +271,18 @@ addGlobal modul linkage name typ =
         return v
 
 -- unsafePerformIO is safe because it's only used for the withCStringLen conversion
-constStringInternal :: Bool -> String -> Value
+constStringInternal :: Bool -> String -> (Value, Int)
 constStringInternal nulTerm s = unsafePerformIO $
     withCStringLen s $ \(sPtr, sLen) ->
-      return $ FFI.constString sPtr (fromIntegral sLen) (fromBool (not nulTerm))
+      return (FFI.constString sPtr (fromIntegral sLen) (fromBool (not nulTerm)), sLen)
 
-constString :: String -> Value
+constString :: String -> (Value, Int)
 constString = constStringInternal False
 
-constStringNul :: String -> Value
-constStringNul = constStringInternal True
+constStringNul :: String -> (Value, Int)
+constStringNul str =
+    let (cstr, n) = constStringInternal True str
+    in (cstr, n+1)
 
 --------------------------------------
 

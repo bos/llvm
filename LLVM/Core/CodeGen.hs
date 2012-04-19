@@ -439,20 +439,24 @@ type TGlobal a = CodeGenModule (Global a)
 -- Special string creators
 {-# DEPRECATED createString "use withString instead" #-}
 createString :: String -> TGlobal (Array n Word8)
-createString s = string (length s) (U.constString s)
+createString s =
+    let (cstr, n) = U.constString s
+    in string n cstr
 
 {-# DEPRECATED createStringNul "use withStringNul instead" #-}
 createStringNul :: String -> TGlobal (Array n Word8)
-createStringNul s = string (length s + 1) (U.constStringNul s)
+createStringNul s =
+    let (cstr, n) = U.constStringNul s
+    in string n cstr
 
 withString ::
    String ->
    (forall n. (Nat n) => Global (Array n Word8) -> CodeGenModule a) ->
    CodeGenModule a
 withString s act =
-   let n = length s
+   let (cstr, n) = U.constString s
    in  reifyIntegral n (\tn ->
-          do arr <- string n (U.constString s)
+          do arr <- string n cstr
              act (fixArraySize tn arr))
 
 withStringNul ::
@@ -460,9 +464,9 @@ withStringNul ::
    (forall n. (Nat n) => Global (Array n Word8) -> CodeGenModule a) ->
    CodeGenModule a
 withStringNul s act =
-   let n = length s + 1
+   let (cstr, n) = U.constStringNul s
    in  reifyIntegral n (\tn ->
-          do arr <- string n (U.constStringNul s)
+          do arr <- string n cstr
              act (fixArraySize tn arr))
 
 fixArraySize :: n -> Global (Array n a) -> Global (Array n a)
