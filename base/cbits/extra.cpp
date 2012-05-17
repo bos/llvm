@@ -36,14 +36,14 @@
 
 #include "hs_llvm_config.h"
 
+#define __STDC_LIMIT_MACROS
+#define __STDC_CONSTANT_MACROS
+
 // standard includes
 #include <cassert>
 #include <cstdlib>
 #include <cstring>
 #include <sstream>
-
-#define __STDC_LIMIT_MACROS
-#define __STDC_CONSTANT_MACROS
 
 // LLVM includes
 #include "llvm/LLVMContext.h"
@@ -204,7 +204,7 @@ unsigned LLVMCmpInstGetPredicate(LLVMValueRef cmpinst)
 /* llvm::unwrap a set of `n' wrapped objects starting at `values',
  * into a vector of pointers to llvm::unwrapped objects `out'. */
 template <typename W, typename UW>
-void unwrap_vec(W *values, unsigned n, std::vector<UW *>& out)
+static inline void unwrap_vec(W *values, unsigned n, std::vector<UW *>& out)
 {
     out.clear();
 
@@ -218,7 +218,7 @@ void unwrap_vec(W *values, unsigned n, std::vector<UW *>& out)
 
 /* Same as llvm::unwrap_vec, but use a vector of const pointers. */
 template <typename W, typename UW>
-void unwrap_cvec(W *values, unsigned n, std::vector<const UW *>& out)
+static inline void unwrap_cvec(W *values, unsigned n, std::vector<const UW *>& out)
 {
     out.clear();
 
@@ -236,7 +236,7 @@ LLVMValueRef LLVMBuildRetMultiple(LLVMBuilderRef builder,
     assert(values);
 
     std::vector<llvm::Value *> values_vec;
-    unwrap_vec(values, n_values, values_vec);
+    unwrap_vec<LLVMValueRef, llvm::Value>(values, n_values, values_vec);
 
     llvm::IRBuilder<> *builderp = llvm::unwrap(builder);
     assert(builderp);
@@ -263,7 +263,6 @@ unsigned LLVMValueGetID(LLVMValueRef value)
     return valuep->getValueID();
 }
 
-
 unsigned LLVMValueGetNumUses(LLVMValueRef value)
 {
     llvm::Value *valuep = llvm::unwrap(value);
@@ -271,7 +270,6 @@ unsigned LLVMValueGetNumUses(LLVMValueRef value)
 
     return valuep->getNumUses();
 }
-
 
 unsigned LLVMValueGetUses(LLVMValueRef value, LLVMValueRef **refs)
 {
@@ -351,10 +349,10 @@ LLVMValueRef LLVMGetIntrinsic(LLVMModuleRef module, int id,
 
 #if HS_LLVM_VERSION >= 300
     std::vector<llvm::Type*> types_vec;
-    unwrap_vec(types, n_types, types_vec);
+    unwrap_vec<LLVMTypeRef, llvm::Type>(types, n_types, types_vec);
 #else
     std::vector<const llvm::Type*> types_vec;
-    unwrap_cvec(types, n_types, types_vec);
+    unwrap_cvec<LLVMTypeRef, llvm::Type>(types, n_types, types_vec);
 #endif
 
     llvm::Module *modulep = llvm::unwrap(module);

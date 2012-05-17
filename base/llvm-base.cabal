@@ -83,7 +83,6 @@ library
       LLVM.Target.CppBackend
       LLVM.Target.MSP430
       LLVM.Target.Mips
-      LLVM.Target.PIC16
       LLVM.Target.PowerPC
       LLVM.Target.Sparc
       LLVM.Target.SystemZ
