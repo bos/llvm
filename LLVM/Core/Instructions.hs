@@ -8,7 +8,8 @@ module LLVM.Core.Instructions(
     br,
     switch,
     invoke, invokeWithConv,
-    unwind,
+    -- Removed in LLVM_3.0
+    -- unwind,
     unreachable,
     -- * Arithmetic binary operations
     -- | Arithmetic operations with the normal semantics.
@@ -276,12 +277,13 @@ switch (Value val) (BasicBlock dflt) arms = do
 
 --------------------------------------
 
+-- Removed in LLVM_3.0
 -- |Unwind the call stack until a function call performed with 'invoke' is reached.
 -- I.e., throw a non-local exception.
-unwind :: CodeGenFunction r Terminate
-unwind = do
-    withCurrentBuilder_ FFI.buildUnwind
-    return terminate
+-- unwind :: CodeGenFunction r Terminate
+-- unwind = do
+--     withCurrentBuilder_ FFI.buildUnwind
+--     return terminate
 
 -- |Inform the code generator that this code can never be reached.
 unreachable :: CodeGenFunction r Terminate

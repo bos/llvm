@@ -281,6 +281,8 @@ instance FunctionArgs (IO Word64)        (FA Word64)        Word64        where 
 instance FunctionArgs (IO ())            (FA ())            ()            where apArgs _ _ g = g
 instance (Pos n, IsPrimitive a) =>
          FunctionArgs (IO (Vector n a))  (FA (Vector n a))  (Vector n a)  where apArgs _ _ g = g
+instance StructFields as =>
+         FunctionArgs (IO (Struct as))   (FA (Struct as))   (Struct as)   where apArgs _ _ g = g
 instance (IsType a) => 
          FunctionArgs (IO (Ptr a))       (FA (Ptr a))       (Ptr a)       where apArgs _ _ g = g
 instance FunctionArgs (IO (StablePtr a)) (FA (StablePtr a)) (StablePtr a) where apArgs _ _ g = g
