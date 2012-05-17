@@ -1,4 +1,4 @@
-{-# LANGUAGE ForeignFunctionInterface, EmptyDataDecls, DeriveDataTypeable #-}
+{-# LANGUAGE ForeignFunctionInterface, EmptyDataDecls, DeriveDataTypeable, CPP #-}
 
 -- |
 -- Module:      LLVM.FFI.Core
@@ -35,9 +35,10 @@ module LLVM.FFI.Core
     -- * Types
     , Type
     , TypeRef
+#if HS_LLVM_VERSION < 300
     , addTypeName
     , deleteTypeName
-
+#endif
     , getTypeKind
     , TypeKind(..)
 
@@ -67,7 +68,9 @@ module LLVM.FFI.Core
     -- ** Other types
     , voidType
     , labelType
+#if HS_LLVM_VERSION < 300
     , opaqueType
+#endif
 
     -- ** Array, pointer, and vector types
     , arrayType
@@ -83,13 +86,20 @@ module LLVM.FFI.Core
     , countStructElementTypes
     , getStructElementTypes
     , isPackedStruct
+#if HS_LLVM_VERSION >= 300
+    , structCreateNamed
+    , getStructName
+    , structSetBody
+#endif
 
     -- * Type handles
+#if HS_LLVM_VERSION < 300
     , TypeHandleRef
     , createTypeHandle
     , refineType
     , resolveTypeHandle
     , disposeTypeHandle
+#endif
 
     -- * Values
     , Value
@@ -288,8 +298,17 @@ module LLVM.FFI.Core
     , buildCondBr
     , buildSwitch
     , buildInvoke
+#if HS_LLVM_VERSION < 300
     , buildUnwind
+#endif
     , buildUnreachable
+
+#if HS_LLVM_VERSION >= 300
+    -- ** Landing pad
+    , buildLandingPad
+    , addClause
+    , setCleanup
+#endif
 
     -- ** Arithmetic
     , buildAdd
@@ -460,7 +479,9 @@ module LLVM.FFI.Core
     , int8TypeInContext
     , intTypeInContext
     , labelTypeInContext
+#if HS_LLVM_VERSION < 300
     , opaqueTypeInContext
+#endif
     , pPCFP128TypeInContext
     , structTypeInContext
     , voidTypeInContext
@@ -638,11 +659,13 @@ foreign import ccall unsafe "LLVMVectorType" vectorType
     -> CUInt                    -- ^ element count
     -> TypeRef
 
+#if HS_LLVM_VERSION < 300
 foreign import ccall unsafe "LLVMAddTypeName" addTypeName
     :: ModuleRef -> CString -> TypeRef -> IO CInt
 
 foreign import ccall unsafe "LLVMDeleteTypeName" deleteTypeName
     :: ModuleRef -> CString -> IO ()
+#endif
 
 -- | Get the type of a sequential type's elements.
 foreign import ccall unsafe "LLVMGetElementType" getElementType
@@ -1084,10 +1107,23 @@ foreign import ccall unsafe "LLVMBuildSwitch" buildSwitch
 foreign import ccall unsafe "LLVMBuildInvoke" buildInvoke
     :: BuilderRef -> ValueRef -> Ptr ValueRef -> CUInt
     -> BasicBlockRef -> BasicBlockRef -> CString -> IO ValueRef
+#if HS_LLVM_VERSION < 300
 foreign import ccall unsafe "LLVMBuildUnwind" buildUnwind
     :: BuilderRef -> IO ValueRef
+#endif
+
 foreign import ccall unsafe "LLVMBuildUnreachable" buildUnreachable
     :: BuilderRef -> IO ValueRef
+
+#if HS_LLVM_VERSION >= 300
+-- New landing pad instructions for LLVM 3.0
+foreign import ccall unsafe "LLVMBuildLandingPad" buildLandingPad
+    :: BuilderRef -> TypeRef -> ValueRef -> CUInt -> CString -> IO ValueRef
+foreign import ccall unsafe "LLVMAddClause" addClause
+    :: ValueRef -> ValueRef -> IO ()
+foreign import ccall unsafe "LLVMSetCleanup" setCleanup
+    :: ValueRef -> CUInt -> IO ()
+#endif
 
 foreign import ccall unsafe "LLVMBuildAdd" buildAdd
     :: BuilderRef -> ValueRef -> ValueRef -> CString -> IO ValueRef
@@ -1221,9 +1257,11 @@ data MemoryBuffer
     deriving (Typeable)
 type MemoryBufferRef = Ptr MemoryBuffer
 
+#if HS_LLVM_VERSION < 300
 data TypeHandle
     deriving (Typeable)
 type TypeHandleRef = Ptr TypeHandle
+#endif
 
 data TypeKind
     = VoidTypeKind
@@ -1249,14 +1287,10 @@ foreign import ccall unsafe "LLVMCreateMemoryBufferWithContentsOfFile" createMem
     :: CString -> Ptr MemoryBufferRef -> Ptr CString -> IO CInt
 foreign import ccall unsafe "LLVMCreateMemoryBufferWithSTDIN" createMemoryBufferWithSTDIN
     :: Ptr MemoryBufferRef -> Ptr CString -> IO CInt
-foreign import ccall unsafe "LLVMCreateTypeHandle" createTypeHandle
-    :: TypeRef -> IO TypeHandleRef
 foreign import ccall unsafe "LLVMDisposeMemoryBuffer" disposeMemoryBuffer
     :: MemoryBufferRef -> IO ()
 foreign import ccall unsafe "LLVMDisposeMessage" disposeMessage
     :: CString -> IO ()
-foreign import ccall unsafe "LLVMDisposeTypeHandle" disposeTypeHandle
-    :: TypeHandleRef -> IO ()
 foreign import ccall unsafe "LLVMGetArrayLength" getArrayLength
     :: TypeRef -> IO CUInt
 foreign import ccall unsafe "LLVMGetIntTypeWidth" getIntTypeWidth
@@ -1269,14 +1303,28 @@ foreign import ccall unsafe "LLVMGetTypeKind" getTypeKindCUInt
     :: TypeRef -> IO CUInt
 foreign import ccall unsafe "LLVMGetVectorSize" getVectorSize
     :: TypeRef -> IO CUInt
-foreign import ccall unsafe "LLVMRefineType" refineType
-    :: TypeRef -> TypeRef -> IO ()
-foreign import ccall unsafe "LLVMResolveTypeHandle" resolveTypeHandle
-    :: TypeHandleRef -> IO TypeRef
 foreign import ccall unsafe "LLVMSetTarget" setTarget
     :: ModuleRef -> CString -> IO ()
 foreign import ccall unsafe "LLVMSizeOf" sizeOf
     :: TypeRef -> IO ValueRef
+
+#if HS_LLVM_VERSION < 300
+foreign import ccall unsafe "LLVMCreateTypeHandle" createTypeHandle
+    :: TypeRef -> IO TypeHandleRef
+foreign import ccall unsafe "LLVMDisposeTypeHandle" disposeTypeHandle
+    :: TypeHandleRef -> IO ()
+foreign import ccall unsafe "LLVMRefineType" refineType
+    :: TypeRef -> TypeRef -> IO ()
+foreign import ccall unsafe "LLVMResolveTypeHandle" resolveTypeHandle
+    :: TypeHandleRef -> IO TypeRef
+#else
+foreign import ccall unsafe "LLVMStructCreateNamed" structCreateNamed
+    :: ContextRef -> CString -> IO TypeRef
+foreign import ccall unsafe "LLVMGetStructName" getStructName
+    :: TypeRef -> IO CString
+foreign import ccall unsafe "LLVMStructSetBody" structSetBody
+    :: TypeRef -> Ptr TypeRef -> CUInt -> CUInt -> IO ()
+#endif
 
 data Attribute
     = ZExtAttribute
@@ -1424,8 +1472,6 @@ foreign import ccall unsafe "LLVMInitializeFunctionPassManager" initializeFuncti
     :: PassManagerRef -> IO CInt
 foreign import ccall unsafe "LLVMLabelType" labelType
     :: TypeRef
-foreign import ccall unsafe "LLVMOpaqueType" opaqueType
-    :: TypeRef
 foreign import ccall unsafe "LLVMPositionBuilder" positionBuilder
     :: BuilderRef -> BasicBlockRef -> ValueRef -> IO ()
 foreign import ccall unsafe "LLVMRunFunctionPassManager" runFunctionPassManager
@@ -1436,6 +1482,13 @@ foreign import ccall unsafe "LLVMSetInstrParamAlignment" setInstrParamAlignment
     :: ValueRef -> CUInt -> CUInt -> IO ()
 foreign import ccall unsafe "LLVMSetParamAlignment" setParamAlignment
     :: ValueRef -> CUInt -> IO ()
+
+#if HS_LLVM_VERSION < 300
+foreign import ccall unsafe "LLVMOpaqueType" opaqueType
+    :: TypeRef
+foreign import ccall unsafe "LLVMOpaqueTypeInContext" opaqueTypeInContext
+    :: ContextRef -> IO TypeRef
+#endif
 
 
 data Context
@@ -1570,8 +1623,6 @@ foreign import ccall unsafe "LLVMLabelTypeInContext" labelTypeInContext
     :: ContextRef -> IO TypeRef
 foreign import ccall unsafe "LLVMModuleCreateWithNameInContext" moduleCreateWithNameInContext
     :: CString -> ContextRef -> IO ModuleRef
-foreign import ccall unsafe "LLVMOpaqueTypeInContext" opaqueTypeInContext
-    :: ContextRef -> IO TypeRef
 foreign import ccall unsafe "LLVMPPCFP128TypeInContext" pPCFP128TypeInContext
     :: ContextRef -> IO TypeRef
 foreign import ccall unsafe "LLVMRemoveFunctionAttr" removeFunctionAttr
