@@ -1,0 +1,13 @@
+name:               llvm-wrapper
+version:            3.0.1.0
+synopsis:           Friendly wrapper around raw FFI bindings of the LLVM C API.
+category:           Compilers/Interpreters, Code Generation
+license:            BSD3
+author:             Benjamin Saunders
+maintainer:         Benjamin Saunders <besaunde@sfu.ca>
+cabal-version:      >= 1.2
+build-type:         Simple
+
+library
+  build-depends: base >= 3 && < 5, llvm-base >= 3.0.0.1 && < 4   
+  exposed-modules: LLVM.Wrapper.Core
