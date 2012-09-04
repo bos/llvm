@@ -280,6 +280,7 @@ module LLVM.FFI.Core
     , Builder
     , BuilderRef
     , createBuilder
+    , disposeBuilder
     , ptrDisposeBuilder
     , positionBuilder
     , positionBefore
@@ -1084,6 +1085,9 @@ type BuilderRef = Ptr Builder
 
 foreign import ccall unsafe "LLVMCreateBuilder" createBuilder
     :: IO BuilderRef
+
+foreign import ccall unsafe "LLVMDisposeBuilder" disposeBuilder
+    :: BuilderRef -> IO ()
 
 foreign import ccall unsafe "&LLVMDisposeBuilder" ptrDisposeBuilder
     :: FunPtr (BuilderRef -> IO ())
