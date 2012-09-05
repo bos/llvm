@@ -7,6 +7,6 @@ import qualified LLVM.FFI.BitWriter as FFI
 import LLVM.FFI.Core
 
 writeBitcodeToFile :: ModuleRef -> FilePath -> IO ()
-writeBitcodeToFile m p = do result <- withCAString p (FFI.writeBitcodeToFile m)
+writeBitcodeToFile m p = do result <- withCString p (FFI.writeBitcodeToFile m)
                             unless (result == 0) $
                                    fail $ "Failed to write bitcode to " ++ p
