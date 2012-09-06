@@ -32,9 +32,18 @@ module LLVM.Wrapper.Core
 
     -- ** Struct types
     , structType
+    , structCreateNamed
+    , structCreateNamedInContext
+    , structSetBody
 
     -- ** Other types
+    , voidType
+    , arrayType
     , pointerType
+    , vectorType
+
+    -- ** Misc
+    , getTypeByName
 
     -- * Values
     , Value
@@ -42,9 +51,69 @@ module LLVM.Wrapper.Core
     , getValueName
     , setValueName
     , dumpValue
+    
     -- ** Constants
     , constNull
     , constPointerNull
+    , getUndef
+    
+    -- *** Scalar constants
+    , constInt
+    , constReal
+    , constString
+
+    -- *** Constant expressions
+    , sizeOf
+    , constNeg
+    , constNot
+    , constAdd
+    , constSub
+    , constMul
+    , constExactSDiv
+    , constFAdd
+    , constFMul
+    , constFNeg
+    , constFPCast
+    , constFSub
+    , constUDiv
+    , constSDiv
+    , constFDiv
+    , constURem
+    , constSRem
+    , constFRem
+    , constAnd
+    , constOr
+    , constXor
+    , constICmp
+    , constFCmp
+    , constShl
+    , constLShr
+    , constAShr
+    , constGEP
+    , constTrunc
+    , constSExt
+    , constZExt
+    , constFPTrunc
+    , constFPExt
+    , constUIToFP
+    , constSIToFP
+    , constFPToUI
+    , constFPToSI
+    , constPtrToInt
+    , constIntToPtr
+    , constBitCast
+    , constSelect
+    , constExtractElement
+    , constInsertElement
+    , constShuffleVector
+    , constNSWMul
+    , constNSWNeg
+    , constNSWSub
+    , constNUWAdd
+    , constNUWMul
+    , constNUWNeg
+    , constNUWSub
+
     -- ** Globals
     , addGlobal
     , getNamedGlobal
@@ -52,6 +121,8 @@ module LLVM.Wrapper.Core
     , addFunction
     , getNamedFunction
     , getParams
+    , isTailCall
+    , setTailCall
 
     -- * Basic blocks
     , BasicBlock
@@ -63,6 +134,7 @@ module LLVM.Wrapper.Core
     , createBuilder
     , disposeBuilder
     , positionAtEnd
+    , getInsertBlock
 
     -- ** Terminators
     , buildRetVoid
@@ -74,7 +146,12 @@ module LLVM.Wrapper.Core
     , addCase
 
     -- ** Memory
+    , buildLoad
+    , buildStore
     , buildStructGEP
+    , buildInBoundsGEP
+    -- ** Casts
+    , buildBitCast
 
     -- ** Misc
     , buildPhi
@@ -111,16 +188,73 @@ import LLVM.FFI.Core
     , fp128Type
     , ppcFP128Type
 
+    , arrayType
     , pointerType
+    , vectorType
+    , voidType
       
     , typeOf
     , dumpValue
     , constNull
     , constPointerNull
+    , getUndef
+    , constReal
+
+    , sizeOf
+    , constNeg
+    , constNot
+    , constAdd
+    , constSub
+    , constMul
+    , constExactSDiv
+    , constFAdd
+    , constFMul
+    , constFNeg
+    , constFPCast
+    , constFSub
+    , constUDiv
+    , constSDiv
+    , constFDiv
+    , constURem
+    , constSRem
+    , constFRem
+    , constAnd
+    , constOr
+    , constXor
+    , constICmp
+    , constFCmp
+    , constShl
+    , constLShr
+    , constAShr
+    , constGEP
+    , constTrunc
+    , constSExt
+    , constZExt
+    , constFPTrunc
+    , constFPExt
+    , constUIToFP
+    , constSIToFP
+    , constFPToUI
+    , constFPToSI
+    , constPtrToInt
+    , constIntToPtr
+    , constBitCast
+    , constSelect
+    , constExtractElement
+    , constInsertElement
+    , constShuffleVector
+    , constNSWMul
+    , constNSWNeg
+    , constNSWSub
+    , constNUWAdd
+    , constNUWMul
+    , constNUWNeg
+    , constNUWSub
 
     , createBuilder
     , disposeBuilder
     , positionAtEnd
+    , getInsertBlock
 
     , buildRetVoid
     , buildRet
@@ -129,6 +263,8 @@ import LLVM.FFI.Core
     , buildCondBr
     , buildSwitch
     , addCase
+
+    , buildStore
     )
 import qualified LLVM.FFI.Core as FFI
 
@@ -137,6 +273,7 @@ type Module     = FFI.ModuleRef
 type Value      = FFI.ValueRef
 type Builder    = FFI.BuilderRef
 type BasicBlock = FFI.BasicBlockRef
+type Context    = FFI.ContextRef
 
 moduleCreateWithName :: String -> IO Module
 moduleCreateWithName name = withCString name FFI.moduleCreateWithName
@@ -144,6 +281,9 @@ moduleCreateWithName name = withCString name FFI.moduleCreateWithName
 withModule :: String -> (Module -> IO a) -> IO a
 withModule n f = do m <- moduleCreateWithName n
                     finally (f m) (disposeModule m)
+
+getTypeByName :: Module -> String -> IO Type
+getTypeByName m name = withCString name $ FFI.getTypeByName m
 
 getValueName :: Value -> IO String
 getValueName v = FFI.getValueName v >>= peekCString
@@ -170,6 +310,12 @@ getParams f
            FFI.getParams f ptr
            peekArray count ptr
 
+isTailCall :: Value -> IO Bool
+isTailCall call = fmap toBool $ FFI.isTailCall call
+
+setTailCall :: Value -> Bool -> IO ()
+setTailCall call isTailCall = FFI.setTailCall call $ fromBool isTailCall
+
 -- unsafePerformIO just to wrap the non-effecting withArrayLen call
 functionType :: Type -> [Type] -> Bool -> Type
 functionType returnTy argTys isVarArg
@@ -182,15 +328,48 @@ structType types packed = unsafePerformIO $
     withArrayLen types $ \ len ptr ->
         return $ FFI.structType ptr (fromIntegral len) (fromBool packed)
 
+structCreateNamed :: String -> IO Type
+structCreateNamed name
+    = do ctx <- FFI.getGlobalContext
+         structCreateNamedInContext ctx name
+
+structCreateNamedInContext :: Context -> String -> IO Type
+structCreateNamedInContext ctx name = withCString name $ FFI.structCreateNamed ctx
+
+structSetBody :: Type -> [Type] -> Bool -> IO ()
+structSetBody struct body packed
+    = withArrayLen body $ \len ptr ->
+      FFI.structSetBody struct ptr (fromIntegral len) $ fromBool packed
+
 appendBasicBlock :: Value -> String -> IO BasicBlock
 appendBasicBlock function name = withCString name $ FFI.appendBasicBlock function
+
+constInt :: Type -> CULLong -> Bool -> Value
+constInt ty val signExtend = FFI.constInt ty val $ fromBool signExtend
+
+-- unsafePerformIO just to wrap the non-effecting withCStringLen call
+constString :: String -> Bool -> Value
+constString str dontNullTerminate
+    = unsafePerformIO $ withCStringLen str $ \(ptr, len) ->
+      return $ FFI.constString ptr (fromIntegral len) $ fromBool dontNullTerminate
 
 withBuilder :: (Builder -> IO a) -> IO a
 withBuilder f = do p <- createBuilder
                    finally (f p) (disposeBuilder p)
 
+buildLoad :: Builder -> Value -> String -> IO Value
+buildLoad b ptr name = withCString name $ FFI.buildLoad b ptr
+
 buildStructGEP :: Builder -> Value -> CUInt -> String -> IO Value
 buildStructGEP b s idx name = withCString name $ FFI.buildStructGEP b s idx
+
+buildInBoundsGEP :: Builder -> Value -> [Value] -> String -> IO Value
+buildInBoundsGEP b ptr indices name
+    = withArrayLen indices $ \len indicesPtr ->
+      withCString name $ FFI.buildInBoundsGEP b ptr indicesPtr $ fromIntegral len
+
+buildBitCast :: Builder -> Value -> Type -> String -> IO Value
+buildBitCast b v t name = withCString name $ FFI.buildBitCast b v t
 
 buildPhi :: Builder -> Type -> String -> IO Value
 buildPhi b ty name = withCString name $ FFI.buildPhi b ty
