@@ -145,6 +145,16 @@ module LLVM.Wrapper.Core
     , buildSwitch
     , addCase
 
+    -- ** Arithmetic
+    , buildAdd
+    , buildSub
+    , buildMul
+    , buildUDiv
+    , buildSDiv
+    , buildFAdd
+    , buildFSub
+    , buildFMul
+
     -- ** Memory
     , buildLoad
     , buildStore
@@ -356,6 +366,30 @@ constString str dontNullTerminate
 withBuilder :: (Builder -> IO a) -> IO a
 withBuilder f = do p <- createBuilder
                    finally (f p) (disposeBuilder p)
+
+buildAdd :: Builder -> Value -> Value -> String -> IO Value
+buildAdd b x y name = withCString name $ FFI.buildAdd b x y
+
+buildSub :: Builder -> Value -> Value -> String -> IO Value
+buildSub b x y name = withCString name $ FFI.buildSub b x y
+
+buildMul :: Builder -> Value -> Value -> String -> IO Value
+buildMul b x y name = withCString name $ FFI.buildMul b x y
+
+buildUDiv :: Builder -> Value -> Value -> String -> IO Value
+buildUDiv b x y name = withCString name $ FFI.buildUDiv b x y
+
+buildSDiv :: Builder -> Value -> Value -> String -> IO Value
+buildSDiv b x y name = withCString name $ FFI.buildSDiv b x y
+
+buildFAdd :: Builder -> Value -> Value -> String -> IO Value
+buildFAdd b x y name = withCString name $ FFI.buildFAdd b x y
+
+buildFSub :: Builder -> Value -> Value -> String -> IO Value
+buildFSub b x y name = withCString name $ FFI.buildFSub b x y
+
+buildFMul :: Builder -> Value -> Value -> String -> IO Value
+buildFMul b x y name = withCString name $ FFI.buildFMul b x y
 
 buildLoad :: Builder -> Value -> String -> IO Value
 buildLoad b ptr name = withCString name $ FFI.buildLoad b ptr
