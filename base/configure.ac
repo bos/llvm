@@ -125,7 +125,7 @@ if test "$ac_cv_lib_LLVMCore_LLVMModuleCreateWithName" = "no"; then
     [AC_MSG_ERROR(could not find LLVM C bindings)])
 fi
 
-llvm_num_version="`echo $llvm_version | tr . 0`"
+llvm_num_version="`echo $llvm_version | sed 's/svn$//' | tr . 0`"
 AC_DEFINE_UNQUOTED([HS_LLVM_VERSION], [$llvm_num_version],
   [Define to the version of LLVM, e.g. 209 for 2.9.])
 
