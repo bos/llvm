@@ -167,7 +167,22 @@ module LLVM.Wrapper.Core
     , buildStructGEP
     , buildInBoundsGEP
     -- ** Casts
+    , buildTrunc
+    , buildZExt
+    , buildSExt
+    , buildFPToUI
+    , buildFPToSI
+    , buildUIToFP
+    , buildSIToFP
+    , buildFPTrunc
+    , buildFPExt
+    , buildPtrToInt
+    , buildIntToPtr
     , buildBitCast
+    , buildPointerCast
+    , buildTruncOrBitCast
+    , buildZExtOrBitCast
+    , buildSExtOrBitCast
 
     -- ** Misc
     , buildPhi
@@ -456,8 +471,53 @@ buildInBoundsGEP b ptr indices name
     = withArrayLen indices $ \len indicesPtr ->
       withCString name $ FFI.buildInBoundsGEP b ptr indicesPtr $ fromIntegral len
 
+buildTrunc :: Builder -> Value -> Type -> String -> IO Value
+buildTrunc b v t name = withCString name $ FFI.buildTrunc b v t
+
+buildZExt :: Builder -> Value -> Type -> String -> IO Value
+buildZExt b v t name = withCString name $ FFI.buildZExt b v t
+
+buildSExt :: Builder -> Value -> Type -> String -> IO Value
+buildSExt b v t name = withCString name $ FFI.buildSExt b v t
+
+buildFPToUI :: Builder -> Value -> Type -> String -> IO Value
+buildFPToUI b v t name = withCString name $ FFI.buildFPToUI b v t
+
+buildFPToSI :: Builder -> Value -> Type -> String -> IO Value
+buildFPToSI b v t name = withCString name $ FFI.buildFPToSI b v t
+
+buildUIToFP :: Builder -> Value -> Type -> String -> IO Value
+buildUIToFP b v t name = withCString name $ FFI.buildUIToFP b v t
+
+buildSIToFP :: Builder -> Value -> Type -> String -> IO Value
+buildSIToFP b v t name = withCString name $ FFI.buildSIToFP b v t
+
+buildFPTrunc :: Builder -> Value -> Type -> String -> IO Value
+buildFPTrunc b v t name = withCString name $ FFI.buildFPTrunc b v t
+
+buildFPExt :: Builder -> Value -> Type -> String -> IO Value
+buildFPExt b v t name = withCString name $ FFI.buildFPExt b v t
+
+buildPtrToInt :: Builder -> Value -> Type -> String -> IO Value
+buildPtrToInt b v t name = withCString name $ FFI.buildPtrToInt b v t
+
+buildIntToPtr :: Builder -> Value -> Type -> String -> IO Value
+buildIntToPtr b v t name = withCString name $ FFI.buildIntToPtr b v t
+
 buildBitCast :: Builder -> Value -> Type -> String -> IO Value
 buildBitCast b v t name = withCString name $ FFI.buildBitCast b v t
+
+buildPointerCast :: Builder -> Value -> Type -> String -> IO Value
+buildPointerCast b v t name = withCString name $ FFI.buildPointerCast b v t
+
+buildTruncOrBitCast :: Builder -> Value -> Type -> String -> IO Value
+buildTruncOrBitCast b v t name = withCString name $ FFI.buildTruncOrBitCast b v t
+
+buildZExtOrBitCast :: Builder -> Value -> Type -> String -> IO Value
+buildZExtOrBitCast b v t name = withCString name $ FFI.buildZExtOrBitCast b v t
+
+buildSExtOrBitCast :: Builder -> Value -> Type -> String -> IO Value
+buildSExtOrBitCast b v t name = withCString name $ FFI.buildSExtOrBitCast b v t
 
 buildPhi :: Builder -> Type -> String -> IO Value
 buildPhi b ty name = withCString name $ FFI.buildPhi b ty
