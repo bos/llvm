@@ -5,6 +5,7 @@ module LLVM.Wrapper.Core
     , moduleCreateWithName
     , disposeModule
     , withModule
+    , dumpModule
 
     -- * Types
     , Type
@@ -154,6 +155,7 @@ module LLVM.Wrapper.Core
     , buildFAdd
     , buildFSub
     , buildFMul
+    , buildFDiv
 
     -- ** Memory
     , buildLoad
@@ -180,6 +182,7 @@ import Control.Monad
 
 import LLVM.FFI.Core
     ( disposeModule
+    , dumpModule
 
     , TypeKind(..)
     , getTypeKind
@@ -390,6 +393,9 @@ buildFSub b x y name = withCString name $ FFI.buildFSub b x y
 
 buildFMul :: Builder -> Value -> Value -> String -> IO Value
 buildFMul b x y name = withCString name $ FFI.buildFMul b x y
+
+buildFDiv :: Builder -> Value -> Value -> String -> IO Value
+buildFDiv b x y name = withCString name $ FFI.buildFDiv b x y
 
 buildLoad :: Builder -> Value -> String -> IO Value
 buildLoad b ptr name = withCString name $ FFI.buildLoad b ptr
