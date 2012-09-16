@@ -156,6 +156,10 @@ module LLVM.Wrapper.Core
     , buildFSub
     , buildFMul
     , buildFDiv
+    , IntPredicate(..)
+    , buildICmp
+    , FPPredicate(..)
+    , buildFCmp
 
     -- ** Memory
     , buildLoad
@@ -396,6 +400,50 @@ buildFMul b x y name = withCString name $ FFI.buildFMul b x y
 
 buildFDiv :: Builder -> Value -> Value -> String -> IO Value
 buildFDiv b x y name = withCString name $ FFI.buildFDiv b x y
+
+data IntPredicate =
+    IntEQ                       -- ^ equal
+  | IntNE                       -- ^ not equal
+  | IntUGT                      -- ^ unsigned greater than
+  | IntUGE                      -- ^ unsigned greater or equal
+  | IntULT                      -- ^ unsigned less than
+  | IntULE                      -- ^ unsigned less or equal
+  | IntSGT                      -- ^ signed greater than
+  | IntSGE                      -- ^ signed greater or equal
+  | IntSLT                      -- ^ signed less than
+  | IntSLE                      -- ^ signed less or equal
+    deriving (Eq, Enum, Show)
+
+fromIntPredicate :: IntPredicate -> CInt
+fromIntPredicate p = fromIntegral (fromEnum p + 32)
+
+buildICmp :: Builder -> IntPredicate -> Value -> Value -> String -> IO Value
+buildICmp b p l r n = withCString n $ FFI.buildICmp b (fromIntPredicate p) l r
+
+data FPPredicate =
+    FPFalse           -- ^ Always false (always folded)
+  | FPOEQ             -- ^ True if ordered and equal
+  | FPOGT             -- ^ True if ordered and greater than
+  | FPOGE             -- ^ True if ordered and greater than or equal
+  | FPOLT             -- ^ True if ordered and less than
+  | FPOLE             -- ^ True if ordered and less than or equal
+  | FPONE             -- ^ True if ordered and operands are unequal
+  | FPORD             -- ^ True if ordered (no nans)
+  | FPUNO             -- ^ True if unordered: isnan(X) | isnan(Y)
+  | FPUEQ             -- ^ True if unordered or equal
+  | FPUGT             -- ^ True if unordered or greater than
+  | FPUGE             -- ^ True if unordered, greater than, or equal
+  | FPULT             -- ^ True if unordered or less than
+  | FPULE             -- ^ True if unordered, less than, or equal
+  | FPUNE             -- ^ True if unordered or not equal
+  | FPT               -- ^ Always true (always folded)
+    deriving (Eq, Enum, Show)
+
+fromFPPredicate :: FPPredicate -> CInt
+fromFPPredicate p = fromIntegral (fromEnum p)
+
+buildFCmp :: Builder -> FPPredicate -> Value -> Value -> String -> IO Value
+buildFCmp b p l r n = withCString n $ FFI.buildFCmp b (fromFPPredicate p) l r
 
 buildLoad :: Builder -> Value -> String -> IO Value
 buildLoad b ptr name = withCString name $ FFI.buildLoad b ptr
