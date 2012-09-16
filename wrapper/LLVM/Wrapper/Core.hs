@@ -118,6 +118,8 @@ module LLVM.Wrapper.Core
     -- ** Globals
     , addGlobal
     , getNamedGlobal
+    , buildGlobalString
+    , buildGlobalStringPtr
     -- ** Functions
     , addFunction
     , getNamedFunction
@@ -328,6 +330,14 @@ addGlobal m ty name = withCString name $ FFI.addGlobal m ty
 
 getNamedGlobal :: Module -> String -> IO Value
 getNamedGlobal m name = withCString name $ FFI.getNamedGlobal m
+
+buildGlobalString :: Builder -> String -> String -> IO Value
+buildGlobalString b string name
+    = withCString name (\n -> withCString string (\s -> FFI.buildGlobalString b s n))
+
+buildGlobalStringPtr :: Builder -> String -> String -> IO Value
+buildGlobalStringPtr b string name
+    = withCString name (\n -> withCString string (\s -> FFI.buildGlobalStringPtr b s n))
 
 addFunction :: Module -> String -> Type -> IO Value
 addFunction m name ty = withCString name (\n -> FFI.addFunction m n ty)
