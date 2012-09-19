@@ -24,8 +24,10 @@ module LLVM.Wrapper.Core
     , Value
     , getValueName
     , setValueName
+    , getLinkage
+    , setLinkage
     
-    -- *** Scalar constants
+    -- ** Scalar constants
     , constInt
     , constString
 
@@ -133,6 +135,8 @@ import LLVM.FFI.Core
     , constPointerNull
     , getUndef
     , constReal
+
+    , Linkage(..)
 
     , sizeOf
     , constNeg
@@ -285,6 +289,12 @@ structSetBody struct body packed
 
 appendBasicBlock :: Value -> String -> IO BasicBlock
 appendBasicBlock function name = withCString name $ FFI.appendBasicBlock function
+
+getLinkage :: Value -> IO Linkage
+getLinkage v = fmap FFI.toLinkage $ FFI.getLinkage v
+
+setLinkage :: Value -> Linkage -> IO ()
+setLinkage v l = FFI.setLinkage v (FFI.fromLinkage l)
 
 constInt :: Type -> CULLong -> Bool -> Value
 constInt ty val signExtend = FFI.constInt ty val $ fromBool signExtend
