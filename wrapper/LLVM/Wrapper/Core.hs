@@ -1,32 +1,12 @@
 module LLVM.Wrapper.Core
-    (
+    ( module LLVM.FFI.Core
     -- ** Modules
-      Module
+    , Module
     , moduleCreateWithName
-    , disposeModule
     , withModule
-    , dumpModule
 
     -- * Types
     , Type
-    , TypeKind(..)
-    , getTypeKind
-
-    -- * Integer types
-    , int1Type
-    , int8Type
-    , int16Type
-    , int32Type
-    , int64Type
-    , integerType
-    , getIntTypeWidth
-
-    -- ** Real types
-    , floatType
-    , doubleType
-    , x86FP80Type
-    , fp128Type
-    , ppcFP128Type
 
     -- ** Function types
     , functionType
@@ -37,83 +17,17 @@ module LLVM.Wrapper.Core
     , structCreateNamedInContext
     , structSetBody
 
-    -- ** Other types
-    , voidType
-    , arrayType
-    , pointerType
-    , vectorType
-
     -- ** Misc
     , getTypeByName
 
     -- * Values
     , Value
-    , typeOf
     , getValueName
     , setValueName
-    , dumpValue
-    
-    -- ** Constants
-    , constNull
-    , constPointerNull
-    , getUndef
     
     -- *** Scalar constants
     , constInt
-    , constReal
     , constString
-
-    -- *** Constant expressions
-    , sizeOf
-    , constNeg
-    , constNot
-    , constAdd
-    , constSub
-    , constMul
-    , constExactSDiv
-    , constFAdd
-    , constFMul
-    , constFNeg
-    , constFPCast
-    , constFSub
-    , constUDiv
-    , constSDiv
-    , constFDiv
-    , constURem
-    , constSRem
-    , constFRem
-    , constAnd
-    , constOr
-    , constXor
-    , constICmp
-    , constFCmp
-    , constShl
-    , constLShr
-    , constAShr
-    , constGEP
-    , constTrunc
-    , constSExt
-    , constZExt
-    , constFPTrunc
-    , constFPExt
-    , constUIToFP
-    , constSIToFP
-    , constFPToUI
-    , constFPToSI
-    , constPtrToInt
-    , constIntToPtr
-    , constBitCast
-    , constSelect
-    , constExtractElement
-    , constInsertElement
-    , constShuffleVector
-    , constNSWMul
-    , constNSWNeg
-    , constNSWSub
-    , constNUWAdd
-    , constNUWMul
-    , constNUWNeg
-    , constNUWSub
 
     -- ** Globals
     , addGlobal
@@ -134,19 +48,6 @@ module LLVM.Wrapper.Core
     -- * Instruction building
     , Builder
     , withBuilder
-    , createBuilder
-    , disposeBuilder
-    , positionAtEnd
-    , getInsertBlock
-
-    -- ** Terminators
-    , buildRetVoid
-    , buildRet
-    , buildBr
-    , buildIndirectBr
-    , buildCondBr
-    , buildSwitch
-    , addCase
 
     -- ** Arithmetic
     , buildAdd
@@ -165,7 +66,6 @@ module LLVM.Wrapper.Core
 
     -- ** Memory
     , buildLoad
-    , buildStore
     , buildStructGEP
     , buildInBoundsGEP
     -- ** Casts
