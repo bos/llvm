@@ -384,6 +384,12 @@ module LLVM.FFI.Core
     , buildStructGEP
 
     -- ** Comparisons
+    , IntPredicate(..)
+    , toIntPredicate
+    , fromIntPredicate
+    , FPPredicate(..)
+    , toFPPredicate
+    , fromFPPredicate
     , buildICmp
     , buildFCmp
 
@@ -1210,6 +1216,50 @@ foreign import ccall unsafe "LLVMBuildBitCast" buildBitCast
     :: BuilderRef -> ValueRef -> TypeRef -> CString -> IO ValueRef
 
 -- Comparisons
+data IntPredicate =
+    IntEQ                       -- ^ equal
+  | IntNE                       -- ^ not equal
+  | IntUGT                      -- ^ unsigned greater than
+  | IntUGE                      -- ^ unsigned greater or equal
+  | IntULT                      -- ^ unsigned less than
+  | IntULE                      -- ^ unsigned less or equal
+  | IntSGT                      -- ^ signed greater than
+  | IntSGE                      -- ^ signed greater or equal
+  | IntSLT                      -- ^ signed less than
+  | IntSLE                      -- ^ signed less or equal
+    deriving (Eq, Ord, Enum, Show, Typeable)
+
+fromIntPredicate :: IntPredicate -> CInt
+fromIntPredicate p = fromIntegral (fromEnum p + 32)
+
+toIntPredicate :: Int -> IntPredicate
+toIntPredicate p = toEnum $ fromIntegral p - 32
+
+data FPPredicate =
+    FPFalse           -- ^ Always false (always folded)
+  | FPOEQ             -- ^ True if ordered and equal
+  | FPOGT             -- ^ True if ordered and greater than
+  | FPOGE             -- ^ True if ordered and greater than or equal
+  | FPOLT             -- ^ True if ordered and less than
+  | FPOLE             -- ^ True if ordered and less than or equal
+  | FPONE             -- ^ True if ordered and operands are unequal
+  | FPORD             -- ^ True if ordered (no nans)
+  | FPUNO             -- ^ True if unordered: isnan(X) | isnan(Y)
+  | FPUEQ             -- ^ True if unordered or equal
+  | FPUGT             -- ^ True if unordered or greater than
+  | FPUGE             -- ^ True if unordered, greater than, or equal
+  | FPULT             -- ^ True if unordered or less than
+  | FPULE             -- ^ True if unordered, less than, or equal
+  | FPUNE             -- ^ True if unordered or not equal
+  | FPT               -- ^ Always true (always folded)
+    deriving (Eq, Ord, Enum, Show, Typeable)
+
+fromFPPredicate :: FPPredicate -> CInt
+fromFPPredicate p = fromIntegral (fromEnum p)
+
+toFPPredicate :: Int -> FPPredicate
+toFPPredicate p = toEnum $ fromIntegral p
+
 foreign import ccall unsafe "LLVMBuildICmp" buildICmp
     :: BuilderRef -> CInt -> ValueRef -> ValueRef -> CString -> IO ValueRef
 foreign import ccall unsafe "LLVMBuildFCmp" buildFCmp
