@@ -60,6 +60,12 @@ module LLVM.Wrapper.Core
     , buildAdd
     , buildSub
     , buildMul
+    , buildNSWAdd
+    , buildNSWSub
+    , buildNSWMul
+    , buildNUWAdd
+    , buildNUWSub
+    , buildNUWMul
     , buildUDiv
     , buildSDiv
     , buildFAdd
@@ -338,32 +344,25 @@ withBuilder :: (Builder -> IO a) -> IO a
 withBuilder f = do p <- createBuilder
                    finally (f p) (disposeBuilder p)
 
-buildAdd :: Builder -> Value -> Value -> String -> IO Value
-buildAdd b x y name = withCString name $ FFI.buildAdd b x y
+wrapBin :: (Builder -> Value -> Value -> CString -> IO Value) ->
+            Builder -> Value -> Value -> String  -> IO Value
+wrapBin f b x y name = withCString name $ f b x y
 
-buildSub :: Builder -> Value -> Value -> String -> IO Value
-buildSub b x y name = withCString name $ FFI.buildSub b x y
-
-buildMul :: Builder -> Value -> Value -> String -> IO Value
-buildMul b x y name = withCString name $ FFI.buildMul b x y
-
-buildUDiv :: Builder -> Value -> Value -> String -> IO Value
-buildUDiv b x y name = withCString name $ FFI.buildUDiv b x y
-
-buildSDiv :: Builder -> Value -> Value -> String -> IO Value
-buildSDiv b x y name = withCString name $ FFI.buildSDiv b x y
-
-buildFAdd :: Builder -> Value -> Value -> String -> IO Value
-buildFAdd b x y name = withCString name $ FFI.buildFAdd b x y
-
-buildFSub :: Builder -> Value -> Value -> String -> IO Value
-buildFSub b x y name = withCString name $ FFI.buildFSub b x y
-
-buildFMul :: Builder -> Value -> Value -> String -> IO Value
-buildFMul b x y name = withCString name $ FFI.buildFMul b x y
-
-buildFDiv :: Builder -> Value -> Value -> String -> IO Value
-buildFDiv b x y name = withCString name $ FFI.buildFDiv b x y
+buildAdd = wrapBin FFI.buildAdd
+buildSub = wrapBin FFI.buildSub
+buildMul = wrapBin FFI.buildMul
+buildNSWAdd = wrapBin FFI.buildNSWAdd
+buildNSWSub = wrapBin FFI.buildNSWSub
+buildNSWMul = wrapBin FFI.buildNSWMul
+buildNUWAdd = wrapBin FFI.buildNUWAdd
+buildNUWSub = wrapBin FFI.buildNUWSub
+buildNUWMul = wrapBin FFI.buildNUWMul
+buildUDiv = wrapBin FFI.buildUDiv
+buildSDiv = wrapBin FFI.buildSDiv
+buildFAdd = wrapBin FFI.buildFAdd
+buildFSub = wrapBin FFI.buildFSub
+buildFMul = wrapBin FFI.buildFMul
+buildFDiv = wrapBin FFI.buildFDiv
 
 buildICmp :: Builder -> IntPredicate -> Value -> Value -> String -> IO Value
 buildICmp b p l r n = withCString n $ FFI.buildICmp b (FFI.fromIntPredicate p) l r
