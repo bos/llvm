@@ -42,6 +42,10 @@ module LLVM.Wrapper.Core
     , getParams
     , isTailCall
     , setTailCall
+    , getFunctionCallConv
+    , setFunctionCallConv
+    , getInstructionCallConv
+    , setInstructionCallConv
 
     -- * Basic blocks
     , BasicBlock
@@ -194,6 +198,8 @@ import LLVM.FFI.Core
     , positionAtEnd
     , getInsertBlock
 
+    , CallingConvention(..)
+
     , buildRetVoid
     , buildRet
     , buildBr
@@ -261,6 +267,18 @@ isTailCall call = fmap toBool $ FFI.isTailCall call
 
 setTailCall :: Value -> Bool -> IO ()
 setTailCall call isTailCall = FFI.setTailCall call $ fromBool isTailCall
+
+getFunctionCallConv :: Value -> IO CallingConvention
+getFunctionCallConv f = fmap FFI.toCallingConvention $ FFI.getFunctionCallConv f
+
+setFunctionCallConv :: Value -> CallingConvention -> IO ()
+setFunctionCallConv f c = FFI.setFunctionCallConv f $ FFI.fromCallingConvention c
+
+getInstructionCallConv :: Value -> IO CallingConvention
+getInstructionCallConv f = fmap FFI.toCallingConvention $ FFI.getInstructionCallConv f
+
+setInstructionCallConv :: Value -> CallingConvention -> IO ()
+setInstructionCallConv f c = FFI.setInstructionCallConv f $ FFI.fromCallingConvention c
 
 -- unsafePerformIO just to wrap the non-effecting withArrayLen call
 functionType :: Type -> [Type] -> Bool -> Type
