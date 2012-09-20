@@ -195,10 +195,19 @@ import LLVM.FFI.Core
     , constNUWNeg
     , constNUWSub
 
+    , getEntryBasicBlock
+    , getNextBasicBlock
+    , getPreviousBasicBlock
+    , getInstructionParent
+
+    , setInstrParamAlignment
+    , setParamAlignment
+
     , createBuilder
     , disposeBuilder
     , positionAtEnd
     , getInsertBlock
+    , positionBuilder
 
     , CallingConvention(..)
 
