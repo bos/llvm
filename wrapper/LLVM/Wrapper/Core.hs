@@ -60,20 +60,33 @@ module LLVM.Wrapper.Core
     , buildAdd
     , buildSub
     , buildMul
-    , buildNSWAdd
-    , buildNSWSub
-    , buildNSWMul
-    , buildNUWAdd
-    , buildNUWSub
-    , buildNUWMul
+    , buildFAdd
+    , buildFMul
+    , buildFPCast
+    , buildFSub
     , buildUDiv
     , buildSDiv
-    , buildFAdd
-    , buildFSub
-    , buildFMul
+    , buildExactSDiv
     , buildFDiv
-    , buildICmp
-    , buildFCmp
+    , buildURem
+    , buildSRem
+    , buildFRem
+    , buildShl
+    , buildLShr
+    , buildAShr
+    , buildAnd
+    , buildOr
+    , buildXor
+    , buildNeg
+    , buildFNeg
+    , buildNot
+    , buildNSWMul
+    , buildNSWNeg
+    , buildNSWSub
+    , buildNUWAdd
+    , buildNUWMul
+    , buildNUWNeg
+    , buildNUWSub
 
     -- ** Memory
     , buildLoad
@@ -348,21 +361,41 @@ wrapBin :: (Builder -> Value -> Value -> CString -> IO Value) ->
             Builder -> Value -> Value -> String  -> IO Value
 wrapBin f b x y name = withCString name $ f b x y
 
-buildAdd    = wrapBin FFI.buildAdd
-buildSub    = wrapBin FFI.buildSub
-buildMul    = wrapBin FFI.buildMul
-buildNSWAdd = wrapBin FFI.buildNSWAdd
-buildNSWSub = wrapBin FFI.buildNSWSub
-buildNSWMul = wrapBin FFI.buildNSWMul
-buildNUWAdd = wrapBin FFI.buildNUWAdd
-buildNUWSub = wrapBin FFI.buildNUWSub
-buildNUWMul = wrapBin FFI.buildNUWMul
-buildUDiv   = wrapBin FFI.buildUDiv
-buildSDiv   = wrapBin FFI.buildSDiv
-buildFAdd   = wrapBin FFI.buildFAdd
-buildFSub   = wrapBin FFI.buildFSub
-buildFMul   = wrapBin FFI.buildFMul
-buildFDiv   = wrapBin FFI.buildFDiv
+buildAdd       = wrapBin FFI.buildAdd
+buildSub       = wrapBin FFI.buildSub
+buildMul       = wrapBin FFI.buildMul
+buildNSWAdd    = wrapBin FFI.buildNSWAdd
+buildNSWSub    = wrapBin FFI.buildNSWSub
+buildNSWMul    = wrapBin FFI.buildNSWMul
+buildNUWAdd    = wrapBin FFI.buildNUWAdd
+buildNUWSub    = wrapBin FFI.buildNUWSub
+buildNUWMul    = wrapBin FFI.buildNUWMul
+buildUDiv      = wrapBin FFI.buildUDiv
+buildSDiv      = wrapBin FFI.buildSDiv
+buildExactSDiv = wrapBin FFI.buildExactSDiv
+buildURem      = wrapBin FFI.buildURem
+buildSRem      = wrapBin FFI.buildSRem
+buildFAdd      = wrapBin FFI.buildFAdd
+buildFSub      = wrapBin FFI.buildFSub
+buildFMul      = wrapBin FFI.buildFMul
+buildFDiv      = wrapBin FFI.buildFDiv
+buildFRem      = wrapBin FFI.buildFRem
+buildShl       = wrapBin FFI.buildShl
+buildLShr      = wrapBin FFI.buildLShr
+buildAShr      = wrapBin FFI.buildAShr
+buildAnd       = wrapBin FFI.buildAnd
+buildOr        = wrapBin FFI.buildOr
+buildXor       = wrapBin FFI.buildXor
+
+wrapUn :: (Builder -> Value -> CString -> IO Value) ->
+           Builder -> Value -> String  -> IO Value
+wrapUn f b v name = withCString name $ f b v
+
+buildNeg    = wrapUn FFI.buildNeg
+buildFNeg   = wrapUn FFI.buildFNeg
+buildNot    = wrapUn FFI.buildNot
+buildNSWNeg = wrapUn FFI.buildNSWNeg
+buildNUWNeg = wrapUn FFI.buildNUWNeg
 
 buildICmp :: Builder -> IntPredicate -> Value -> Value -> String -> IO Value
 buildICmp b p l r n = withCString n $ FFI.buildICmp b (FFI.fromIntPredicate p) l r
