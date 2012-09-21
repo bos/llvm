@@ -87,6 +87,8 @@ module LLVM.Wrapper.Core
     , buildNUWMul
     , buildNUWNeg
     , buildNUWSub
+    , buildFCmp
+    , buildICmp
 
     -- ** Memory
     , buildLoad
