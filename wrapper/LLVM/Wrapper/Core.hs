@@ -118,6 +118,7 @@ module LLVM.Wrapper.Core
     , buildCall
     ) where
 
+import Foreign.Ptr (Ptr, nullPtr)
 import Foreign.C.String
 import Foreign.C.Types
 import Foreign.Marshal.Array
@@ -270,8 +271,11 @@ setValueName v name = withCString name $ FFI.setValueName v
 addGlobal :: Module -> Type -> String -> IO Value
 addGlobal m ty name = withCString name $ FFI.addGlobal m ty
 
-getNamedGlobal :: Module -> String -> IO Value
-getNamedGlobal m name = withCString name $ FFI.getNamedGlobal m
+nullableToMaybe :: Ptr a -> Maybe (Ptr a)
+nullableToMaybe p = if p == nullPtr then Nothing else Just p
+
+getNamedGlobal :: Module -> String -> IO (Maybe Value)
+getNamedGlobal m name = fmap nullableToMaybe $ withCString name $ FFI.getNamedGlobal m
 
 buildGlobalString :: Builder -> String -> String -> IO Value
 buildGlobalString b string name
@@ -284,8 +288,8 @@ buildGlobalStringPtr b string name
 addFunction :: Module -> String -> Type -> IO Value
 addFunction m name ty = withCString name (\n -> FFI.addFunction m n ty)
 
-getNamedFunction :: Module -> String -> IO Value
-getNamedFunction m name = withCString name $ FFI.getNamedFunction m
+getNamedFunction :: Module -> String -> IO (Maybe Value)
+getNamedFunction m name = fmap nullableToMaybe $ withCString name $ FFI.getNamedFunction m
 
 getParams :: Value -> IO [Value]
 getParams f
