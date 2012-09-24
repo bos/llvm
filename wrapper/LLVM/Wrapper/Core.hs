@@ -80,6 +80,7 @@ module LLVM.Wrapper.Core
     , buildNeg
     , buildFNeg
     , buildNot
+    , buildNSWAdd
     , buildNSWMul
     , buildNSWNeg
     , buildNSWSub
