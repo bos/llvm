@@ -387,7 +387,11 @@ LLVMModuleRef LLVMGetModuleFromAssembly(const char *asmtext, unsigned txtlen,
                                               llvm::getGlobalContext()))) {
         std::string s;
         llvm::raw_string_ostream buf(s);
+#if HS_LLVM_VERSION >= 301
         error.print("llvm-py", buf);
+#else
+        error.Print("llvm-py", buf);
+#endif
         *out = strdup(buf.str().c_str());
         return NULL;
     }
