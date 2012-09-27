@@ -52,6 +52,7 @@ module LLVM.Wrapper.Core
     -- * Basic blocks
     , BasicBlock
     , appendBasicBlock
+    , getBasicBlocks
 
     -- * Instruction building
     , Builder
@@ -345,6 +346,13 @@ structSetBody struct body packed
 
 appendBasicBlock :: Value -> String -> IO BasicBlock
 appendBasicBlock function name = withCString name $ FFI.appendBasicBlock function
+
+getBasicBlocks :: Value -> IO [BasicBlock]
+getBasicBlocks v
+    = do count <- liftM fromIntegral (FFI.countBasicBlocks v)
+         allocaArray count $ \ptr -> do
+             FFI.getBasicBlocks v ptr
+             peekArray count ptr
 
 getLinkage :: Value -> IO Linkage
 getLinkage v = fmap FFI.toLinkage $ FFI.getLinkage v
