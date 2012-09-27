@@ -29,6 +29,7 @@ module LLVM.Wrapper.Core
     
     -- ** Scalar constants
     , constInt
+    , constRealOfString
     , constString
 
     -- ** Globals
@@ -353,6 +354,11 @@ setLinkage v l = FFI.setLinkage v (FFI.fromLinkage l)
 
 constInt :: Type -> CULLong -> Bool -> Value
 constInt ty val signExtend = FFI.constInt ty val $ fromBool signExtend
+
+-- unsafePerformIO just to wrap the non-effecting withCString call
+constRealOfString :: Type -> String -> Value
+constRealOfString ty str
+    = unsafePerformIO $ withCString str $ \s -> FFI.constRealOfString ty s
 
 -- unsafePerformIO just to wrap the non-effecting withCStringLen call
 constString :: String -> Bool -> Value
