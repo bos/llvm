@@ -29,6 +29,7 @@ module LLVM.Wrapper.Core
     
     -- ** Scalar constants
     , constInt
+    , constRealOfString
     , constString
 
     -- ** Globals
@@ -51,6 +52,7 @@ module LLVM.Wrapper.Core
     -- * Basic blocks
     , BasicBlock
     , appendBasicBlock
+    , getBasicBlocks
 
     -- * Instruction building
     , Builder
@@ -345,6 +347,13 @@ structSetBody struct body packed
 appendBasicBlock :: Value -> String -> IO BasicBlock
 appendBasicBlock function name = withCString name $ FFI.appendBasicBlock function
 
+getBasicBlocks :: Value -> IO [BasicBlock]
+getBasicBlocks v
+    = do count <- liftM fromIntegral (FFI.countBasicBlocks v)
+         allocaArray count $ \ptr -> do
+             FFI.getBasicBlocks v ptr
+             peekArray count ptr
+
 getLinkage :: Value -> IO Linkage
 getLinkage v = fmap FFI.toLinkage $ FFI.getLinkage v
 
@@ -353,6 +362,11 @@ setLinkage v l = FFI.setLinkage v (FFI.fromLinkage l)
 
 constInt :: Type -> CULLong -> Bool -> Value
 constInt ty val signExtend = FFI.constInt ty val $ fromBool signExtend
+
+-- unsafePerformIO just to wrap the non-effecting withCString call
+constRealOfString :: Type -> String -> Value
+constRealOfString ty str
+    = unsafePerformIO $ withCString str $ \s -> FFI.constRealOfString ty s
 
 -- unsafePerformIO just to wrap the non-effecting withCStringLen call
 constString :: String -> Bool -> Value
