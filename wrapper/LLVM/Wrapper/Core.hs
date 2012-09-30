@@ -245,6 +245,7 @@ import LLVM.FFI.Core
     , buildIndirectBr
     , buildCondBr
     , buildSwitch
+    , buildUnreachable
     , addCase
 
     , buildStore
