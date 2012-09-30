@@ -4,6 +4,7 @@ module LLVM.Wrapper.Core
     , Module
     , moduleCreateWithName
     , withModule
+    , printModuleToFile
 
     -- * Types
     , Type
@@ -126,6 +127,8 @@ import Foreign.C.String
 import Foreign.C.Types
 import Foreign.Marshal.Array
 import Foreign.Marshal.Utils
+import Foreign.Marshal.Alloc (alloca)
+import Foreign.Storable (peek)
 import Foreign.ForeignPtr.Safe
 import System.IO.Unsafe (unsafePerformIO)
 import Control.Exception
@@ -261,6 +264,18 @@ moduleCreateWithName name = withCString name FFI.moduleCreateWithName
 withModule :: String -> (Module -> IO a) -> IO a
 withModule n f = do m <- moduleCreateWithName n
                     finally (f m) (disposeModule m)
+
+printModuleToFile :: Module -> FilePath -> IO ()
+printModuleToFile m file
+    = withCString file
+      (\f -> alloca (\msgPtr -> do
+                       result <- FFI.printModuleToFile m f msgPtr
+                       msg <- peek msgPtr
+                       case result of
+                         False -> return ()
+                         True -> do str <- peekCString msg
+                                    FFI.disposeMessage msg
+                                    fail str))
 
 getTypeByName :: Module -> String -> IO Type
 getTypeByName m name = withCString name $ FFI.getTypeByName m
