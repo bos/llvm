@@ -18,8 +18,8 @@ verifyModule :: Module -> IO (Maybe String)
 verifyModule m = alloca (\msgPtr -> do
                            result <- FFI.verifyModule m 2 msgPtr
                            msg <- peek msgPtr
-                           v <- case result of
-                                  0 -> return Nothing
-                                  _ -> fmap Just $ peekCString msg
-                           FFI.disposeMessage msg
-                           return v)
+                           case result of
+                             0 -> return Nothing
+                             _ -> do str <- peekCString msg
+                                     FFI.disposeMessage msg
+                                     return $ Just str)
