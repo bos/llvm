@@ -233,9 +233,15 @@ import LLVM.FFI.Core
 
     , createBuilder
     , disposeBuilder
-    , positionAtEnd
     , getInsertBlock
     , positionBuilder
+    , positionBefore
+    , positionAtEnd
+    , getFirstInstruction
+    , getNextInstruction
+    , getPreviousInstruction
+    , getLastInstruction
+    , getInstructionParent
 
     , CallingConvention(..)
 
