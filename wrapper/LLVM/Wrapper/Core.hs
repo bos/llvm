@@ -120,6 +120,7 @@ module LLVM.Wrapper.Core
     , buildPhi
     , addIncoming
     , buildCall
+    , isUnreachable
     ) where
 
 import Foreign.Ptr (Ptr, nullPtr)
@@ -493,3 +494,6 @@ buildCall b f args name
     = withArrayLen args $ \len ptr ->
       withCString name $ FFI.buildCall b f ptr (fromIntegral len)
 
+-- See LLVMOpcode in llvm-c/Core.h
+isUnreachable :: Value -> IO Bool
+isUnreachable v = fmap (== 7) $ FFI.instGetOpcode v
