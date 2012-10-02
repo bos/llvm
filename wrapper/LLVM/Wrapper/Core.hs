@@ -39,6 +39,11 @@ module LLVM.Wrapper.Core
     , buildGlobalString
     , buildGlobalStringPtr
 
+    -- ** Pass Manager
+    , PassManager
+    , initializeFunctionPassManager
+    , runFunctionPassManager
+
     -- ** Functions
     , addFunction
     , getNamedFunction
@@ -259,12 +264,13 @@ import LLVM.FFI.Core
     )
 import qualified LLVM.FFI.Core as FFI
 
-type Type       = FFI.TypeRef
-type Module     = FFI.ModuleRef
-type Value      = FFI.ValueRef
-type Builder    = FFI.BuilderRef
-type BasicBlock = FFI.BasicBlockRef
-type Context    = FFI.ContextRef
+type Type         = FFI.TypeRef
+type Module       = FFI.ModuleRef
+type Value        = FFI.ValueRef
+type Builder      = FFI.BuilderRef
+type BasicBlock   = FFI.BasicBlockRef
+type Context      = FFI.ContextRef
+type PassManager  = FFI.PassManagerRef
 
 moduleCreateWithName :: String -> IO Module
 moduleCreateWithName name = withCString name FFI.moduleCreateWithName
@@ -497,3 +503,13 @@ buildCall b f args name
 -- See LLVMOpcode in llvm-c/Core.h
 isUnreachable :: Value -> IO Bool
 isUnreachable v = fmap (== 7) $ FFI.instGetOpcode v
+
+initializeFunctionPassManager :: PassManager -> IO Bool
+initializeFunctionPassManager ref
+    = do r <- FFI.initializeFunctionPassManager ref
+         return $ toBool (fromIntegral r)
+
+runFunctionPassManager :: PassManager -> Value -> IO Bool
+runFunctionPassManager pm val
+    = do r <- FFI.runFunctionPassManager pm val
+         return $ toBool (fromIntegral r)
