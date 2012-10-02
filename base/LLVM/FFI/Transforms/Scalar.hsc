@@ -48,3 +48,19 @@ foreign import ccall unsafe "LLVMAddTailCallEliminationPass" addTailCallEliminat
     :: PassManagerRef -> IO ()
 foreign import ccall unsafe "LLVMAddVerifierPass" addVerifierPass
     :: PassManagerRef -> IO ()
+foreign import ccall unsafe "LLVMAddLoopIdiomPass" addLoopIdiomPass
+    :: PassManagerRef -> IO ()
+foreign import ccall unsafe "LLVMAddScalarReplAggregatesPassSSA" addScalarReplAggregatesPassSSA
+    :: PassManagerRef -> IO ()
+foreign import ccall unsafe "LLVMAddScalarReplAggregatesPassWithThreshold" addScalarReplAggregatesPassWithThreshold
+    :: PassManagerRef -> IO ()
+foreign import ccall unsafe "LLVMAddCorrelatedValuePropagationPass" addCorrelatedValuePropagationPass
+    :: PassManagerRef -> IO ()
+foreign import ccall unsafe "LLVMAddEarlyCSEPass" addEarlyCSEPass
+    :: PassManagerRef -> IO ()
+foreign import ccall unsafe "LLVMAddLowerExpectIntrinsicPass" addLowerExpectIntrinsicPass
+    :: PassManagerRef -> IO ()
+foreign import ccall unsafe "LLVMAddTypeBasedAliasAnalysisPass" addTypeBasedAliasAnalysisPass
+    :: PassManagerRef -> IO ()
+foreign import ccall unsafe "LLVMAddBasicAliasAnalysisPass" addBasicAliasAnalysisPass
+    :: PassManagerRef -> IO ()
