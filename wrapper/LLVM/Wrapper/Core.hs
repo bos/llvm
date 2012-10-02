@@ -502,7 +502,7 @@ buildCall b f args name
 
 -- See LLVMOpcode in llvm-c/Core.h
 isUnreachable :: Value -> IO Bool
-isUnreachable v = fmap (== 7) $ FFI.instGetOpcode v
+isUnreachable v = fmap (== 7) $ FFI.getInstructionOpcode v
 
 initializeFunctionPassManager :: PassManager -> IO Bool
 initializeFunctionPassManager ref

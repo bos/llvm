@@ -274,7 +274,7 @@ module LLVM.FFI.Core
     , getBasicBlockParent
 
     -- * Instruction field accessors
-    , instGetOpcode, cmpInstGetPredicate
+    , instGetOpcode, getInstructionOpcode, cmpInstGetPredicate
 
     -- * Instruction building
     , Builder
@@ -1080,8 +1080,15 @@ foreign import ccall unsafe "LLVMInsertBasicBlock" insertBasicBlock
 foreign import ccall unsafe "LLVMDeleteBasicBlock" deleteBasicBlock
     :: BasicBlockRef -> IO ()
 
+#if HS_LLVM_VERSION < 301
 foreign import ccall unsafe "LLVMInstGetOpcode" instGetOpcode
     :: ValueRef -> IO Int
+getInstructionOpcode = instGetOpcode
+#else
+foreign import ccall unsafe "LLVMGetInstructionOpcode" getInstructionOpcode
+    :: ValueRef -> IO Int
+instGetOpcode = getInstructionOpcode
+#endif
 
 foreign import ccall unsafe "LLVMCmpInstGetPredicate" cmpInstGetPredicate
     :: ValueRef -> IO Int

@@ -192,12 +192,14 @@ const char *LLVMInstGetOpcodeName(LLVMValueRef inst)
     return instp->getOpcodeName();
 }
 
+#if HS_LLVM_VERSION < 301
 unsigned LLVMInstGetOpcode(LLVMValueRef inst)
 {
     llvm::Instruction *instp = llvm::unwrap<llvm::Instruction>(inst);
     assert(instp);
     return instp->getOpcode();
 }
+#endif
 
 unsigned LLVMCmpInstGetPredicate(LLVMValueRef cmpinst)
 {
