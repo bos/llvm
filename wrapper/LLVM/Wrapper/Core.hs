@@ -54,6 +54,9 @@ module LLVM.Wrapper.Core
     , setFunctionCallConv
     , getInstructionCallConv
     , setInstructionCallConv
+    , addAttribute
+    , removeAttribute
+    , addFunctionAttr
 
     -- * Basic blocks
     , BasicBlock
@@ -236,6 +239,7 @@ import LLVM.FFI.Core
 
     , setInstrParamAlignment
     , setParamAlignment
+    , Attribute(..)
 
     , createBuilder
     , disposeBuilder
@@ -513,3 +517,12 @@ runFunctionPassManager :: PassManager -> Value -> IO Bool
 runFunctionPassManager pm val
     = do r <- FFI.runFunctionPassManager pm val
          return $ toBool (fromIntegral r)
+
+addAttribute :: Value -> Attribute -> IO ()
+addAttribute v a = FFI.addAttribute v $ FFI.fromAttribute a
+
+removeAttribute :: Value -> Attribute -> IO ()
+removeAttribute v a = FFI.removeAttribute v $ FFI.fromAttribute a
+
+addFunctionAttr :: Value -> Attribute -> IO ()
+addFunctionAttr v a = FFI.addFunctionAttr v $ FFI.fromAttribute a
