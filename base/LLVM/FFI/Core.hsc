@@ -446,7 +446,9 @@ module LLVM.FFI.Core
 
     -- * Debug
     , dumpModule
+#if HS_LLVM_VERSION >= 302
     , printModuleToFile
+#endif
 
 
     -- * Misc
@@ -1478,8 +1480,10 @@ foreign import ccall unsafe "&LLVMDisposePassManager" ptrDisposePassManager
     :: FunPtr (PassManagerRef -> IO ())
 foreign import ccall unsafe "LLVMDumpModule" dumpModule
     :: ModuleRef -> IO ()
+#if HS_LLVM_VERSION >= 302
 foreign import ccall unsafe "LLVMPrintModuleToFile" printModuleToFile
     :: ModuleRef -> CString -> (Ptr CString) -> IO Bool
+#endif
 foreign import ccall unsafe "LLVMFinalizeFunctionPassManager" finalizeFunctionPassManager
     :: PassManagerRef -> IO CInt
 foreign import ccall unsafe "LLVMGetBasicBlockParent" getBasicBlockParent
