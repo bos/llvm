@@ -60,10 +60,10 @@ genericValueToInt :: GenericValue -> Bool -> Integer
 genericValueToInt genVal isSigned
     = fromIntegral (FFI.EE.genericValueToInt genVal (fromBool isSigned))
 
-createGenericValueOfFloat :: Type -> Float -> IO GenericValue
+createGenericValueOfFloat :: Type -> Double -> IO GenericValue
 createGenericValueOfFloat ty n = FFI.EE.createGenericValueOfFloat ty (realToFrac n)
 
-genericValueToFloat :: Type -> GenericValue -> Float
+genericValueToFloat :: Type -> GenericValue -> Double
 genericValueToFloat ty genVal = realToFrac (FFI.EE.genericValueToFloat ty genVal)
 
 runFunction :: ExecutionEngine -> Value -> Int -> [GenericValue] -> IO GenericValue
