@@ -575,3 +575,23 @@ define_pass( UnifyFunctionExitNodes )
 llvm::ModulePass *createInternalize2Pass() { return llvm::createInternalizePass(true); }
 define_pass( Internalize2 )
 
+#if HS_LLVM_VERSION < 302
+LLVMBool LLVMPrintModuleToFile(LLVMModuleRef M, const char *Filename,
+                               char **ErrorMessage) {
+  std::string error;
+  raw_fd_ostream dest(Filename, error);
+  if (!error.empty()) {
+    *ErrorMessage = strdup(error.c_str());
+    return true;
+  }
+
+  unwrap(M)->print(dest, NULL);
+
+  if (!error.empty()) {
+    *ErrorMessage = strdup(error.c_str());
+    return true;
+  }
+  dest.flush();
+  return false;
+}
+#endif

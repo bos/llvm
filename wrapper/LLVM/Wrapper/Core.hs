@@ -1,13 +1,10 @@
-{-# LANGUAGE CPP #-}
 module LLVM.Wrapper.Core
     ( module LLVM.FFI.Core
     -- ** Modules
     , Module
     , moduleCreateWithName
     , withModule
-#if HS_LLVM_VERSION >= 302
     , printModuleToFile
-#endif
 
     -- * Types
     , Type
@@ -292,7 +289,6 @@ withModule :: String -> (Module -> IO a) -> IO a
 withModule n f = do m <- moduleCreateWithName n
                     finally (f m) (disposeModule m)
 
-#if HS_LLVM_VERSION >= 302
 printModuleToFile :: Module -> FilePath -> IO ()
 printModuleToFile m file
     = withCString file
@@ -304,7 +300,6 @@ printModuleToFile m file
                          True -> do str <- peekCString msg
                                     FFI.disposeMessage msg
                                     fail str))
-#endif
 
 getTypeByName :: Module -> String -> IO Type
 getTypeByName m name = withCString name $ FFI.getTypeByName m
