@@ -13,18 +13,18 @@ module LLVM.Wrapper.ExecutionEngine
     -- * Generic values
     , createGenericValueOfInt
     , genericValueToInt
-    , genericValueIntWidth
-    , createGenericValueOfFloat
-    , genericValueToFloat
     ) where
 
 import LLVM.FFI.ExecutionEngine
     ( runStaticConstructors
     , runStaticDestructors
+    , genericValueToFloat
+    , createGenericValueOfFloat
     , disposeExecutionEngine
     , addModuleProvider
     , getExecutionEngineTargetData
     , freeMachineCodeForFunction
+    , genericValueIntWidth
     , linkInJIT
     , addModule
     )
@@ -36,6 +36,7 @@ import Control.Monad
 
 import Foreign.Ptr (Ptr)
 import Foreign.C.String
+import Foreign.C.Types
 import Foreign.Marshal.Array
 import Foreign.Marshal.Alloc
 import Foreign.Marshal.Utils
@@ -52,23 +53,16 @@ type Builder    = FFI.BuilderRef
 type BasicBlock = FFI.BasicBlockRef
 type Context    = FFI.ContextRef
 
-createGenericValueOfInt :: Type -> Integer -> Bool -> IO GenericValue
+createGenericValueOfInt :: Type -> CULLong -> Bool -> IO GenericValue
 createGenericValueOfInt ty n isSigned
-    = FFI.EE.createGenericValueOfInt ty (fromInteger n) (fromBool isSigned)
+    = FFI.EE.createGenericValueOfInt ty n (fromBool isSigned)
 
-genericValueToInt :: GenericValue -> Bool -> Integer
-genericValueToInt genVal isSigned
-    = fromIntegral (FFI.EE.genericValueToInt genVal (fromBool isSigned))
+genericValueToInt :: GenericValue -> Bool -> CULLong
+genericValueToInt genVal isSigned = FFI.EE.genericValueToInt genVal (fromBool isSigned)
 
-createGenericValueOfFloat :: Type -> Float -> IO GenericValue
-createGenericValueOfFloat ty n = FFI.EE.createGenericValueOfFloat ty (realToFrac n)
-
-genericValueToFloat :: Type -> GenericValue -> Float
-genericValueToFloat ty genVal = realToFrac (FFI.EE.genericValueToFloat ty genVal)
-
-runFunction :: ExecutionEngine -> Value -> Int -> [GenericValue] -> IO GenericValue
+runFunction :: ExecutionEngine -> Value -> CUInt -> [GenericValue] -> IO GenericValue
 runFunction ee f numArgs args
-    = withArray args $ \ptr -> FFI.EE.runFunction ee f (fromIntegral numArgs) ptr
+    = withArray args $ \ptr -> FFI.EE.runFunction ee f numArgs ptr
 
 findFunction :: ExecutionEngine -> String -> IO (Maybe Value)
 findFunction ee name
@@ -78,9 +72,6 @@ findFunction ee name
           if r
               then return Nothing
               else liftM Just (peek funPtr)
-
-genericValueIntWidth :: GenericValue -> IO Int
-genericValueIntWidth val = liftM fromIntegral (FFI.EE.genericValueIntWidth val)
 
 runFunctionAsMain :: ExecutionEngine -> Value -> [String] -> [String] -> IO Bool
 runFunctionAsMain ee val argv envp
@@ -92,11 +83,11 @@ runFunctionAsMain ee val argv envp
   where argcstrings = mapM newCString argv
         envcstrings = mapM newCString envp
 
-createJITCompilerForModule :: Module -> Int -> IO ExecutionEngine
+createJITCompilerForModule :: Module -> CUInt -> IO ExecutionEngine
 createJITCompilerForModule mod optlvl
     = alloca $ \msgPtr ->
         alloca $ \eeref -> do
-          r <- FFI.EE.createJITCompilerForModule eeref mod (fromIntegral optlvl) msgPtr
+          r <- FFI.EE.createJITCompilerForModule eeref mod optlvl msgPtr
           if r
               then peek msgPtr >>= peekCString >>= fail
               else peek eeref
