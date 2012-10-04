@@ -579,13 +579,13 @@ define_pass( Internalize2 )
 LLVMBool LLVMPrintModuleToFile(LLVMModuleRef M, const char *Filename,
                                char **ErrorMessage) {
   std::string error;
-  raw_fd_ostream dest(Filename, error);
+  llvm::raw_fd_ostream dest(Filename, error);
   if (!error.empty()) {
     *ErrorMessage = strdup(error.c_str());
     return true;
   }
 
-  unwrap(M)->print(dest, NULL);
+  llvm::unwrap(M)->print(dest, NULL);
 
   if (!error.empty()) {
     *ErrorMessage = strdup(error.c_str());
