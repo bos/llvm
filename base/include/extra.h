@@ -248,7 +248,7 @@ declare_pass( UnifyFunctionExitNodes )
 declare_pass( Internalize2 )
 
 #if HS_LLVM_VERSION < 302
-LLVMBool LLVMPrintModuleToFile(LLVMModuleRef M, const char *Filename, char **ErrorMessage)
+LLVMBool LLVMPrintModuleToFile(LLVMModuleRef M, const char *Filename, char **ErrorMessage);
 #endif
 
 #ifdef __cplusplus
