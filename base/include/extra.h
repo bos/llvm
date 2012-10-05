@@ -167,11 +167,13 @@ LLVMModuleRef LLVMGetModuleFromAssembly(const char *asmtxt, unsigned txten,
 LLVMModuleRef LLVMGetModuleFromBitcode(const char *bc, unsigned bclen,
     char **out);
 
+#if HS_LLVM_VERSION < 302
 /* Wraps llvm::Linker::LinkModules().  Returns 0 on failure (with errmsg
  * filled in) and 1 on success.  Dispose error message after use with
  * LLVMDisposeMessage(). */
 unsigned LLVMLinkModules(LLVMModuleRef dest, LLVMModuleRef src,
 			 unsigned mode, char **errmsg);
+#endif
 
 /* Returns pointer to a heap-allocated block of `*len' bytes containing bit code
  * for the given module. NULL on error. */
@@ -244,6 +246,10 @@ declare_pass( TailDuplication )
 declare_pass( UnifyFunctionExitNodes )
 
 declare_pass( Internalize2 )
+
+#if HS_LLVM_VERSION < 302
+LLVMBool LLVMPrintModuleToFile(LLVMModuleRef M, const char *Filename, char **ErrorMessage)
+#endif
 
 #ifdef __cplusplus
 } /* extern "C" */
