@@ -530,6 +530,7 @@ module LLVM.FFI.Core
     , replaceAllUsesWith
     , setCurrentDebugLocation
     , setInstDebugLocation
+    , debugVersion
     , setMetadata
     , MetadataKind(..)
     , fromMetadataKind
@@ -1850,6 +1851,9 @@ toMetadataKind c = toEnum $ fromIntegral c
 
 fromMetadataKind :: MetadataKind -> CUInt
 fromMetadataKind k = fromIntegral $ fromEnum k
+
+debugVersion :: (Integral a) => a
+debugVersion = 786432 -- 12 << 16
 
 {-
 foreign import ccall unsafe "LLVMUnionType" unionType

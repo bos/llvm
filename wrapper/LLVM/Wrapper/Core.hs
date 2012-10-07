@@ -282,6 +282,7 @@ import LLVM.FFI.Core
     , getCurrentDebugLocation
     , setCurrentDebugLocation
     , setInstDebugLocation
+    , debugVersion
     )
 import qualified LLVM.FFI.Core as FFI
 
