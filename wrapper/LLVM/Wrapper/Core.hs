@@ -128,6 +128,7 @@ module LLVM.Wrapper.Core
     , buildPhi
     , addIncoming
     , buildCall
+    , buildSelect
     , isUnreachable
     ) where
 
@@ -509,6 +510,10 @@ buildCall :: Builder -> Value -> [Value] -> String -> IO Value
 buildCall b f args name
     = withArrayLen args $ \len ptr ->
       withCString name $ FFI.buildCall b f ptr (fromIntegral len)
+
+buildSelect :: Builder -> Value -> Value -> Value -> String -> IO Value
+buildSelect b cond t f name
+    = withCString name $ FFI.buildSelect b cond t f
 
 -- See LLVMOpcode in llvm-c/Core.h
 isUnreachable :: Value -> IO Bool
