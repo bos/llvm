@@ -8,5 +8,5 @@ import LLVM.Wrapper.Core
 
 writeBitcodeToFile :: Module -> FilePath -> IO ()
 writeBitcodeToFile m p = do result <- withCString p (FFI.writeBitcodeToFile m)
-                            unless (result == 0) $
+                            unless (result == False) $
                                    fail $ "Failed to write bitcode to " ++ p

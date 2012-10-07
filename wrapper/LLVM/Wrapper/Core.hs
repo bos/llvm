@@ -29,7 +29,6 @@ module LLVM.Wrapper.Core
     , setLinkage
     
     -- ** Scalar constants
-    , constInt
     , constRealOfString
     , constString
 
@@ -41,15 +40,11 @@ module LLVM.Wrapper.Core
 
     -- ** Pass Manager
     , PassManager
-    , initializeFunctionPassManager
-    , runFunctionPassManager
 
     -- ** Functions
     , addFunction
     , getNamedFunction
     , getParams
-    , isTailCall
-    , setTailCall
     , getFunctionCallConv
     , setFunctionCallConv
     , getInstructionCallConv
@@ -136,7 +131,6 @@ import Foreign.Ptr (Ptr, nullPtr)
 import Foreign.C.String
 import Foreign.C.Types
 import Foreign.Marshal.Array
-import Foreign.Marshal.Utils
 import Foreign.Marshal.Alloc (alloca)
 import Foreign.Storable (peek)
 import Foreign.ForeignPtr.Safe
@@ -175,6 +169,7 @@ import LLVM.FFI.Core
     , constNull
     , constPointerNull
     , getUndef
+    , constInt
     , constReal
 
     , Linkage(..)
@@ -233,9 +228,13 @@ import LLVM.FFI.Core
     , constNUWNeg
     , constNUWSub
 
+    , isTailCall
+    , setTailCall
     , deleteFunction
     
     , createFunctionPassManagerForModule
+    , initializeFunctionPassManager
+    , runFunctionPassManager
 
     , createModuleProviderForExistingModule
 
@@ -341,12 +340,6 @@ getParams f
            FFI.getParams f ptr
            peekArray count ptr
 
-isTailCall :: Value -> IO Bool
-isTailCall call = fmap toBool $ FFI.isTailCall call
-
-setTailCall :: Value -> Bool -> IO ()
-setTailCall call isTailCall = FFI.setTailCall call $ fromBool isTailCall
-
 getFunctionCallConv :: Value -> IO CallingConvention
 getFunctionCallConv f = fmap FFI.toCallingConvention $ FFI.getFunctionCallConv f
 
@@ -363,13 +356,13 @@ setInstructionCallConv f c = FFI.setInstructionCallConv f $ FFI.fromCallingConve
 functionType :: Type -> [Type] -> Bool -> Type
 functionType returnTy argTys isVarArg
     = unsafePerformIO $ withArrayLen argTys $ \len ptr ->
-      return $ FFI.functionType returnTy ptr (fromIntegral len) (fromBool isVarArg)
+      return $ FFI.functionType returnTy ptr (fromIntegral len) isVarArg
 
 -- unsafePerformIO just to wrap the non-effecting withArrayLen call
 structType :: [Type] -> Bool -> Type
 structType types packed = unsafePerformIO $
     withArrayLen types $ \ len ptr ->
-        return $ FFI.structType ptr (fromIntegral len) (fromBool packed)
+        return $ FFI.structType ptr (fromIntegral len) packed
 
 structCreateNamed :: String -> IO Type
 structCreateNamed name
@@ -382,7 +375,7 @@ structCreateNamedInContext ctx name = withCString name $ FFI.structCreateNamed c
 structSetBody :: Type -> [Type] -> Bool -> IO ()
 structSetBody struct body packed
     = withArrayLen body $ \len ptr ->
-      FFI.structSetBody struct ptr (fromIntegral len) $ fromBool packed
+      FFI.structSetBody struct ptr (fromIntegral len) packed
 
 appendBasicBlock :: Value -> String -> IO BasicBlock
 appendBasicBlock function name = withCString name $ FFI.appendBasicBlock function
@@ -400,9 +393,6 @@ getLinkage v = fmap FFI.toLinkage $ FFI.getLinkage v
 setLinkage :: Value -> Linkage -> IO ()
 setLinkage v l = FFI.setLinkage v (FFI.fromLinkage l)
 
-constInt :: Type -> CULLong -> Bool -> Value
-constInt ty val signExtend = FFI.constInt ty val $ fromBool signExtend
-
 -- unsafePerformIO just to wrap the non-effecting withCString call
 constRealOfString :: Type -> String -> Value
 constRealOfString ty str
@@ -412,7 +402,7 @@ constRealOfString ty str
 constString :: String -> Bool -> Value
 constString str dontNullTerminate
     = unsafePerformIO $ withCStringLen str $ \(ptr, len) ->
-      return $ FFI.constString ptr (fromIntegral len) $ fromBool dontNullTerminate
+      return $ FFI.constString ptr (fromIntegral len) dontNullTerminate
 
 withBuilder :: (Builder -> IO a) -> IO a
 withBuilder f = do p <- createBuilder
@@ -518,16 +508,6 @@ buildSelect b cond t f name
 -- See LLVMOpcode in llvm-c/Core.h
 isUnreachable :: Value -> IO Bool
 isUnreachable v = fmap (== 7) $ FFI.getInstructionOpcode v
-
-initializeFunctionPassManager :: PassManager -> IO Bool
-initializeFunctionPassManager ref
-    = do r <- FFI.initializeFunctionPassManager ref
-         return $ toBool (fromIntegral r)
-
-runFunctionPassManager :: PassManager -> Value -> IO Bool
-runFunctionPassManager pm val
-    = do r <- FFI.runFunctionPassManager pm val
-         return $ toBool (fromIntegral r)
 
 addAttribute :: Value -> Attribute -> IO ()
 addAttribute v a = FFI.addAttribute v $ FFI.fromAttribute a
