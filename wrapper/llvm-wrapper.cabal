@@ -11,4 +11,4 @@ build-type:         Simple
 library
   build-depends: base >= 3 && < 5, llvm-base >= 3.0.0.1 && < 4   
   exposed-modules: LLVM.Wrapper.Core, LLVM.Wrapper.BitWriter, LLVM.Wrapper.Analysis, LLVM.Wrapper.Transforms.Scalar,
-                   LLVM.Wrapper.ExecutionEngine, LLVM.Wrapper.Target
+                   LLVM.Wrapper.ExecutionEngine, LLVM.Wrapper.Target, LLVM.Wrapper.Transforms.IPO
