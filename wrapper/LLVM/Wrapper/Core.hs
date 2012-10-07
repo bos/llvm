@@ -56,6 +56,8 @@ module LLVM.Wrapper.Core
     -- ** Metadata
     , setMetadata
     , getMetadata
+    , getNamedMetadataOperands
+    , addNamedMetadataOperand
     , mdNode
     , mdString
 
