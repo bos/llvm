@@ -1083,10 +1083,12 @@ foreign import ccall unsafe "LLVMDeleteBasicBlock" deleteBasicBlock
 #if HS_LLVM_VERSION < 301
 foreign import ccall unsafe "LLVMInstGetOpcode" instGetOpcode
     :: ValueRef -> IO Int
+getInstructionOpcode :: ValueRef -> IO Int
 getInstructionOpcode = instGetOpcode
 #else
 foreign import ccall unsafe "LLVMGetInstructionOpcode" getInstructionOpcode
     :: ValueRef -> IO Int
+instGetOpcode :: ValueRef -> IO Int
 instGetOpcode = getInstructionOpcode
 #endif
 
