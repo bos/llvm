@@ -531,6 +531,9 @@ module LLVM.FFI.Core
     , setCurrentDebugLocation
     , setInstDebugLocation
     , setMetadata
+    , MetadataKind(..)
+    , fromMetadataKind
+    , toMetadataKind
 --    , unionType
 --    , unionTypeInContext
 
@@ -1829,6 +1832,16 @@ foreign import ccall unsafe "LLVMSetInstDebugLocation" setInstDebugLocation
     :: BuilderRef -> ValueRef -> IO ()
 foreign import ccall unsafe "LLVMSetMetadata" setMetadata
     :: ValueRef -> CUInt -> ValueRef -> IO ()
+
+data MetadataKind = Dbg | TBAA | Prof | FPMath | Range | TBAAStruct
+    deriving (Show, Eq, Enum)
+
+toMetadataKind :: CUInt -> MetadataKind
+toMetadataKind c = toEnum $ fromIntegral c
+
+fromMetadataKind :: MetadataKind -> CUInt
+fromMetadataKind k = fromIntegral $ fromEnum k
+
 {-
 foreign import ccall unsafe "LLVMUnionType" unionType
     :: (Ptr TypeRef) -> CUInt -> IO TypeRef
