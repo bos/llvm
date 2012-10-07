@@ -56,6 +56,8 @@ module LLVM.Wrapper.Core
     -- ** Metadata
     , setMetadata
     , getMetadata
+    , mdNode
+    , mdString
 
     -- * Basic blocks
     , BasicBlock
@@ -277,6 +279,9 @@ import LLVM.FFI.Core
     , buildStore
 
     , MetadataKind(..)
+    , getCurrentDebugLocation
+    , setCurrentDebugLocation
+    , setInstDebugLocation
     )
 import qualified LLVM.FFI.Core as FFI
 
@@ -529,3 +534,9 @@ setMetadata instruction kind node = FFI.setMetadata instruction (FFI.fromMetadat
 
 getMetadata :: Value -> MetadataKind -> IO Value
 getMetadata instruction kind = FFI.getMetadata instruction (FFI.fromMetadataKind kind)
+
+mdNode :: [Value] -> IO Value
+mdNode children = withArrayLen children $ \len ptr -> FFI.mdNode ptr $ fromIntegral len
+
+mdString :: String -> IO Value
+mdString s = withCStringLen s $ \(ptr, len) -> FFI.mdString ptr $ fromIntegral len
