@@ -1831,7 +1831,7 @@ foreign import ccall unsafe "LLVMMDNode" mdNode
 foreign import ccall unsafe "LLVMMDNodeInContext" mdNodeInContext
     :: ContextRef -> (Ptr ValueRef) -> CUInt -> IO ValueRef
 foreign import ccall unsafe "LLVMMDString" mdString
-    :: CString -> CUInt -> IO ValueRef
+    :: CString -> CUInt -> ValueRef
 foreign import ccall unsafe "LLVMMDStringInContext" mdStringInContext
     :: ContextRef -> CString -> CUInt -> IO ValueRef
 foreign import ccall unsafe "LLVMReplaceAllUsesWith" replaceAllUsesWith

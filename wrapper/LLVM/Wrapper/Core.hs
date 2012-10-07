@@ -541,8 +541,10 @@ getMetadata instruction kind = FFI.getMetadata instruction (FFI.fromMetadataKind
 mdNode :: [Value] -> IO Value
 mdNode children = withArrayLen children $ \len ptr -> FFI.mdNode ptr $ fromIntegral len
 
-mdString :: String -> IO Value
-mdString s = withCStringLen s $ \(ptr, len) -> FFI.mdString ptr $ fromIntegral len
+-- unsafePerformIO just to wrap the non-effecting withCString call
+mdString :: String -> Value
+mdString s = unsafePerformIO $
+             withCStringLen s $ \(ptr, len) -> return $ FFI.mdString ptr $ fromIntegral len
 
 getNamedMetadataOperands :: Module -> String -> IO [Value]
 getNamedMetadataOperands m name
