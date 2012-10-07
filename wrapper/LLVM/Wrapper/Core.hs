@@ -540,3 +540,14 @@ mdNode children = withArrayLen children $ \len ptr -> FFI.mdNode ptr $ fromInteg
 
 mdString :: String -> IO Value
 mdString s = withCStringLen s $ \(ptr, len) -> FFI.mdString ptr $ fromIntegral len
+
+getNamedMetadataOperands :: Module -> String -> IO [Value]
+getNamedMetadataOperands m name
+    = withCString name $ \namePtr -> do
+        count <- liftM fromIntegral (FFI.getNamedMetadataNumOperands m namePtr)
+        allocaArray count $ \ptr -> do
+          FFI.getNamedMetadataOperands m namePtr ptr
+          peekArray count ptr
+
+addNamedMetadataOperand :: Module -> String -> Value -> IO ()
+addNamedMetadataOperand m name value = withCString name $ \n -> FFI.addNamedMetadataOperand m n value

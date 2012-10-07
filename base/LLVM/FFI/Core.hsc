@@ -534,6 +534,9 @@ module LLVM.FFI.Core
     , MetadataKind(..)
     , fromMetadataKind
     , toMetadataKind
+    , getNamedMetadataNumOperands
+    , getNamedMetadataOperands
+    , addNamedMetadataOperand
 --    , unionType
 --    , unionTypeInContext
 
@@ -1670,6 +1673,12 @@ foreign import ccall unsafe "LLVMFloatTypeInContext" floatTypeInContext
     :: ContextRef -> IO TypeRef
 foreign import ccall unsafe "LLVMGetTypeByName" getTypeByName
     :: ModuleRef -> CString -> IO TypeRef
+foreign import ccall unsafe "LLVMGetNamedMetadataNumOperands" getNamedMetadataNumOperands
+    :: ModuleRef -> CString -> IO CUInt
+foreign import ccall unsafe "LLVMGetNamedMetadataOperands" getNamedMetadataOperands
+    :: ModuleRef -> CString -> (Ptr ValueRef) -> IO ()
+foreign import ccall unsafe "LLVMAddNamedMetadataOperand" addNamedMetadataOperand
+    :: ModuleRef -> CString -> ValueRef -> IO ()
 foreign import ccall unsafe "LLVMGetTypeContext" getTypeContext
     :: TypeRef -> IO ContextRef
 foreign import ccall unsafe "LLVMInsertBasicBlockInContext" insertBasicBlockInContext
