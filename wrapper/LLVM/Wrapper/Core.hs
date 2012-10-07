@@ -53,6 +53,10 @@ module LLVM.Wrapper.Core
     , removeAttribute
     , addFunctionAttr
 
+    -- ** Metadata
+    , setMetadata
+    , getMetadata
+
     -- * Basic blocks
     , BasicBlock
     , appendBasicBlock
@@ -271,6 +275,8 @@ import LLVM.FFI.Core
     , addCase
 
     , buildStore
+
+    , MetadataKind(..)
     )
 import qualified LLVM.FFI.Core as FFI
 
@@ -517,3 +523,9 @@ removeAttribute v a = FFI.removeAttribute v $ FFI.fromAttribute a
 
 addFunctionAttr :: Value -> Attribute -> IO ()
 addFunctionAttr v a = FFI.addFunctionAttr v $ FFI.fromAttribute a
+
+setMetadata :: Value -> MetadataKind -> Value -> IO ()
+setMetadata instruction kind node = FFI.setMetadata instruction (FFI.fromMetadataKind kind) node
+
+getMetadata :: Value -> MetadataKind -> IO Value
+getMetadata instruction kind = FFI.getMetadata instruction (FFI.fromMetadataKind kind)

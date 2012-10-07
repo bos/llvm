@@ -523,10 +523,10 @@ module LLVM.FFI.Core
 --    , getUnionElementTypes
     , hasMetadata
     , insertIntoBuilder
-    , mDNode
-    , mDNodeInContext
-    , mDString
-    , mDStringInContext
+    , mdNode
+    , mdNodeInContext
+    , mdString
+    , mdStringInContext
     , replaceAllUsesWith
     , setCurrentDebugLocation
     , setInstDebugLocation
@@ -1816,13 +1816,13 @@ foreign import ccall unsafe "LLVMHasMetadata" hasMetadata
     :: ValueRef -> IO Bool
 foreign import ccall unsafe "LLVMInsertIntoBuilder" insertIntoBuilder
     :: BuilderRef -> ValueRef -> IO ()
-foreign import ccall unsafe "LLVMMDNode" mDNode
+foreign import ccall unsafe "LLVMMDNode" mdNode
     :: (Ptr ValueRef) -> CUInt -> IO ValueRef
-foreign import ccall unsafe "LLVMMDNodeInContext" mDNodeInContext
+foreign import ccall unsafe "LLVMMDNodeInContext" mdNodeInContext
     :: ContextRef -> (Ptr ValueRef) -> CUInt -> IO ValueRef
-foreign import ccall unsafe "LLVMMDString" mDString
+foreign import ccall unsafe "LLVMMDString" mdString
     :: CString -> CUInt -> IO ValueRef
-foreign import ccall unsafe "LLVMMDStringInContext" mDStringInContext
+foreign import ccall unsafe "LLVMMDStringInContext" mdStringInContext
     :: ContextRef -> CString -> CUInt -> IO ValueRef
 foreign import ccall unsafe "LLVMReplaceAllUsesWith" replaceAllUsesWith
     :: ValueRef -> ValueRef -> IO ()
