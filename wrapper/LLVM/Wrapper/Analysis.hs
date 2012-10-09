@@ -18,7 +18,7 @@ verifyModule m = alloca (\msgPtr -> do
                            result <- FFI.verifyModule m 2 msgPtr
                            msg <- peek msgPtr
                            case result of
-                             True -> return Nothing
-                             False -> do str <- peekCString msg
-                                         FFI.disposeMessage msg
-                                         return $ Just str)
+                             False -> return Nothing
+                             True -> do str <- peekCString msg
+                                        FFI.disposeMessage msg
+                                        return $ Just str)
