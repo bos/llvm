@@ -106,6 +106,7 @@ module LLVM.Wrapper.Core
     , buildICmp
 
     -- ** Memory
+    , buildAlloca
     , buildLoad
     , buildStructGEP
     , buildInBoundsGEP
@@ -467,6 +468,9 @@ buildICmp b p l r n = withCString n $ FFI.buildICmp b (FFI.fromIntPredicate p) l
 
 buildFCmp :: Builder -> FPPredicate -> Value -> Value -> String -> IO Value
 buildFCmp b p l r n = withCString n $ FFI.buildFCmp b (FFI.fromFPPredicate p) l r
+
+buildAlloca :: Builder -> Type -> String -> IO Value
+buildAlloca b ty name = withCString name $ FFI.buildAlloca b ty
 
 buildLoad :: Builder -> Value -> String -> IO Value
 buildLoad b ptr name = withCString name $ FFI.buildLoad b ptr
