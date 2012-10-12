@@ -1833,7 +1833,7 @@ foreign import ccall unsafe "LLVMMDNodeInContext" mdNodeInContext
 foreign import ccall unsafe "LLVMMDString" mdString
     :: CString -> CUInt -> ValueRef
 foreign import ccall unsafe "LLVMMDStringInContext" mdStringInContext
-    :: ContextRef -> CString -> CUInt -> IO ValueRef
+    :: ContextRef -> CString -> CUInt -> ValueRef
 foreign import ccall unsafe "LLVMReplaceAllUsesWith" replaceAllUsesWith
     :: ValueRef -> ValueRef -> IO ()
 foreign import ccall unsafe "LLVMSetCurrentDebugLocation" setCurrentDebugLocation
