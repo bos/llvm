@@ -25,6 +25,8 @@ module LLVM.Wrapper.Core
     , Value
     , getValueName
     , setValueName
+    , getGC
+    , setGC
     , getLinkage
     , setLinkage
     
@@ -401,6 +403,12 @@ getBasicBlocks v
          allocaArray count $ \ptr -> do
              FFI.getBasicBlocks v ptr
              peekArray count ptr
+
+getGC :: Value -> IO String
+getGC f = FFI.getGC f >>= peekCString
+
+setGC :: Value -> String -> IO ()
+setGC f name = withCString name $ FFI.setGC f
 
 getLinkage :: Value -> IO Linkage
 getLinkage v = fmap FFI.toLinkage $ FFI.getLinkage v
