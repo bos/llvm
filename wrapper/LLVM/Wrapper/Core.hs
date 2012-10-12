@@ -252,7 +252,7 @@ import LLVM.FFI.Core
     , getEntryBasicBlock
     , getNextBasicBlock
     , getPreviousBasicBlock
-    , getInstructionParent
+    , getBasicBlockParent
 
     , setInstrParamAlignment
     , setParamAlignment
