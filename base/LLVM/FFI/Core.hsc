@@ -447,6 +447,9 @@ module LLVM.FFI.Core
     -- * Debug
     , dumpModule
     , printModuleToFile
+    , dumpModuleToString
+    , dumpValueToString
+    , dumpTypeToString
 
 
     -- * Misc
@@ -1487,6 +1490,12 @@ foreign import ccall unsafe "&LLVMDisposePassManager" ptrDisposePassManager
     :: FunPtr (PassManagerRef -> IO ())
 foreign import ccall unsafe "LLVMDumpModule" dumpModule
     :: ModuleRef -> IO ()
+foreign import ccall unsafe "LLVMDumpModuleToString" dumpModuleToString
+    :: ModuleRef -> IO CString
+foreign import ccall unsafe "LLVMDumpTypeToString" dumpTypeToString
+    :: TypeRef -> IO CString
+foreign import ccall unsafe "LLVMDumpValueToString" dumpValueToString
+    :: ValueRef -> IO CString
 foreign import ccall unsafe "LLVMPrintModuleToFile" printModuleToFile
     :: ModuleRef -> CString -> (Ptr CString) -> IO Bool
 foreign import ccall unsafe "LLVMFinalizeFunctionPassManager" finalizeFunctionPassManager

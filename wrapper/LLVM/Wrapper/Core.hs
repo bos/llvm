@@ -136,6 +136,11 @@ module LLVM.Wrapper.Core
     , buildCall
     , buildSelect
     , isUnreachable
+
+    -- * Debug
+    , dumpModuleToString
+    , dumpValueToString
+    , dumpTypeToString
     ) where
 
 import Foreign.Ptr (Ptr, nullPtr)
@@ -568,3 +573,12 @@ getNamedMetadataOperands m name
 
 addNamedMetadataOperand :: Module -> String -> Value -> IO ()
 addNamedMetadataOperand m name value = withCString name $ \n -> FFI.addNamedMetadataOperand m n value
+
+dumpModuleToString :: Module -> IO String
+dumpModuleToString m = FFI.dumpModuleToString m >>= peekCString
+
+dumpTypeToString :: Type -> IO String
+dumpTypeToString m = FFI.dumpTypeToString m >>= peekCString
+
+dumpValueToString :: Value -> IO String
+dumpValueToString m = FFI.dumpValueToString m >>= peekCString
