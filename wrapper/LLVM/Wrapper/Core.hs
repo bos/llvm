@@ -575,10 +575,19 @@ addNamedMetadataOperand :: Module -> String -> Value -> IO ()
 addNamedMetadataOperand m name value = withCString name $ \n -> FFI.addNamedMetadataOperand m n value
 
 dumpModuleToString :: Module -> IO String
-dumpModuleToString m = FFI.dumpModuleToString m >>= peekCString
+dumpModuleToString m = do cstr <- FFI.dumpModuleToString m
+                          hstr <- peekCString cstr
+                          FFI.disposeMessage cstr
+                          return hstr
 
 dumpTypeToString :: Type -> IO String
-dumpTypeToString m = FFI.dumpTypeToString m >>= peekCString
+dumpTypeToString m = do cstr <- FFI.dumpTypeToString m
+                        hstr <- peekCString cstr
+                        FFI.disposeMessage cstr
+                        return hstr
 
 dumpValueToString :: Value -> IO String
-dumpValueToString m = FFI.dumpValueToString m >>= peekCString
+dumpValueToString m = do cstr <- FFI.dumpValueToString m
+                         hstr <- peekCString cstr
+                         FFI.disposeMessage cstr
+                         return hstr
