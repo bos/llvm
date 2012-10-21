@@ -401,7 +401,7 @@ LLVMModuleRef LLVMGetModuleFromAssembly(const char *asmtext, unsigned txtlen,
                                               llvm::getGlobalContext()))) {
         std::string s;
         llvm::raw_string_ostream buf(s);
-        error.Print("llvm-py", buf);
+        error.print("llvm-py", buf);
         *out = strdup(buf.str().c_str());
         return NULL;
     }
@@ -531,9 +531,9 @@ bool LLVMAddEmitObjectPass (LLVMModuleRef modRef, const char* filename)
   llvm::InitializeAllAsmPrinters ();
 
   // will be true post 3.0 I think
-  // std::string triple = sys::getDefaultTargetTriple ();
+  std::string triple = llvm::sys::getDefaultTargetTriple ();
 
-  std::string triple = llvm::sys::getHostTriple ();
+  // std::string triple = llvm::sys::getHostTriple ();
   std::string err;
   const llvm::Target* Target = llvm::TargetRegistry::lookupTarget (triple, err);
 
@@ -556,7 +556,7 @@ bool LLVMAddEmitObjectPass (LLVMModuleRef modRef, const char* filename)
 
 
   llvm::TargetMachine *machine = 
-    Target->createTargetMachine (triple, cpu, features);
+    Target->createTargetMachine (triple, cpu, features, llvm::TargetOptions());
 
 
   llvm::PassManager pass_manager;
@@ -569,7 +569,7 @@ bool LLVMAddEmitObjectPass (LLVMModuleRef modRef, const char* filename)
 
   if (machine->addPassesToEmitFile (pass_manager, out,
                                     llvm::TargetMachine::CGFT_ObjectFile,
-                                    llvm::CodeGenOpt::Default, false))
+                                    false))
     return false;
 
   

@@ -85,7 +85,7 @@ LDFLAGS="$llvm_ldflags $LDFLAGS $TARGET_LDFLAGS"
 
 llvm_extra_ghci_libs=""
 
-AC_SEARCH_LIBS([LLVMModuleCreateWithName],[LLVM-2.7 LLVM-2.8 LLVM-2.9 LLVM-3.0]) 
+AC_SEARCH_LIBS([LLVMModuleCreateWithName],[LLVM-2.7 LLVM-2.8 LLVM-2.9 LLVM-3.0 LLVM-3.1]) 
 if test "$ac_cv_search_LLVMModuleCreateWithName" = "no"; then
    llvm_all_libs="`$llvm_config --libs all`"
 else
