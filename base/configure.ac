@@ -1,4 +1,4 @@
-AC_INIT([Haskell LLVM FFI bindings], [3.0.0.0], [bos@serpentine.com], [llvm-base])
+AC_INIT([Haskell LLVM FFI bindings], [3.1.0.0], [bos@serpentine.com], [llvm-base])
 
 AC_CONFIG_SRCDIR([LLVM/FFI/Core.hsc])
 
