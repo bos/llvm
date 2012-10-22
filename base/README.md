@@ -40,6 +40,16 @@ protect against everything that can go wrong, so take care.  And, of
 course, there's no way to guarantee anything about the generated code.
 
 
+GHCi
+----
+
+llvm-base will not work under GHCi. It fails to resolve some symbols,
+however under GHC it works fine. It appears related to the bugs listed in:
+
+http://hackage.haskell.org/trac/ghc/ticket/3333
+http://hackage.haskell.org/trac/ghc/ticket/3658
+http://hackage.haskell.org/trac/ghc/ticket/5987
+
 Staying in touch
 ----------------
 
