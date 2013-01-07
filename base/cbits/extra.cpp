@@ -82,7 +82,11 @@
 #if HS_LLVM_VERSION >= 300
 // Imports for direct object emission
 // Target selection
+#if HS_LLVM_VERSION < 302
 #include "llvm/Target/TargetData.h"
+#else
+#include "llvm/DataLayout.h"
+#endif
 #include "llvm/Target/TargetMachine.h"
 #include "llvm/Support/TargetSelect.h"
 #include "llvm/Support/TargetRegistry.h"
@@ -562,7 +566,7 @@ bool LLVMAddEmitObjectPass (LLVMModuleRef modRef, const char* filename)
 
   llvm::PassManager pass_manager;
 
-  pass_manager.add(new llvm::TargetData (*machine->getTargetData()));
+  pass_manager.add(new llvm::DataLayout (*machine->getDataLayout()));
 
   std::string outfile_err;
   llvm::raw_fd_ostream raw_out (filename, outfile_err);
