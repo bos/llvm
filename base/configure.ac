@@ -76,7 +76,7 @@ llvm_version="`$llvm_config --version`"
 llvm_cppflags="`$llvm_config --cppflags`"
 llvm_includedir="`$llvm_config --includedir`"
 llvm_ldflags="`$llvm_config --ldflags`"
-
+llvm_cflags="`$llvm_config --cflags` `$llvm_config --cxxflags`"
 llvm_all_libs="`$llvm_config --libs all`"
 llvm_target="`$llvm_config --libs engine | sed 's/.*LLVM\(.[[^ ]]*\)CodeGen.*/\1/'`"
 
@@ -132,6 +132,7 @@ AC_DEFINE_UNQUOTED([HS_LLVM_VERSION], [$llvm_num_version],
 AC_SUBST([llvm_num_version])
 AC_SUBST([llvm_version])
 AC_SUBST([llvm_cppflags])
+AC_SUBST([llvm_cflags])
 AC_SUBST([llvm_extra_libs])
 AC_SUBST([llvm_extra_libdirs])
 AC_SUBST([llvm_extra_ghci_libs])
