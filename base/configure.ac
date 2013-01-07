@@ -1,4 +1,4 @@
-AC_INIT([Haskell LLVM FFI bindings], [3.1.0.0], [bos@serpentine.com], [llvm-base])
+AC_INIT([Haskell LLVM FFI bindings], [3.2.0.0], [bos@serpentine.com], [llvm-base])
 
 AC_CONFIG_SRCDIR([LLVM/FFI/Core.hsc])
 
@@ -85,7 +85,7 @@ LDFLAGS="$llvm_ldflags $LDFLAGS $TARGET_LDFLAGS"
 
 llvm_extra_ghci_libs=""
 
-AC_SEARCH_LIBS([LLVMModuleCreateWithName],[LLVM-2.7 LLVM-2.8 LLVM-2.9 LLVM-3.0 LLVM-3.1]) 
+AC_SEARCH_LIBS([LLVMModuleCreateWithName],[LLVM-2.7 LLVM-2.8 LLVM-2.9 LLVM-3.0 LLVM-3.1 LLVM-3.2]) 
 if test "$ac_cv_search_LLVMModuleCreateWithName" = "no"; then
    llvm_all_libs="`$llvm_config --libs all`"
 else
