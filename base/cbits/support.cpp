@@ -26,7 +26,7 @@ void LLVMCreateStandardFunctionPasses(LLVMPassManagerRef PM,
 
   llvm::PassManagerBase *pass_man = unwrap(PM);
   llvm::FunctionPassManager *func_man =
-    dynamic_cast <FunctionPassManager*>(pass_man);
+    static_cast <FunctionPassManager*>(pass_man);
 
   if (func_man) {
     Builder.populateFunctionPassManager (*func_man);

@@ -191,6 +191,10 @@ void *LLVMGetPointerToFunction(LLVMExecutionEngineRef ee, LLVMValueRef fn);
  * containing the call is still in a proper state (not changed). */
 int LLVMInlineFunction(LLVMValueRef call);
 
+#if HS_LLVM_VERSION >= 300
+bool LLVMAddEmitObjectPass (LLVMModuleRef modRef, const char* filename);
+#endif
+
 /* Passes. Some passes are used directly from LLVM-C, rest are declared
  * here. */
 
@@ -200,7 +204,8 @@ int LLVMInlineFunction(LLVMValueRef call);
 declare_pass( AAEval )
 declare_pass( AliasAnalysisCounter )
 declare_pass( AlwaysInliner )
-declare_pass( BasicAliasAnalysis )
+// Name conflicts with those in LLVM proper, have a safer prefix?
+// declare_pass( BasicAliasAnalysis )
 declare_pass( BlockPlacement )
 declare_pass( BreakCriticalEdges )
 declare_pass( CodeGenPrepare )

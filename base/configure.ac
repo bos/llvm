@@ -1,4 +1,4 @@
-AC_INIT([Haskell LLVM FFI bindings], [3.0.0.0], [bos@serpentine.com], [llvm-base])
+AC_INIT([Haskell LLVM FFI bindings], [3.2.0.0], [bos@serpentine.com], [llvm-base])
 
 AC_CONFIG_SRCDIR([LLVM/FFI/Core.hsc])
 
@@ -76,7 +76,7 @@ llvm_version="`$llvm_config --version`"
 llvm_cppflags="`$llvm_config --cppflags`"
 llvm_includedir="`$llvm_config --includedir`"
 llvm_ldflags="`$llvm_config --ldflags`"
-
+llvm_cflags="`$llvm_config --cflags` `$llvm_config --cxxflags`"
 llvm_all_libs="`$llvm_config --libs all`"
 llvm_target="`$llvm_config --libs engine | sed 's/.*LLVM\(.[[^ ]]*\)CodeGen.*/\1/'`"
 
@@ -85,7 +85,7 @@ LDFLAGS="$llvm_ldflags $LDFLAGS $TARGET_LDFLAGS"
 
 llvm_extra_ghci_libs=""
 
-AC_SEARCH_LIBS([LLVMModuleCreateWithName],[LLVM-2.7 LLVM-2.8 LLVM-2.9 LLVM-3.0]) 
+AC_SEARCH_LIBS([LLVMModuleCreateWithName],[LLVM-2.7 LLVM-2.8 LLVM-2.9 LLVM-3.0 LLVM-3.1 LLVM-3.2]) 
 if test "$ac_cv_search_LLVMModuleCreateWithName" = "no"; then
    llvm_all_libs="`$llvm_config --libs all`"
 else
@@ -132,6 +132,7 @@ AC_DEFINE_UNQUOTED([HS_LLVM_VERSION], [$llvm_num_version],
 AC_SUBST([llvm_num_version])
 AC_SUBST([llvm_version])
 AC_SUBST([llvm_cppflags])
+AC_SUBST([llvm_cflags])
 AC_SUBST([llvm_extra_libs])
 AC_SUBST([llvm_extra_libdirs])
 AC_SUBST([llvm_extra_ghci_libs])

@@ -1,5 +1,5 @@
 name:          llvm-base
-version:       3.0.1.0
+version:       3.2.0.0
 license:       BSD3
 license-file:  LICENSE
 synopsis:      FFI bindings to the LLVM compiler toolkit.
@@ -76,17 +76,12 @@ library
 
   other-modules:
       LLVM.Target.ARM
-      LLVM.Target.Alpha
-      LLVM.Target.Blackfin
-      LLVM.Target.CBackend
       LLVM.Target.CellSPU
       LLVM.Target.CppBackend
       LLVM.Target.MSP430
       LLVM.Target.Mips
-      LLVM.Target.PIC16
       LLVM.Target.PowerPC
       LLVM.Target.Sparc
-      LLVM.Target.SystemZ
       LLVM.Target.X86
       LLVM.Target.XCore
 

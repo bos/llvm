@@ -79,6 +79,25 @@
 #include "llvm/Linker.h"
 #include "llvm/Support/SourceMgr.h"
 
+#if HS_LLVM_VERSION >= 300
+// Imports for direct object emission
+// Target selection
+#if HS_LLVM_VERSION < 302
+#include "llvm/Target/TargetData.h"
+#else
+#include "llvm/DataLayout.h"
+#endif
+#include "llvm/Target/TargetMachine.h"
+#include "llvm/Support/TargetSelect.h"
+#include "llvm/Support/TargetRegistry.h"
+#include "llvm/Support/Host.h"
+#include "llvm/ADT/SmallVector.h"
+
+// File output
+#include "llvm/Support/raw_ostream.h"
+#include "llvm/Support/FormattedStream.h"
+#endif
+
 // LLVM-C includes
 #include "llvm-c/Core.h"
 #include "llvm-c/ExecutionEngine.h"
@@ -341,12 +360,12 @@ unsigned LLVMGetDoesNotThrow(LLVMValueRef fn)
     return fnp->doesNotThrow();
 }
 
-void LLVMSetDoesNotThrow(LLVMValueRef fn, int DoesNotThrow)
+void LLVMSetDoesNotThrow(LLVMValueRef fn)
 {
     llvm::Function *fnp = llvm::unwrap<llvm::Function>(fn);
     assert(fnp);
 
-    return fnp->setDoesNotThrow((bool)DoesNotThrow);
+    return fnp->setDoesNotThrow();
 }
 
 LLVMValueRef LLVMGetIntrinsic(LLVMModuleRef module, int id,
@@ -387,7 +406,7 @@ LLVMModuleRef LLVMGetModuleFromAssembly(const char *asmtext, unsigned txtlen,
                                               llvm::getGlobalContext()))) {
         std::string s;
         llvm::raw_string_ostream buf(s);
-        error.Print("llvm-py", buf);
+        error.print("llvm-py", buf);
         *out = strdup(buf.str().c_str());
         return NULL;
     }
@@ -505,6 +524,66 @@ int LLVMInlineFunction(LLVMValueRef call)
     return llvm::InlineFunction(cs, unused);
 }
 
+#if HS_LLVM_VERSION >= 300
+// Emits an object file based on the host system's machine specification.
+// The object is emitted to the filename given as an argument.
+bool LLVMAddEmitObjectPass (LLVMModuleRef modRef, const char* filename)
+{
+  llvm::InitializeAllTargetInfos ();
+  llvm::InitializeAllTargets ();
+  llvm::InitializeAllTargetMCs ();
+  llvm::InitializeNativeTarget ();
+  llvm::InitializeAllAsmPrinters ();
+
+  // will be true post 3.0 I think
+  std::string triple = llvm::sys::getDefaultTargetTriple ();
+
+  // std::string triple = llvm::sys::getHostTriple ();
+  std::string err;
+  const llvm::Target* Target = llvm::TargetRegistry::lookupTarget (triple, err);
+
+  std::string cpu = llvm::sys::getHostCPUName ();
+  std::string features = "";
+
+  // llvm::StringMap <bool> featureMap (10);
+  
+  // // this returns false at the moment, but it appears to not make a huge difference
+  // // as the next iteration just doesn't do anything.
+  // llvm::sys::getHostCPUFeatures (featureMap);
+
+  // for (  llvm::StringMap <bool>::const_iterator it = featureMap.begin ();
+  //        it != featureMap.end ();
+  //        ++it) {
+  //   if (it->second) {
+  //     features += it->first.str() + " ";
+  //   }
+  // }
+
+
+  llvm::TargetMachine *machine = 
+    Target->createTargetMachine (triple, cpu, features, llvm::TargetOptions());
+
+
+  llvm::PassManager pass_manager;
+
+  pass_manager.add(new llvm::DataLayout (*machine->getDataLayout()));
+
+  std::string outfile_err;
+  llvm::raw_fd_ostream raw_out (filename, outfile_err);
+  llvm::formatted_raw_ostream out (raw_out);
+
+  if (machine->addPassesToEmitFile (pass_manager, out,
+                                    llvm::TargetMachine::CGFT_ObjectFile,
+                                    false))
+    return false;
+
+  
+  llvm::Module *mod = llvm::unwrap (modRef);
+  pass_manager.run (*mod);
+
+  return true;
+}
+#endif
 
 /* Passes. A few passes (listed below) are used directly from LLVM-C,
  * rest are defined here.
@@ -534,13 +613,13 @@ define_pass( DomOnlyPrinter )
 define_pass( DomOnlyViewer )
 define_pass( DomPrinter )
 define_pass( DomViewer )
+define_pass( DependenceAnalysis )
 define_pass( EdgeProfiler )
 define_pass( GlobalsModRef )
 define_pass( InstCount )
 define_pass( InstructionNamer )
 define_pass( LazyValueInfo )
 define_pass( LCSSA )
-define_pass( LoopDependenceAnalysis )
 define_pass( LoopExtractor )
 define_pass( LoopSimplify )
 define_pass( LoopStrengthReduce )
@@ -564,6 +643,8 @@ define_pass( StripNonDebugSymbols )
 define_pass( UnifyFunctionExitNodes )
 
 /* we support only internalize(true) */
-llvm::ModulePass *createInternalize2Pass() { return llvm::createInternalizePass(true); }
+llvm::ModulePass *createInternalize2Pass() {
+  return llvm::createInternalizePass(); 
+}
 define_pass( Internalize2 )
 
