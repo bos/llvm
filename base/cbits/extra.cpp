@@ -532,7 +532,9 @@ define_pass( InstCount )
 define_pass( InstructionNamer )
 define_pass( LazyValueInfo )
 define_pass( LCSSA )
+#if HS_LLVM_VERSION < 302
 define_pass( LoopDependenceAnalysis )
+#endif
 define_pass( LoopExtractor )
 define_pass( LoopSimplify )
 define_pass( LoopStrengthReduce )
@@ -554,10 +556,7 @@ define_pass( ScalarEvolutionAliasAnalysis )
 define_pass( SingleLoopExtractor )
 define_pass( StripNonDebugSymbols )
 define_pass( UnifyFunctionExitNodes )
-
-/* we support only internalize(true) */
-llvm::ModulePass *createInternalize2Pass() { return llvm::createInternalizePass(true); }
-define_pass( Internalize2 )
+define_pass( Internalize )
 
 #if HS_LLVM_VERSION < 302
 LLVMBool LLVMPrintModuleToFile(LLVMModuleRef M, const char *Filename,

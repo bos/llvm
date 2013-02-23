@@ -7,7 +7,6 @@ import LLVM.Wrapper.Core
 import Foreign.C.String (peekCString)
 import Foreign.Marshal.Alloc (alloca)
 import Foreign.Storable (peek)
-import Control.Monad (liftM)
 
 -- VerifierFailureAction 2 is 'no side effects'
 verifyFunction :: Value -> IO Bool
