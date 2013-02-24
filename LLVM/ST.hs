@@ -1,12 +1,32 @@
 {-# LANGUAGE MultiParamTypeClasses, UndecidableInstances, RankNTypes #-}
-module LLVM.ST ( ModuleGen
-               , Module
-               , STModule
-               , unsafeFreeze
-               , STType
-               , STValue
-               , module LLVM.Wrapper.BitWriter
-               ) where
+module LLVM.ST
+    ( ModuleGen
+
+    , STModule
+    , unsafeFreeze
+    , getModule
+    , genModule
+
+    , STBasicBlock
+    , appendBasicBlock
+
+    , STValue
+    , findGlobal, findFunction
+    , addFunction, genFunction
+
+    , STType
+    , findType
+    , functionType, intType
+
+    , CodeGen
+    , positionAtEnd, positionBefore, positionAfter
+
+    , getBlock, getFunction, getParams
+
+    , buildRet
+    , buildAdd, buildSub, buildMul
+    )
+    where
 
 import Control.Applicative
 import Control.Monad.Reader
@@ -25,7 +45,14 @@ newtype STValue s = STV Value
 unsafeFreeze :: STModule s -> ModuleGen s Module
 unsafeFreeze (STM m) = return m
 
-newtype ModuleGen s a = MG { unMG :: ReaderT (STModule s) (ST s) a }
+functionType :: STType s -> [STType s] -> Bool -> STType s
+functionType (STT ret) args variadic =
+    STT (W.functionType ret (map unSTT args) variadic)
+
+intType :: CUInt -> STType s
+intType i = STT (W.integerType i)
+
+newtype ModuleGen s a = MG { unMG :: ReaderT Module (ST s) a }
 
 instance Functor (ModuleGen s) where
     fmap f (MG g) = MG (fmap f g)
@@ -38,30 +65,26 @@ instance Monad (ModuleGen s) where
     (>>=) (MG x) f = MG (x >>= unMG . f)
     return x = MG (return x)
 
-instance MonadReader (STModule s) (ModuleGen s) where
-    ask = MG ask
-    local f (MG mg) = MG (local f mg)
-
 getModule :: ModuleGen s (STModule s)
-getModule = ask
+getModule = fmap STM (MG ask)
 
 genModule :: String -> ModuleGen s a -> ST s a
-genModule name (MG mg) = unsafeIOToST (W.moduleCreateWithName name >>= (unsafeSTToIO . runReaderT mg . STM))
+genModule name (MG mg) = unsafeIOToST (W.moduleCreateWithName name >>= (unsafeSTToIO . runReaderT mg))
 
 wrapMG :: IO a -> ModuleGen s a
 wrapMG = MG . lift . unsafeIOToST
 
 findType :: String -> ModuleGen s (Maybe (STType s))
-findType name = ask >>= unsafeFreeze >>= ((fmap . fmap) STT . wrapMG . flip W.getTypeByName name)
+findType name = MG ask >>= ((fmap . fmap) STT . wrapMG . flip W.getTypeByName name)
 
 findGlobal :: String -> ModuleGen s (Maybe (STValue s))
-findGlobal name = ask >>= unsafeFreeze >>= ((fmap . fmap) STV . wrapMG . flip W.getNamedGlobal name)
+findGlobal name = MG ask >>= ((fmap . fmap) STV . wrapMG . flip W.getNamedGlobal name)
 
 findFunction :: String -> ModuleGen s (Maybe (STValue s))
-findFunction name = ask >>= unsafeFreeze >>= ((fmap . fmap) STV . wrapMG . flip W.getNamedFunction name)
+findFunction name = MG ask >>= ((fmap . fmap) STV . wrapMG . flip W.getNamedFunction name)
 
 addFunction :: String -> STType s -> ModuleGen s (STValue s)
-addFunction name (STT ty) = ask >>= unsafeFreeze >>= (\m -> fmap STV . wrapMG $ W.addFunction m name ty)
+addFunction name (STT ty) = MG ask >>= (\m -> fmap STV . wrapMG $ W.addFunction m name ty)
 
 appendBasicBlock :: String -> STValue s -> ModuleGen s (STBasicBlock s)
 appendBasicBlock name (STV func) = wrapMG . fmap STB $ W.appendBasicBlock func name
@@ -125,13 +148,6 @@ wrapBin f n (STV l) (STV r) = do b <- CG ask; wrapCG . fmap STV $ f b l r n
 buildAdd = wrapBin W.buildAdd
 buildSub = wrapBin W.buildSub
 buildMul = wrapBin W.buildMul
-
-functionType :: STType s -> [STType s] -> Bool -> STType s
-functionType (STT ret) args variadic =
-    STT (W.functionType ret (map unSTT args) variadic)
-
-intType :: CUInt -> STType s
-intType i = STT (W.integerType i)
 
 test :: Module
 test = runST $
