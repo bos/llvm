@@ -6,7 +6,8 @@ module LLVM.ST
     , STModule
     , Module
     , unsafeFreeze, unsafeThaw
-    , parseBitcode, parseBitcodeFromFile, writeBitcodeToFile
+    , parseBitcode, parseBitcodeFromFile, parseBitcodeForGen
+    , writeBitcodeToFile
     , getModule
     , genModule
     , showModule
@@ -53,7 +54,7 @@ import qualified LLVM.Wrapper.BitReader as W
 import qualified LLVM.Wrapper.BitWriter as W
 import LLVM.Wrapper.Core (BasicBlock, Type, Value, Builder, CUInt)
 
-newtype Module = PM W.Module
+newtype Module = PM { unPM :: W.Module }
 newtype STModule s = STM { unSTM :: W.Module }
 newtype STBasicBlock s = STB BasicBlock
 newtype STType s = STT { unSTT :: Type }
@@ -76,6 +77,9 @@ parseBitcode bs = fmap PM $ W.parseBitcode bs
 
 parseBitcodeFromFile :: FilePath -> IO (Either String Module)
 parseBitcodeFromFile path = (fmap . fmap) PM $ W.parseBitcodeFromFile path
+
+parseBitcodeForGen :: ByteString -> ST s (Either String (STModule s))
+parseBitcodeForGen = return . fmap (STM . unPM) . parseBitcode
 
 writeBitcodeToFile :: Module -> FilePath -> IO ()
 writeBitcodeToFile (PM m) = W.writeBitcodeToFile m
