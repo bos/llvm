@@ -14,12 +14,12 @@ import Control.Monad.ST.Safe
 import Control.Monad.ST.Unsafe (unsafeIOToST, unsafeSTToIO)
 
 import qualified LLVM.Wrapper.Core as W
-import LLVM.Wrapper.Core ( Module, BasicBlock, Type, Value, Builder )
+import LLVM.Wrapper.Core ( Module, BasicBlock, Type, Value, Builder, CUInt )
 import LLVM.Wrapper.BitWriter
 
 newtype STModule s = STM Module
 newtype STBasicBlock s = STB BasicBlock
-newtype STType s = STT Type
+newtype STType s = STT { unSTT :: Type }
 newtype STValue s = STV Value
 
 unsafeFreeze :: STModule s -> ModuleGen s Module
@@ -126,13 +126,20 @@ buildAdd = wrapBin W.buildAdd
 buildSub = wrapBin W.buildSub
 buildMul = wrapBin W.buildMul
 
+functionType :: STType s -> [STType s] -> Bool -> STType s
+functionType (STT ret) args variadic =
+    STT (W.functionType ret (map unSTT args) variadic)
+
+intType :: CUInt -> STType s
+intType i = STT (W.integerType i)
+
 test :: Module
 test = runST $
        genModule "test" $ do
-         genFunction "double" (STT $ W.functionType W.int32Type [W.int32Type] False) $ do
+         genFunction "double" (functionType (intType 32) [intType 32] False) $ do
                             [x] <- getParams
                             buildAdd "sum" x x >>= buildRet
          getModule >>= unsafeFreeze
 
 main :: IO ()
-main = dumpModule test
+main = W.dumpModule test
