@@ -5,7 +5,8 @@ module LLVM.ST
 
     , STModule
     , Module
-    , unsafeFreeze
+    , unsafeFreeze, unsafeThaw
+    , parseBitcode, parseBitcodeFromFile
     , getModule
     , genModule
     , dumpModule
@@ -43,11 +44,15 @@ import Control.Monad.Reader
 import Control.Monad.ST.Safe
 import Control.Monad.ST.Unsafe (unsafeIOToST, unsafeSTToIO)
 import System.IO.Unsafe (unsafePerformIO)
+import System.IO
+
+import Data.ByteString (ByteString)
 
 import qualified LLVM.Wrapper.Core as W
 import qualified LLVM.Wrapper.Linker as W
+import qualified LLVM.Wrapper.BitReader as W
+import qualified LLVM.Wrapper.BitWriter as W
 import LLVM.Wrapper.Core ( BasicBlock, Type, Value, Builder, CUInt )
-import LLVM.Wrapper.BitWriter
 
 newtype Module = PM W.Module
 newtype STModule s = STM { unSTM :: W.Module }
@@ -58,11 +63,20 @@ newtype STValue s = STV Value
 unsafeFreeze :: STModule s -> ST s Module
 unsafeFreeze (STM m) = return (PM m)
 
+unsafeThaw :: Module -> ST s (STModule s)
+unsafeThaw (PM m) = return $ STM m
+
 dumpModule :: STModule s -> ST s String
 dumpModule (STM m) = unsafeIOToST . W.dumpModuleToString $ m
 
 linkModules :: STModule s -> STModule s -> ST s (Maybe String)
 linkModules (STM dest) (STM src) = unsafeIOToST $ W.linkModules dest src W.PreserveSource
+
+parseBitcode :: ByteString -> Either String Module
+parseBitcode bs = fmap PM $ W.parseBitcode bs
+
+parseBitcodeFromFile :: FilePath -> IO (Either String Module)
+parseBitcodeFromFile path = (fmap . fmap) PM $ W.parseBitcodeFromFile path
 
 instance Show Module where
     show (PM m) = unsafePerformIO $ W.dumpModuleToString m
