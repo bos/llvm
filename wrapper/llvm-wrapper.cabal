@@ -9,8 +9,8 @@ cabal-version:      >= 1.2
 build-type:         Simple
 
 library
-  build-depends: base >= 3 && < 5, llvm-base >= 3.2.0.0 && < 4
-  exposed-modules: LLVM.Wrapper.Core, LLVM.Wrapper.BitWriter, LLVM.Wrapper.Analysis, LLVM.Wrapper.Transforms.Scalar,
+  build-depends: base >= 3 && < 5, llvm-base >= 3.2.0.0 && < 4, bytestring >= 0.10
+  exposed-modules: LLVM.Wrapper.Core, LLVM.Wrapper.BitReader, LLVM.Wrapper.BitWriter, LLVM.Wrapper.Analysis,
                    LLVM.Wrapper.ExecutionEngine, LLVM.Wrapper.Target, LLVM.Wrapper.Linker,
-                   LLVM.Wrapper.Transforms.IPO
+                   LLVM.Wrapper.Transforms.IPO, LLVM.Wrapper.Transforms.Scalar
   other-modules: LLVM.Wrapper.Internal

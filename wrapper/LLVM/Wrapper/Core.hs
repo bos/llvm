@@ -1,4 +1,3 @@
-{-# LANGUAGE ForeignFunctionInterface #-}
 module LLVM.Wrapper.Core
     ( module LLVM.FFI.Core
     -- ** Modules
@@ -163,13 +162,13 @@ module LLVM.Wrapper.Core
     , dumpTypeToString
     ) where
 
-import Foreign.Ptr (Ptr, FunPtr, nullPtr)
+import Foreign.Ptr (Ptr, nullPtr)
 import Foreign.C.String
 import Foreign.C.Types
 import Foreign.Marshal.Array
-import Foreign.Marshal.Alloc (alloca, malloc, free)
-import Foreign.Storable (peek, poke)
-import Foreign.ForeignPtr.Safe
+import Foreign.Marshal.Alloc (alloca)
+import Foreign.Storable (peek)
+import Foreign.ForeignPtr.Safe (ForeignPtr, withForeignPtr, newForeignPtr)
 import System.IO.Unsafe (unsafePerformIO)
 import Control.Exception
 import Control.Monad
@@ -303,24 +302,8 @@ type BasicBlock   = FFI.BasicBlockRef
 type Context      = FFI.ContextRef
 type PassManager  = FFI.PassManagerRef
 
-type EnvFinalizer env a = Ptr env -> Ptr a -> IO ()
-foreign import ccall "wrapper"
-   mkFinalizer :: EnvFinalizer env a -> IO (FunPtr (EnvFinalizer env a))
-
-{-# NOINLINE moduleFinalizer #-}
-moduleFinalizer :: FunPtr (EnvFinalizer Bool FFI.Module)
-moduleFinalizer = unsafePerformIO . mkFinalizer $ \ours m -> do
-                    isOurs <- peek ours
-                    free ours
-                    when isOurs $ FFI.disposeModule m
-
 moduleCreateWithName :: String -> IO Module
-moduleCreateWithName name = do
-  m <- withCString name FFI.moduleCreateWithName
-  ours <- malloc
-  poke ours True
-  ptr <- newForeignPtrEnv moduleFinalizer ours m
-  return $ MkModule ptr ours
+moduleCreateWithName name = initModule =<< withCString name FFI.moduleCreateWithName
 
 printModuleToFile :: Module -> FilePath -> IO ()
 printModuleToFile (MkModule m _) file
