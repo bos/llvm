@@ -9,6 +9,7 @@ module LLVM.ST
     , getModule
     , genModule
     , dumpModule
+    , linkModules
 
     , STBasicBlock
     , appendBasicBlock
@@ -44,6 +45,7 @@ import Control.Monad.ST.Unsafe (unsafeIOToST, unsafeSTToIO)
 import System.IO.Unsafe (unsafePerformIO)
 
 import qualified LLVM.Wrapper.Core as W
+import qualified LLVM.Wrapper.Linker as W
 import LLVM.Wrapper.Core ( BasicBlock, Type, Value, Builder, CUInt )
 import LLVM.Wrapper.BitWriter
 
@@ -58,6 +60,9 @@ unsafeFreeze (STM m) = return (PM m)
 
 dumpModule :: STModule s -> ST s String
 dumpModule (STM m) = unsafeIOToST . W.dumpModuleToString $ m
+
+linkModules :: STModule s -> STModule s -> ST s (Maybe String)
+linkModules (STM dest) (STM src) = unsafeIOToST $ W.linkModules dest src W.PreserveSource
 
 instance Show Module where
     show (PM m) = unsafePerformIO $ W.dumpModuleToString m
