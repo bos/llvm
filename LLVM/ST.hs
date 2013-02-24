@@ -29,8 +29,8 @@ module LLVM.ST
     , CodeGen
     , liftMG
     , positionAtEnd, positionBefore, positionAfter
-
     , getBlock, getFunction, getParams
+    , getValueName, setValueName
 
     , buildRet
     , buildAdd, buildSub, buildMul
@@ -195,6 +195,12 @@ getFunction = getBlock >>= (\(STB b) -> wrapCG . fmap STV $ W.getBasicBlockParen
 
 getParams :: CodeGen s [STValue s]
 getParams = getFunction >>= (\(STV func) -> (fmap . fmap) STV . wrapCG $ W.getParams func)
+
+getValueName :: STValue s -> CodeGen s String
+getValueName (STV v) = wrapCG $ W.getValueName v
+
+setValueName :: STValue s -> String -> CodeGen s ()
+setValueName (STV v) = wrapCG . W.setValueName v
 
 wrapUn :: (Builder -> Value -> String -> IO Value) ->
            String -> STValue s -> CodeGen s (STValue s)
