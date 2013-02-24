@@ -16,7 +16,8 @@ module LLVM.ST
 
     , STType
     , findType
-    , functionType, intType
+    , functionType, intType, structType
+    , structCreateNamed, structSetBody
 
     , CodeGen
     , positionAtEnd, positionBefore, positionAfter
@@ -52,6 +53,9 @@ functionType (STT ret) args variadic =
 intType :: CUInt -> STType s
 intType i = STT (W.integerType i)
 
+structType :: [STType s] -> Bool -> STType s
+structType types packed = STT (W.structType (map unSTT types) packed)
+
 newtype ModuleGen s a = MG { unMG :: ReaderT Module (ST s) a }
 
 instance Functor (ModuleGen s) where
@@ -73,6 +77,13 @@ genModule name (MG mg) = unsafeIOToST (W.moduleCreateWithName name >>= (unsafeST
 
 wrapMG :: IO a -> ModuleGen s a
 wrapMG = MG . lift . unsafeIOToST
+
+-- FIXME: The following two are per-context, not per-module
+structCreateNamed :: String -> ModuleGen s (STType s)
+structCreateNamed = fmap STT . wrapMG . W.structCreateNamed
+
+structSetBody :: STType s -> [STType s] -> Bool -> ModuleGen s ()
+structSetBody (STT struct) body packed = wrapMG $ W.structSetBody struct (map unSTT body) packed
 
 findType :: String -> ModuleGen s (Maybe (STType s))
 findType name = MG ask >>= ((fmap . fmap) STT . wrapMG . flip W.getTypeByName name)
