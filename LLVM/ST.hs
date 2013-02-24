@@ -6,7 +6,7 @@ module LLVM.ST
     , STModule
     , Module
     , unsafeFreeze, unsafeThaw
-    , parseBitcode, parseBitcodeFromFile
+    , parseBitcode, parseBitcodeFromFile, writeBitcodeToFile
     , getModule
     , genModule
     , showModule
@@ -77,6 +77,9 @@ parseBitcode bs = fmap PM $ W.parseBitcode bs
 
 parseBitcodeFromFile :: FilePath -> IO (Either String Module)
 parseBitcodeFromFile path = (fmap . fmap) PM $ W.parseBitcodeFromFile path
+
+writeBitcodeToFile :: Module -> FilePath -> IO ()
+writeBitcodeToFile (PM m) = W.writeBitcodeToFile m
 
 instance Show Module where
     show (PM m) = unsafePerformIO $ W.dumpModuleToString m
