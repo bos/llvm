@@ -245,6 +245,20 @@ declare_pass( Internalize2 )
 LLVMBool LLVMPrintModuleToFile(LLVMModuleRef M, const char *Filename, char **ErrorMessage);
 #endif
 
+#if HS_LLVM_VERSION < 303
+LLVMMemoryBufferRef LLVMCreateMemoryBufferWithMemoryRange(
+  const char *InputData,
+  size_t InputDataLength,
+  const char *BufferName,
+  LLVMBool RequiresNullTerminator);
+
+LLVMMemoryBufferRef LLVMCreateMemoryBufferWithMemoryRangeCopy(
+  const char *InputData,
+  size_t InputDataLength,
+  const char *BufferName);
+#endif
+
+
 #ifdef __cplusplus
 } /* extern "C" */
 #endif

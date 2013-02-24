@@ -578,3 +578,27 @@ LLVMBool LLVMPrintModuleToFile(LLVMModuleRef M, const char *Filename,
   return false;
 }
 #endif
+
+#if HS_LLVM_VERSION < 303
+LLVMMemoryBufferRef LLVMCreateMemoryBufferWithMemoryRange(
+  const char *InputData,
+  size_t InputDataLength,
+  const char *BufferName,
+  LLVMBool RequiresNullTerminator) {
+
+  return wrap(llvm::MemoryBuffer::getMemBuffer(
+                llvm::StringRef(InputData, InputDataLength),
+                llvm::StringRef(BufferName),
+                RequiresNullTerminator));
+}
+
+LLVMMemoryBufferRef LLVMCreateMemoryBufferWithMemoryRangeCopy(
+  const char *InputData,
+  size_t InputDataLength,
+  const char *BufferName) {
+
+  return wrap(llvm::MemoryBuffer::getMemBufferCopy(
+                llvm::StringRef(InputData, InputDataLength),
+                llvm::StringRef(BufferName)));
+}
+#endif

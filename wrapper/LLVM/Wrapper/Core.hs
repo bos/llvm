@@ -1,5 +1,6 @@
 module LLVM.Wrapper.Core
     ( module LLVM.FFI.Core
+    , Context
     -- ** Modules
     , Module
     , moduleCreateWithName
