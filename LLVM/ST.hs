@@ -1,12 +1,19 @@
 {-# LANGUAGE MultiParamTypeClasses, UndecidableInstances, RankNTypes #-}
 module LLVM.ST
-    ( ModuleGen
+    ( LLVM
+    , liftLLVM
+    , runLLVM
+    , Context
+    , W.getGlobalContext
+    , W.contextCreate
+
+    , ModuleGen
     , run, run2
 
     , STModule
     , Module
     , unsafeFreeze, unsafeThaw
-    , parseBitcode, parseBitcodeFromFile, parseBitcodeForGen
+    , parseBitcode, parseBitcodeForGen, parseBitcodeFromFile
     , writeBitcodeToFile
     , getModule
     , genModule
@@ -24,6 +31,7 @@ module LLVM.ST
     , addFunction, genFunction
     , getLinkage, setLinkage
     , verifyFunction
+    , constString, constStruct
 
     , STType
     , showType
@@ -57,13 +65,13 @@ import qualified LLVM.Wrapper.Linker as W
 import qualified LLVM.Wrapper.BitReader as W
 import qualified LLVM.Wrapper.BitWriter as W
 import qualified LLVM.Wrapper.Analysis as W
-import LLVM.Wrapper.Core (BasicBlock, Type, Value, Builder, CUInt, Linkage(..))
+import LLVM.Wrapper.Core (Context, BasicBlock, Type, Value, Builder, CUInt, Linkage(..))
 
 newtype Module = PM { unPM :: W.Module }
 newtype STModule s = STM { unSTM :: W.Module }
 newtype STBasicBlock s = STB BasicBlock
 newtype STType s = STT { unSTT :: Type }
-newtype STValue s = STV Value
+newtype STValue s = STV { unSTV :: Value }
 
 unsafeFreeze :: STModule s -> ST s Module
 unsafeFreeze (STM m) = return (PM m)
@@ -74,17 +82,18 @@ unsafeThaw (PM m) = return $ STM m
 showModule :: STModule s -> ST s String
 showModule (STM m) = unsafeIOToST . W.dumpModuleToString $ m
 
+-- Source module is unusable after this
 linkModules :: STModule s -> STModule s -> ST s (Maybe String)
-linkModules (STM dest) (STM src) = unsafeIOToST $ W.linkModules dest src W.PreserveSource
+linkModules (STM dest) (STM src) = unsafeIOToST $ W.linkModules dest src W.DestroySource
 
 parseBitcode :: ByteString -> Either String Module
 parseBitcode bs = fmap PM $ W.parseBitcode bs
 
-parseBitcodeFromFile :: FilePath -> IO (Either String Module)
-parseBitcodeFromFile path = (fmap . fmap) PM $ W.parseBitcodeFromFile path
-
 parseBitcodeForGen :: ByteString -> ST s (Either String (STModule s))
 parseBitcodeForGen = return . fmap (STM . unPM) . parseBitcode
+
+parseBitcodeFromFile :: FilePath -> IO (Either String Module)
+parseBitcodeFromFile path = (fmap . fmap) PM $ W.parseBitcodeFromFile path
 
 writeBitcodeToFile :: Module -> FilePath -> IO ()
 writeBitcodeToFile (PM m) = W.writeBitcodeToFile m
@@ -101,15 +110,50 @@ showType (STT t) = unsafeIOToST . W.dumpTypeToString $ t
 showValue :: STValue s -> ST s String
 showValue (STV v) = unsafeIOToST . W.dumpValueToString $ v
 
+newtype LLVM s a = LM { unLM :: ReaderT Context (ST s) a }
+
+class MonadLLVM m where
+    getContext :: m s Context
+    liftLLVM :: LLVM s a -> m s a
+
+instance Functor (LLVM s) where
+    fmap f (LM g) = LM (fmap f g)
+
+instance Applicative (LLVM s) where
+    pure x = LM (return x)
+    (<*>) (LM f) (LM x) = LM (f <*> x)
+
+instance Monad (LLVM s) where
+    (>>=) (LM x) f = LM (x >>= unLM . f)
+    return x = LM (return x)
+
+instance MonadLLVM LLVM where
+    getContext = LM ask
+    liftLLVM = id
+
+wrapLM :: IO a -> LLVM s a
+wrapLM = LM . lift . unsafeIOToST
+
+runLLVM :: Context -> LLVM s a -> ST s a
+runLLVM ctx (LM lm) = runReaderT lm ctx
+
 functionType :: STType s -> [STType s] -> Bool -> STType s
 functionType (STT ret) args variadic =
     STT (W.functionType ret (map unSTT args) variadic)
 
-intType :: CUInt -> STType s
-intType i = STT (W.integerType i)
+intType :: CUInt -> LLVM s (STType s)
+intType i = do ctx <- getContext
+               wrapLM . fmap STT $ W.intTypeInContext ctx i
 
-structType :: [STType s] -> Bool -> STType s
-structType types packed = STT (W.structType (map unSTT types) packed)
+structType :: [STType s] -> Bool -> LLVM s (STType s)
+structType types packed = do ctx <- getContext
+                             wrapLM . fmap STT $ W.structTypeInContext ctx (map unSTT types) packed
+
+structCreateNamed :: String -> LLVM s (STType s)
+structCreateNamed n = getContext >>= wrapLM . fmap STT . (flip W.structCreateNamedInContext n)
+
+structSetBody :: STType s -> [STType s] -> Bool -> ST s ()
+structSetBody (STT struct) body packed = unsafeIOToST $ W.structSetBody struct (map unSTT body) packed
 
 vectorType :: STType s -> CUInt -> STType s
 vectorType (STT t) count = STT (W.vectorType t count)
@@ -123,8 +167,24 @@ pointerTypeInSpace (STT t) addrSpace = STT (W.pointerType t addrSpace)
 pointerType :: STType s -> STType s
 pointerType ty = pointerTypeInSpace ty 0
 
--- TODO: Thread LLVM context through
-newtype ModuleGen s a = MG { unMG :: ReaderT W.Module (ST s) a }
+constString :: String -> Bool -> LLVM s (STValue s)
+constString str nullTerminated = do
+  ctx <- getContext
+  wrapLM . fmap STV $ W.constStringInContext ctx str nullTerminated
+
+constStruct :: [STValue s] -> Bool -> LLVM s (STValue s)
+constStruct values packed = do
+  ctx <- getContext
+  wrapLM . fmap STV $ W.constStructInContext ctx (map unSTV values) packed
+
+appendBasicBlock :: String -> STValue s -> LLVM s (STBasicBlock s)
+appendBasicBlock name (STV func) = do
+  ctx <- getContext
+  fmap STB . wrapLM $ W.appendBasicBlockInContext ctx func name
+
+data MGS = MGS { mgModule :: W.Module, mgCtx :: Context }
+
+newtype ModuleGen s a = MG { unMG :: ReaderT MGS (ST s) a }
 
 instance Functor (ModuleGen s) where
     fmap f (MG g) = MG (fmap f g)
@@ -138,14 +198,27 @@ instance Monad (ModuleGen s) where
     return x = MG (return x)
 
 instance MonadReader (STModule s) (ModuleGen s) where
-    ask = fmap STM (MG ask)
-    local f (MG mg) = MG (local (unSTM . f . STM) mg)
+    ask = fmap (STM . mgModule) (MG ask)
+    local f (MG mg) = MG (local (\(MGS mod ctx) -> MGS (unSTM . f . STM $ mod) ctx) mg)
+
+instance MonadLLVM ModuleGen where
+    getContext = fmap mgCtx $ MG ask
+    liftLLVM (LM s) = do ctx <- getContext
+                         MG (lift $ runReaderT s ctx)
+
+-- Internal
+unsafeMod :: ModuleGen s W.Module
+unsafeMod = fmap mgModule $ MG ask
 
 getModule :: ModuleGen s (STModule s)
 getModule = ask
 
-genModule :: String -> ModuleGen s a -> ST s a
-genModule name (MG mg) = unsafeIOToST (W.moduleCreateWithName name >>= (unsafeSTToIO . runReaderT mg))
+genModule :: String -> ModuleGen s a -> LLVM s a
+genModule name (MG mg) = do
+  ctx <- getContext
+  wrapLM $ do
+    mod <- W.moduleCreateWithNameInContext name ctx
+    unsafeSTToIO . runReaderT mg $ MGS mod ctx
 
 run :: (forall s. ST s (STModule s)) -> Module
 run action = runST (action >>= unsafeFreeze)
@@ -156,24 +229,17 @@ run2 action = runST (do (m, x) <- action; m' <- unsafeFreeze m; return (m', x))
 wrapMG :: IO a -> ModuleGen s a
 wrapMG = MG . lift . unsafeIOToST
 
--- FIXME: The following two are per-context, not per-module
-structCreateNamed :: String -> ModuleGen s (STType s)
-structCreateNamed = fmap STT . wrapMG . W.structCreateNamed
-
-structSetBody :: STType s -> [STType s] -> Bool -> ModuleGen s ()
-structSetBody (STT struct) body packed = wrapMG $ W.structSetBody struct (map unSTT body) packed
-
 findType :: String -> ModuleGen s (Maybe (STType s))
-findType name = MG ask >>= ((fmap . fmap) STT . wrapMG . flip W.getTypeByName name)
+findType name = unsafeMod >>= ((fmap . fmap) STT . wrapMG . flip W.getTypeByName name)
 
 findGlobal :: String -> ModuleGen s (Maybe (STValue s))
-findGlobal name = MG ask >>= ((fmap . fmap) STV . wrapMG . flip W.getNamedGlobal name)
+findGlobal name = unsafeMod >>= ((fmap . fmap) STV . wrapMG . flip W.getNamedGlobal name)
 
 findFunction :: String -> ModuleGen s (Maybe (STValue s))
-findFunction name = MG ask >>= ((fmap . fmap) STV . wrapMG . flip W.getNamedFunction name)
+findFunction name = unsafeMod >>= ((fmap . fmap) STV . wrapMG . flip W.getNamedFunction name)
 
 addFunction :: String -> STType s -> ModuleGen s (STValue s)
-addFunction name (STT ty) = MG ask >>= (\m -> fmap STV . wrapMG $ W.addFunction m name ty)
+addFunction name (STT ty) = unsafeMod >>= (\m -> fmap STV . wrapMG $ W.addFunction m name ty)
 
 getLinkage :: STValue s -> ST s Linkage
 getLinkage (STV v) = unsafeIOToST (W.getLinkage v)
@@ -181,10 +247,7 @@ getLinkage (STV v) = unsafeIOToST (W.getLinkage v)
 setLinkage :: STValue s -> Linkage -> ST s ()
 setLinkage (STV v) l = unsafeIOToST (W.setLinkage v l)
 
-appendBasicBlock :: String -> STValue s -> ModuleGen s (STBasicBlock s)
-appendBasicBlock name (STV func) = fmap STB . wrapMG $ W.appendBasicBlock func name
-
-data CGS = CGS { cgBuilder :: Builder, cgModule :: W.Module }
+data CGS = CGS { cgBuilder :: Builder, cgMGS :: MGS }
 
 newtype CodeGen s a = CG { unCG :: ReaderT CGS (ST s) a }
 
@@ -201,15 +264,15 @@ instance Monad (CodeGen s) where
 
 liftMG :: ModuleGen s a -> CodeGen s a
 liftMG (MG mg) = do r <- CG ask
-                    CG (lift $ runReaderT mg (cgModule r))
+                    CG (lift $ runReaderT mg (cgMGS r))
 
 genFunction :: String -> STType s -> CodeGen s a -> ModuleGen s a
 genFunction name ty fg =
     do f <- addFunction name ty
-       bb <- appendBasicBlock "entry" f
-       m <- MG ask
-       wrapMG (do b <- W.createBuilder
-                  unsafeSTToIO (runReaderT (unCG (positionAtEnd bb >> fg)) (CGS b m)))
+       bb <- liftLLVM $ appendBasicBlock "entry" f
+       mgs <- MG ask
+       wrapMG (do b <- W.createBuilderInContext (mgCtx mgs)
+                  unsafeSTToIO (runReaderT (unCG (positionAtEnd bb >> fg)) (CGS b mgs)))
 
 verifyFunction :: STValue s -> ST s Bool
 verifyFunction (STV f) = unsafeIOToST (W.verifyFunction f)
