@@ -38,21 +38,26 @@ import Control.Applicative
 import Control.Monad.Reader
 import Control.Monad.ST.Safe
 import Control.Monad.ST.Unsafe (unsafeIOToST, unsafeSTToIO)
+import System.IO.Unsafe (unsafePerformIO)
 
 import qualified LLVM.Wrapper.Core as W
-import LLVM.Wrapper.Core ( Module, BasicBlock, Type, Value, Builder, CUInt )
+import LLVM.Wrapper.Core ( BasicBlock, Type, Value, Builder, CUInt )
 import LLVM.Wrapper.BitWriter
 
-newtype STModule s = STM { unSTM :: Module }
+newtype Module = PM W.Module
+newtype STModule s = STM { unSTM :: W.Module }
 newtype STBasicBlock s = STB BasicBlock
 newtype STType s = STT { unSTT :: Type }
 newtype STValue s = STV Value
 
 unsafeFreeze :: STModule s -> ST s Module
-unsafeFreeze (STM m) = return m
+unsafeFreeze (STM m) = return (PM m)
 
 dumpModule :: STModule s -> ST s String
 dumpModule (STM m) = unsafeIOToST . W.dumpModuleToString $ m
+
+instance Show Module where
+    show (PM m) = unsafePerformIO $ W.dumpModuleToString m
 
 dumpType :: STType s -> ST s String
 dumpType (STT t) = unsafeIOToST . W.dumpTypeToString $ t
@@ -82,7 +87,7 @@ pointerTypeInSpace (STT t) addrSpace = STT (W.pointerType t addrSpace)
 pointerType :: STType s -> STType s
 pointerType ty = pointerTypeInSpace ty 0
 
-newtype ModuleGen s a = MG { unMG :: ReaderT Module (ST s) a }
+newtype ModuleGen s a = MG { unMG :: ReaderT W.Module (ST s) a }
 
 instance Functor (ModuleGen s) where
     fmap f (MG g) = MG (fmap f g)
@@ -136,7 +141,7 @@ addFunction name (STT ty) = MG ask >>= (\m -> fmap STV . wrapMG $ W.addFunction 
 appendBasicBlock :: String -> STValue s -> ModuleGen s (STBasicBlock s)
 appendBasicBlock name (STV func) = fmap STB . wrapMG $ W.appendBasicBlock func name
 
-data CGS = CGS { cgBuilder :: Builder, cgModule :: Module }
+data CGS = CGS { cgBuilder :: Builder, cgModule :: W.Module }
 
 newtype CodeGen s a = CG { unCG :: ReaderT CGS (ST s) a }
 
