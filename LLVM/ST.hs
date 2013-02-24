@@ -87,6 +87,12 @@ getModule = fmap STM (MG ask)
 genModule :: String -> ModuleGen s a -> ST s a
 genModule name (MG mg) = unsafeIOToST (W.moduleCreateWithName name >>= (unsafeSTToIO . runReaderT mg))
 
+run :: (forall s. ST s (STModule s)) -> Module
+run action = runST (action >>= unsafeFreeze)
+
+run2 :: (forall s. ST s (STModule s, a)) -> (Module, a)
+run2 action = runST (do (m, x) <- action; m' <- unsafeFreeze m; return (m', x))
+
 wrapMG :: IO a -> ModuleGen s a
 wrapMG = MG . lift . unsafeIOToST
 
