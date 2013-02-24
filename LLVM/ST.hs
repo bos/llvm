@@ -9,19 +9,19 @@ module LLVM.ST
     , parseBitcode, parseBitcodeFromFile
     , getModule
     , genModule
-    , dumpModule
+    , showModule
     , linkModules
 
     , STBasicBlock
     , appendBasicBlock
 
     , STValue
-    , dumpValue
+    , showValue
     , findGlobal, findFunction
     , addFunction, genFunction
 
     , STType
-    , dumpType
+    , showType
     , findType
     , functionType, intType, structType
     , vectorType, arrayType
@@ -52,7 +52,7 @@ import qualified LLVM.Wrapper.Core as W
 import qualified LLVM.Wrapper.Linker as W
 import qualified LLVM.Wrapper.BitReader as W
 import qualified LLVM.Wrapper.BitWriter as W
-import LLVM.Wrapper.Core ( BasicBlock, Type, Value, Builder, CUInt )
+import LLVM.Wrapper.Core (BasicBlock, Type, Value, Builder, CUInt)
 
 newtype Module = PM W.Module
 newtype STModule s = STM { unSTM :: W.Module }
@@ -66,8 +66,8 @@ unsafeFreeze (STM m) = return (PM m)
 unsafeThaw :: Module -> ST s (STModule s)
 unsafeThaw (PM m) = return $ STM m
 
-dumpModule :: STModule s -> ST s String
-dumpModule (STM m) = unsafeIOToST . W.dumpModuleToString $ m
+showModule :: STModule s -> ST s String
+showModule (STM m) = unsafeIOToST . W.dumpModuleToString $ m
 
 linkModules :: STModule s -> STModule s -> ST s (Maybe String)
 linkModules (STM dest) (STM src) = unsafeIOToST $ W.linkModules dest src W.PreserveSource
@@ -81,11 +81,11 @@ parseBitcodeFromFile path = (fmap . fmap) PM $ W.parseBitcodeFromFile path
 instance Show Module where
     show (PM m) = unsafePerformIO $ W.dumpModuleToString m
 
-dumpType :: STType s -> ST s String
-dumpType (STT t) = unsafeIOToST . W.dumpTypeToString $ t
+showType :: STType s -> ST s String
+showType (STT t) = unsafeIOToST . W.dumpTypeToString $ t
 
-dumpValue :: STValue s -> ST s String
-dumpValue (STV v) = unsafeIOToST . W.dumpValueToString $ v
+showValue :: STValue s -> ST s String
+showValue (STV v) = unsafeIOToST . W.dumpValueToString $ v
 
 functionType :: STType s -> [STType s] -> Bool -> STType s
 functionType (STT ret) args variadic =
