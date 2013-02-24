@@ -1,3 +1,4 @@
+{-# LANGUAGE ForeignFunctionInterface #-}
 module LLVM.Wrapper.Core
     ( module LLVM.FFI.Core
     -- ** Modules
@@ -162,16 +163,18 @@ module LLVM.Wrapper.Core
     , dumpTypeToString
     ) where
 
-import Foreign.Ptr (Ptr, nullPtr)
+import Foreign.Ptr (Ptr, FunPtr, nullPtr)
 import Foreign.C.String
 import Foreign.C.Types
 import Foreign.Marshal.Array
-import Foreign.Marshal.Alloc (alloca)
-import Foreign.Storable (peek)
+import Foreign.Marshal.Alloc (alloca, malloc, free)
+import Foreign.Storable (peek, poke)
 import Foreign.ForeignPtr.Safe
 import System.IO.Unsafe (unsafePerformIO)
 import Control.Exception
 import Control.Monad
+
+import LLVM.Wrapper.Internal
 
 import LLVM.FFI.Core
     ( TypeKind(..)
@@ -294,18 +297,33 @@ import LLVM.FFI.Core
 import qualified LLVM.FFI.Core as FFI
 
 type Type         = FFI.TypeRef
-type Module       = ForeignPtr FFI.Module
 type Value        = FFI.ValueRef
 type Builder      = ForeignPtr FFI.Builder
 type BasicBlock   = FFI.BasicBlockRef
 type Context      = FFI.ContextRef
 type PassManager  = FFI.PassManagerRef
 
+type EnvFinalizer env a = Ptr env -> Ptr a -> IO ()
+foreign import ccall "wrapper"
+   mkFinalizer :: EnvFinalizer env a -> IO (FunPtr (EnvFinalizer env a))
+
+{-# NOINLINE moduleFinalizer #-}
+moduleFinalizer :: FunPtr (EnvFinalizer Bool FFI.Module)
+moduleFinalizer = unsafePerformIO . mkFinalizer $ \ours m -> do
+                    isOurs <- peek ours
+                    free ours
+                    when isOurs $ FFI.disposeModule m
+
 moduleCreateWithName :: String -> IO Module
-moduleCreateWithName name = withCString name FFI.moduleCreateWithName >>= newForeignPtr FFI.ptrDisposeModule
+moduleCreateWithName name = do
+  m <- withCString name FFI.moduleCreateWithName
+  ours <- malloc
+  poke ours True
+  ptr <- newForeignPtrEnv moduleFinalizer ours m
+  return $ MkModule ptr ours
 
 printModuleToFile :: Module -> FilePath -> IO ()
-printModuleToFile m file
+printModuleToFile (MkModule m _) file
     = withCString file
       (\f -> alloca (\msgPtr -> do
                        result <- withForeignPtr m (\modPtr -> FFI.printModuleToFile modPtr f msgPtr)
@@ -317,11 +335,11 @@ printModuleToFile m file
                                     fail str))
 
 dumpModule :: Module -> IO ()
-dumpModule m = withForeignPtr m FFI.dumpModule
+dumpModule (MkModule m _) = withForeignPtr m FFI.dumpModule
 
 getTypeByName :: Module -> String -> IO (Maybe Type)
-getTypeByName m name = fmap nullableToMaybe $
-                       withForeignPtr m (\mPtr -> withCString name $ FFI.getTypeByName mPtr)
+getTypeByName (MkModule m _) name =
+    fmap nullableToMaybe $ withForeignPtr m (\mPtr -> withCString name $ FFI.getTypeByName mPtr)
 
 getValueName :: Value -> IO String
 getValueName v = FFI.getValueName v >>= peekCString
@@ -330,14 +348,14 @@ setValueName :: Value -> String -> IO ()
 setValueName v name = withCString name $ FFI.setValueName v
 
 addGlobal :: Module -> Type -> String -> IO Value
-addGlobal m ty name = withForeignPtr m (\mPtr -> withCString name $ FFI.addGlobal mPtr ty)
+addGlobal (MkModule m _) ty name = withForeignPtr m (\mPtr -> withCString name $ FFI.addGlobal mPtr ty)
 
 nullableToMaybe :: Ptr a -> Maybe (Ptr a)
 nullableToMaybe p = if p == nullPtr then Nothing else Just p
 
 getNamedGlobal :: Module -> String -> IO (Maybe Value)
-getNamedGlobal m name = fmap nullableToMaybe $
-                        withForeignPtr m (\mPtr -> withCString name $ FFI.getNamedGlobal mPtr)
+getNamedGlobal (MkModule m _) name =
+    fmap nullableToMaybe $ withForeignPtr m (\mPtr -> withCString name $ FFI.getNamedGlobal mPtr)
 
 buildGlobalString :: Builder -> String -> String -> IO Value
 buildGlobalString b string name
@@ -349,21 +367,20 @@ buildGlobalStringPtr b string name
     = withForeignPtr b $ \b' ->
       withCString name (\n -> withCString string (\s -> FFI.buildGlobalStringPtr b' s n))
 
-createFunctionPassManagerForModule m = withForeignPtr m FFI.createFunctionPassManagerForModule
+createFunctionPassManagerForModule (MkModule m _) = withForeignPtr m FFI.createFunctionPassManagerForModule
 
 addFunction :: Module -> String -> Type -> IO Value
-addFunction m name ty = withForeignPtr m (\mPtr -> withCString name (\n -> FFI.addFunction mPtr n ty))
+addFunction (MkModule m _) name ty = withForeignPtr m (\mPtr -> withCString name (\n -> FFI.addFunction mPtr n ty))
 
 getNamedFunction :: Module -> String -> IO (Maybe Value)
-getNamedFunction m name = fmap nullableToMaybe $
-                          withForeignPtr m (\mPtr -> withCString name $ FFI.getNamedFunction mPtr)
+getNamedFunction (MkModule m _) name =
+    fmap nullableToMaybe $ withForeignPtr m (\mPtr -> withCString name $ FFI.getNamedFunction mPtr)
 
 getParams :: Value -> IO [Value]
 getParams f
-    = do let count = fromIntegral $ FFI.countParams f
-         allocaArray count $ \ptr -> do
-           FFI.getParams f ptr
-           peekArray count ptr
+    = let count = fromIntegral $ FFI.countParams f in
+      allocaArray count $ \ptr ->
+          FFI.getParams f ptr >> peekArray count ptr
 
 getFunctionCallConv :: Value -> IO CallingConvention
 getFunctionCallConv f = fmap FFI.toCallingConvention $ FFI.getFunctionCallConv f
@@ -585,32 +602,35 @@ mdString s = unsafePerformIO $
              withCStringLen s $ \(ptr, len) -> return $ FFI.mdString ptr $ fromIntegral len
 
 getNamedMetadataOperands :: Module -> String -> IO [Value]
-getNamedMetadataOperands m name
-    = withCString name $ \namePtr -> do
-        count <- liftM fromIntegral (withForeignPtr m (\m' -> FFI.getNamedMetadataNumOperands m' namePtr))
-        allocaArray count $ \ptr -> do
-          withForeignPtr m (\m' -> FFI.getNamedMetadataOperands m' namePtr ptr)
-          peekArray count ptr
+getNamedMetadataOperands (MkModule m _) name =
+    withCString name $ \namePtr -> do
+      count <- liftM fromIntegral (withForeignPtr m (\m' -> FFI.getNamedMetadataNumOperands m' namePtr))
+      allocaArray count $ \ptr -> do
+        withForeignPtr m (\m' -> FFI.getNamedMetadataOperands m' namePtr ptr)
+        peekArray count ptr
 
 addNamedMetadataOperand :: Module -> String -> Value -> IO ()
-addNamedMetadataOperand m name value = withForeignPtr m $
-                                       \m' -> withCString name $
-                                              \n -> FFI.addNamedMetadataOperand m' n value
+addNamedMetadataOperand (MkModule m _) name value =
+    withForeignPtr m $ \m' -> withCString name $
+                              \n -> FFI.addNamedMetadataOperand m' n value
 
 dumpModuleToString :: Module -> IO String
-dumpModuleToString m = do cstr <- withForeignPtr m FFI.dumpModuleToString
-                          hstr <- peekCString cstr
-                          FFI.disposeMessage cstr
-                          return hstr
+dumpModuleToString (MkModule m _)= do
+  cstr <- withForeignPtr m FFI.dumpModuleToString
+  hstr <- peekCString cstr
+  FFI.disposeMessage cstr
+  return hstr
 
 dumpTypeToString :: Type -> IO String
-dumpTypeToString m = do cstr <- FFI.dumpTypeToString m
-                        hstr <- peekCString cstr
-                        FFI.disposeMessage cstr
-                        return hstr
+dumpTypeToString t = do
+  cstr <- FFI.dumpTypeToString t
+  hstr <- peekCString cstr
+  FFI.disposeMessage cstr
+  return hstr
 
 dumpValueToString :: Value -> IO String
-dumpValueToString m = do cstr <- FFI.dumpValueToString m
-                         hstr <- peekCString cstr
-                         FFI.disposeMessage cstr
-                         return hstr
+dumpValueToString v = do
+  cstr <- FFI.dumpValueToString v
+  hstr <- peekCString cstr
+  FFI.disposeMessage cstr
+  return hstr

@@ -13,3 +13,4 @@ library
   exposed-modules: LLVM.Wrapper.Core, LLVM.Wrapper.BitWriter, LLVM.Wrapper.Analysis, LLVM.Wrapper.Transforms.Scalar,
                    LLVM.Wrapper.ExecutionEngine, LLVM.Wrapper.Target, LLVM.Wrapper.Linker,
                    LLVM.Wrapper.Transforms.IPO
+  other-modules: LLVM.Wrapper.Internal
