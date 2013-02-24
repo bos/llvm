@@ -26,7 +26,7 @@ parseBitcodeFromFile path =
       errOccurred <- withCString path $ \cpath ->
                      FFI.createMemoryBufferWithContentsOfFile cpath bufPtr msgPtr
       case errOccurred of
-        True -> fmap Left $ peek msgPtr >>= peekCString
+        True -> peek msgPtr >>= peekCString >>= fail
         False -> peek bufPtr >>= parseFromBuf 
           
 
