@@ -159,14 +159,3 @@ wrapBin f n (STV l) (STV r) = do b <- CG ask; fmap STV . wrapCG $ f b l r n
 buildAdd = wrapBin W.buildAdd
 buildSub = wrapBin W.buildSub
 buildMul = wrapBin W.buildMul
-
-test :: Module
-test = runST $
-       genModule "test" $ do
-         genFunction "double" (functionType (intType 32) [intType 32] False) $ do
-                            [x] <- getParams
-                            buildAdd "sum" x x >>= buildRet
-         getModule >>= unsafeFreeze
-
-main :: IO ()
-main = W.dumpModule test
