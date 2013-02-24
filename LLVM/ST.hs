@@ -98,7 +98,7 @@ addFunction :: String -> STType s -> ModuleGen s (STValue s)
 addFunction name (STT ty) = MG ask >>= (\m -> fmap STV . wrapMG $ W.addFunction m name ty)
 
 appendBasicBlock :: String -> STValue s -> ModuleGen s (STBasicBlock s)
-appendBasicBlock name (STV func) = wrapMG . fmap STB $ W.appendBasicBlock func name
+appendBasicBlock name (STV func) = fmap STB . wrapMG $ W.appendBasicBlock func name
 
 newtype CodeGen s a = CG { unCG :: ReaderT Builder (ST s) a }
 
@@ -143,18 +143,18 @@ getFunction :: CodeGen s (STValue s)
 getFunction = getBlock >>= (\(STB b) -> wrapCG . fmap STV $ W.getBasicBlockParent b)
 
 getParams :: CodeGen s [STValue s]
-getParams = getFunction >>= (\(STV func) -> wrapCG . (fmap . fmap) STV $ W.getParams func)
+getParams = getFunction >>= (\(STV func) -> (fmap . fmap) STV . wrapCG $ W.getParams func)
 
 wrapUn :: (Builder -> Value -> String -> IO Value) ->
            String -> STValue s -> CodeGen s (STValue s)
-wrapUn f n (STV x) = do b <- CG ask; wrapCG . fmap STV $ f b x n
+wrapUn f n (STV x) = do b <- CG ask; fmap STV . wrapCG $ f b x n
 
 buildRet :: STValue s -> CodeGen s (STValue s)
-buildRet (STV x) = do b <- CG ask; wrapCG . fmap STV $ W.buildRet b x
+buildRet (STV x) = do b <- CG ask; fmap STV . wrapCG $ W.buildRet b x
 
 wrapBin :: (Builder -> Value -> Value -> String -> IO Value) ->
            String -> STValue s -> STValue s -> CodeGen s (STValue s)
-wrapBin f n (STV l) (STV r) = do b <- CG ask; wrapCG . fmap STV $ f b l r n
+wrapBin f n (STV l) (STV r) = do b <- CG ask; fmap STV . wrapCG $ f b l r n
 
 buildAdd = wrapBin W.buildAdd
 buildSub = wrapBin W.buildSub
