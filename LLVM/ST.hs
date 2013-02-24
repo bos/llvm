@@ -44,7 +44,6 @@ import Control.Monad.Reader
 import Control.Monad.ST.Safe
 import Control.Monad.ST.Unsafe (unsafeIOToST, unsafeSTToIO)
 import System.IO.Unsafe (unsafePerformIO)
-import System.IO
 
 import Data.ByteString (ByteString)
 
