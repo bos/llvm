@@ -4,6 +4,7 @@ module LLVM.Wrapper.Core
     -- ** Modules
     , Module
     , moduleCreateWithName
+    , moduleCreateWithNameInContext
     , printModuleToFile
     , dumpModule
 
@@ -15,6 +16,7 @@ module LLVM.Wrapper.Core
 
     -- ** Struct types
     , structType
+    , structTypeInContext
     , structCreateNamed
     , structCreateNamedInContext
     , structSetBody
@@ -30,10 +32,12 @@ module LLVM.Wrapper.Core
     , setGC
     , getLinkage
     , setLinkage
+    , constStructInContext
 
     -- ** Scalar constants
     , constRealOfString
     , constString
+    , constStringInContext
 
     -- ** Globals
     , addGlobal
@@ -68,11 +72,13 @@ module LLVM.Wrapper.Core
     -- * Basic blocks
     , BasicBlock
     , appendBasicBlock
+    , appendBasicBlockInContext
     , getBasicBlocks
 
     -- * Instruction building
     , Builder
     , createBuilder
+    , createBuilderInContext
     , getCurrentDebugLocation
     , setCurrentDebugLocation
     , setInstDebugLocation
@@ -180,17 +186,24 @@ import LLVM.FFI.Core
     ( TypeKind(..)
     , getTypeKind
 
+    , getGlobalContext
+    , contextCreate
+
     , int1Type
     , int8Type
     , int16Type
     , int32Type
     , int64Type
     , integerType
+    , intTypeInContext
     , getIntTypeWidth
 
     , floatType
+    , floatTypeInContext
     , doubleType
+    , doubleTypeInContext
     , x86FP80Type
+    , x86FP80TypeInContext
     , fp128Type
     , ppcFP128Type
 
@@ -198,6 +211,7 @@ import LLVM.FFI.Core
     , pointerType
     , vectorType
     , voidType
+    , voidTypeInContext
 
     , typeOf
     , dumpValue
@@ -306,6 +320,10 @@ type PassManager  = FFI.PassManagerRef
 moduleCreateWithName :: String -> IO Module
 moduleCreateWithName name = initModule =<< withCString name FFI.moduleCreateWithName
 
+moduleCreateWithNameInContext :: String -> Context -> IO Module
+moduleCreateWithNameInContext name ctx =
+    initModule =<< withCString name (flip FFI.moduleCreateWithNameInContext ctx)
+
 printModuleToFile :: Module -> FilePath -> IO ()
 printModuleToFile (MkModule m _) file
     = withCString file
@@ -390,6 +408,11 @@ structType types packed = unsafePerformIO $
     withArrayLen types $ \ len ptr ->
         return $ FFI.structType ptr (fromIntegral len) packed
 
+structTypeInContext :: Context -> [Type] -> Bool -> IO Type
+structTypeInContext ctx types packed =
+    withArrayLen types $ \ len ptr ->
+        FFI.structTypeInContext ctx ptr (fromIntegral len) packed
+
 structCreateNamed :: String -> IO Type
 structCreateNamed name
     = do ctx <- FFI.getGlobalContext
@@ -405,6 +428,10 @@ structSetBody struct body packed
 
 appendBasicBlock :: Value -> String -> IO BasicBlock
 appendBasicBlock function name = withCString name $ FFI.appendBasicBlock function
+
+appendBasicBlockInContext :: Context -> Value -> String -> IO BasicBlock
+appendBasicBlockInContext ctx function name =
+    withCString name $ FFI.appendBasicBlockInContext ctx function
 
 getBasicBlocks :: Value -> IO [BasicBlock]
 getBasicBlocks v
@@ -425,6 +452,11 @@ getLinkage v = fmap FFI.toLinkage $ FFI.getLinkage v
 setLinkage :: Value -> Linkage -> IO ()
 setLinkage v l = FFI.setLinkage v (FFI.fromLinkage l)
 
+constStructInContext :: Context -> [Value] -> Bool -> IO Value
+constStructInContext ctx values packed =
+    withArrayLen values $ \ len ptr ->
+        FFI.constStructInContext ctx ptr (fromIntegral len) packed
+
 -- unsafePerformIO just to wrap the non-effecting withCString call
 constRealOfString :: Type -> String -> Value
 constRealOfString ty str
@@ -436,8 +468,16 @@ constString str dontNullTerminate
     = unsafePerformIO $ withCStringLen str $ \(ptr, len) ->
       return $ FFI.constString ptr (fromIntegral len) dontNullTerminate
 
+constStringInContext :: Context -> String -> Bool -> IO Value
+constStringInContext ctx str dontNullTerminate
+    = withCStringLen str $ \(ptr, len) ->
+      FFI.constStringInContext ctx ptr (fromIntegral len) dontNullTerminate
+
 createBuilder :: IO Builder
 createBuilder = FFI.createBuilder >>= newForeignPtr FFI.ptrDisposeBuilder
+
+createBuilderInContext :: Context -> IO Builder
+createBuilderInContext ctx = FFI.createBuilderInContext ctx >>= newForeignPtr FFI.ptrDisposeBuilder
 
 getCurrentDebugLocation b = withForeignPtr b FFI.getCurrentDebugLocation
 setCurrentDebugLocation b v = withForeignPtr b $ \b' -> FFI.setCurrentDebugLocation b' v
