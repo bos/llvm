@@ -41,7 +41,7 @@ import qualified LLVM.Wrapper.Core as W
 import LLVM.Wrapper.Core ( Module, BasicBlock, Type, Value, Builder, CUInt )
 import LLVM.Wrapper.BitWriter
 
-newtype STModule s = STM Module
+newtype STModule s = STM { unSTM :: Module }
 newtype STBasicBlock s = STB BasicBlock
 newtype STType s = STT { unSTT :: Type }
 newtype STValue s = STV Value
@@ -81,8 +81,12 @@ instance Monad (ModuleGen s) where
     (>>=) (MG x) f = MG (x >>= unMG . f)
     return x = MG (return x)
 
+instance MonadReader (STModule s) (ModuleGen s) where
+    ask = fmap STM (MG ask)
+    local f (MG mg) = MG (local (unSTM . f . STM) mg)
+
 getModule :: ModuleGen s (STModule s)
-getModule = fmap STM (MG ask)
+getModule = ask
 
 genModule :: String -> ModuleGen s a -> ST s a
 genModule name (MG mg) = unsafeIOToST (W.moduleCreateWithName name >>= (unsafeSTToIO . runReaderT mg))
