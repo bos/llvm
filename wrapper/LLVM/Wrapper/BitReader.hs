@@ -31,7 +31,6 @@ parseBitcodeFromFile path =
         False -> do buf <- peek bufPtr
                     finally (parseFromBuf buf)
                             (FFI.disposeMemoryBuffer buf)
-          
 
 parseFromBuf :: FFI.MemoryBufferRef -> IO (Either String Module)
 parseFromBuf buf =
