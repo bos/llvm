@@ -20,6 +20,8 @@ module LLVM.ST
     , dumpType
     , findType
     , functionType, intType, structType
+    , vectorType, arrayType
+    , pointerTypeInSpace, pointerType
     , structCreateNamed, structSetBody
 
     , CodeGen
@@ -67,6 +69,18 @@ intType i = STT (W.integerType i)
 
 structType :: [STType s] -> Bool -> STType s
 structType types packed = STT (W.structType (map unSTT types) packed)
+
+vectorType :: STType s -> CUInt -> STType s
+vectorType (STT t) count = STT (W.vectorType t count)
+
+arrayType :: STType s -> CUInt -> STType s
+arrayType (STT t) count = STT (W.arrayType t count)
+
+pointerTypeInSpace :: STType s -> CUInt -> STType s
+pointerTypeInSpace (STT t) addrSpace = STT (W.pointerType t addrSpace)
+
+pointerType :: STType s -> STType s
+pointerType ty = pointerTypeInSpace ty 0
 
 newtype ModuleGen s a = MG { unMG :: ReaderT Module (ST s) a }
 
