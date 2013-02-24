@@ -51,14 +51,14 @@ genModule name (MG mg) = unsafeIOToST (W.moduleCreateWithName name >>= (unsafeST
 wrapMG :: IO a -> ModuleGen s a
 wrapMG = MG . lift . unsafeIOToST
 
-getTypeByName :: String -> ModuleGen s (Maybe (STType s))
-getTypeByName name = ask >>= unsafeFreeze >>= ((fmap . fmap) STT . wrapMG . flip W.getTypeByName name)
+findType :: String -> ModuleGen s (Maybe (STType s))
+findType name = ask >>= unsafeFreeze >>= ((fmap . fmap) STT . wrapMG . flip W.getTypeByName name)
 
-getNamedGlobal :: String -> ModuleGen s (Maybe (STValue s))
-getNamedGlobal name = ask >>= unsafeFreeze >>= ((fmap . fmap) STV . wrapMG . flip W.getNamedGlobal name)
+findGlobal :: String -> ModuleGen s (Maybe (STValue s))
+findGlobal name = ask >>= unsafeFreeze >>= ((fmap . fmap) STV . wrapMG . flip W.getNamedGlobal name)
 
-getNamedFunction :: String -> ModuleGen s (Maybe (STValue s))
-getNamedFunction name = ask >>= unsafeFreeze >>= ((fmap . fmap) STV . wrapMG . flip W.getNamedFunction name)
+findFunction :: String -> ModuleGen s (Maybe (STValue s))
+findFunction name = ask >>= unsafeFreeze >>= ((fmap . fmap) STV . wrapMG . flip W.getNamedFunction name)
 
 addFunction :: String -> STType s -> ModuleGen s (STValue s)
 addFunction name (STT ty) = ask >>= unsafeFreeze >>= (\m -> fmap STV . wrapMG $ W.addFunction m name ty)
