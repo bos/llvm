@@ -126,9 +126,13 @@ buildAdd = wrapBin W.buildAdd
 buildSub = wrapBin W.buildSub
 buildMul = wrapBin W.buildMul
 
-test :: ST s Module
-test = genModule "test" $ do
+test :: Module
+test = runST $
+       genModule "test" $ do
          genFunction "double" (STT $ W.functionType W.int32Type [W.int32Type] False) $ do
                             [x] <- getParams
                             buildAdd "sum" x x >>= buildRet
          getModule >>= unsafeFreeze
+
+main :: IO ()
+main = dumpModule test
