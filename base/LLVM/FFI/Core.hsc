@@ -410,6 +410,8 @@ module LLVM.FFI.Core
     , MemoryBufferRef
     , createMemoryBufferWithContentsOfFile
     , createMemoryBufferWithSTDIN
+    , createMemoryBufferWithMemoryRange
+    , createMemoryBufferWithMemoryRangeCopy
     , disposeMemoryBuffer
 
     -- * Error handling
@@ -566,7 +568,7 @@ module LLVM.FFI.Core
 import Data.Typeable(Typeable)
 import Foreign.C.String (CString)
 #if __GLASGOW_HASKELL__ >= 704
-import Foreign.C.Types (CDouble(..), CInt(..), CUInt(..), CLLong(..), CULLong(..))
+import Foreign.C.Types (CDouble(..), CInt(..), CUInt(..), CLLong(..), CULLong(..), CSize(..))
 #else
 import Foreign.C.Types (CDouble, CInt, CUInt, CLLong, CULLong)
 #endif
@@ -1361,6 +1363,10 @@ foreign import ccall unsafe "LLVMCreateMemoryBufferWithContentsOfFile" createMem
     :: CString -> Ptr MemoryBufferRef -> Ptr CString -> IO Bool
 foreign import ccall unsafe "LLVMCreateMemoryBufferWithSTDIN" createMemoryBufferWithSTDIN
     :: Ptr MemoryBufferRef -> Ptr CString -> IO Bool
+foreign import ccall unsafe "LLVMCreateMemoryBufferWithMemoryRange" createMemoryBufferWithMemoryRange
+    :: Ptr a -> CSize -> CString -> Bool -> IO MemoryBufferRef
+foreign import ccall unsafe "LLVMCreateMemoryBufferWithMemoryRangeCopy" createMemoryBufferWithMemoryRangeCopy
+    :: Ptr a -> CSize -> CString -> IO MemoryBufferRef
 foreign import ccall unsafe "LLVMDisposeMemoryBuffer" disposeMemoryBuffer
     :: MemoryBufferRef -> IO ()
 foreign import ccall unsafe "LLVMDisposeMessage" disposeMessage
