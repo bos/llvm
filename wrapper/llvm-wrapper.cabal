@@ -1,5 +1,5 @@
 name:               llvm-wrapper
-version:            3.0.1.0
+version:            3.2.0.0
 synopsis:           Friendly wrapper around raw FFI bindings of the LLVM C API.
 category:           Compilers/Interpreters, Code Generation
 license:            BSD3

@@ -3,8 +3,8 @@ module LLVM.Wrapper.Core
     -- ** Modules
     , Module
     , moduleCreateWithName
-    , withModule
     , printModuleToFile
+    , dumpModule
 
     -- * Types
     , Type
@@ -42,6 +42,7 @@ module LLVM.Wrapper.Core
 
     -- ** Pass Manager
     , PassManager
+    , createFunctionPassManagerForModule
 
     -- ** Functions
     , addFunction
@@ -70,7 +71,23 @@ module LLVM.Wrapper.Core
 
     -- * Instruction building
     , Builder
-    , withBuilder
+    , createBuilder
+    , getCurrentDebugLocation
+    , setCurrentDebugLocation
+    , setInstDebugLocation
+    , getInsertBlock
+    , positionBuilder
+    , positionBefore
+    , positionAtEnd
+
+    -- ** Control
+    , buildRetVoid
+    , buildRet
+    , buildBr
+    , buildIndirectBr
+    , buildCondBr
+    , buildSwitch
+    , buildUnreachable
 
     -- ** Arithmetic
     , buildAdd
@@ -112,6 +129,7 @@ module LLVM.Wrapper.Core
     , buildLoad
     , buildStructGEP
     , buildInBoundsGEP
+    , buildStore
     -- ** Casts
     , buildTrunc
     , buildZExt
@@ -155,10 +173,7 @@ import Control.Exception
 import Control.Monad
 
 import LLVM.FFI.Core
-    ( disposeModule
-    , dumpModule
-
-    , TypeKind(..)
+    ( TypeKind(..)
     , getTypeKind
 
     , int1Type
@@ -248,7 +263,6 @@ import LLVM.FFI.Core
     , setTailCall
     , deleteFunction
 
-    , createFunctionPassManagerForModule
     , initializeFunctionPassManager
     , runFunctionPassManager
 
@@ -263,12 +277,6 @@ import LLVM.FFI.Core
     , setParamAlignment
     , Attribute(..)
 
-    , createBuilder
-    , disposeBuilder
-    , getInsertBlock
-    , positionBuilder
-    , positionBefore
-    , positionAtEnd
     , getFirstInstruction
     , getNextInstruction
     , getPreviousInstruction
@@ -277,45 +285,29 @@ import LLVM.FFI.Core
 
     , CallingConvention(..)
 
-    , buildRetVoid
-    , buildRet
-    , buildBr
-    , buildIndirectBr
-    , buildCondBr
-    , buildSwitch
-    , buildUnreachable
     , addCase
 
-    , buildStore
-
     , MetadataKind(..)
-    , getCurrentDebugLocation
-    , setCurrentDebugLocation
-    , setInstDebugLocation
     , debugVersion
     )
 import qualified LLVM.FFI.Core as FFI
 
 type Type         = FFI.TypeRef
-type Module       = FFI.ModuleRef
+type Module       = ForeignPtr FFI.Module
 type Value        = FFI.ValueRef
-type Builder      = FFI.BuilderRef
+type Builder      = ForeignPtr FFI.Builder
 type BasicBlock   = FFI.BasicBlockRef
 type Context      = FFI.ContextRef
 type PassManager  = FFI.PassManagerRef
 
 moduleCreateWithName :: String -> IO Module
-moduleCreateWithName name = withCString name FFI.moduleCreateWithName
-
-withModule :: String -> (Module -> IO a) -> IO a
-withModule n f = do m <- moduleCreateWithName n
-                    finally (f m) (disposeModule m)
+moduleCreateWithName name = withCString name FFI.moduleCreateWithName >>= newForeignPtr FFI.ptrDisposeModule
 
 printModuleToFile :: Module -> FilePath -> IO ()
 printModuleToFile m file
     = withCString file
       (\f -> alloca (\msgPtr -> do
-                       result <- FFI.printModuleToFile m f msgPtr
+                       result <- withForeignPtr m (\modPtr -> FFI.printModuleToFile modPtr f msgPtr)
                        msg <- peek msgPtr
                        case result of
                          False -> return ()
@@ -323,8 +315,12 @@ printModuleToFile m file
                                     FFI.disposeMessage msg
                                     fail str))
 
+dumpModule :: Module -> IO ()
+dumpModule m = withForeignPtr m FFI.dumpModule
+
 getTypeByName :: Module -> String -> IO (Maybe Type)
-getTypeByName m name = fmap nullableToMaybe $ withCString name $ FFI.getTypeByName m
+getTypeByName m name = fmap nullableToMaybe $
+                       withForeignPtr m (\mPtr -> withCString name $ FFI.getTypeByName mPtr)
 
 getValueName :: Value -> IO String
 getValueName v = FFI.getValueName v >>= peekCString
@@ -333,27 +329,33 @@ setValueName :: Value -> String -> IO ()
 setValueName v name = withCString name $ FFI.setValueName v
 
 addGlobal :: Module -> Type -> String -> IO Value
-addGlobal m ty name = withCString name $ FFI.addGlobal m ty
+addGlobal m ty name = withForeignPtr m (\mPtr -> withCString name $ FFI.addGlobal mPtr ty)
 
 nullableToMaybe :: Ptr a -> Maybe (Ptr a)
 nullableToMaybe p = if p == nullPtr then Nothing else Just p
 
 getNamedGlobal :: Module -> String -> IO (Maybe Value)
-getNamedGlobal m name = fmap nullableToMaybe $ withCString name $ FFI.getNamedGlobal m
+getNamedGlobal m name = fmap nullableToMaybe $
+                        withForeignPtr m (\mPtr -> withCString name $ FFI.getNamedGlobal mPtr)
 
 buildGlobalString :: Builder -> String -> String -> IO Value
 buildGlobalString b string name
-    = withCString name (\n -> withCString string (\s -> FFI.buildGlobalString b s n))
+    = withForeignPtr b $ \b' ->
+      withCString name (\n -> withCString string (\s -> FFI.buildGlobalString b' s n))
 
 buildGlobalStringPtr :: Builder -> String -> String -> IO Value
 buildGlobalStringPtr b string name
-    = withCString name (\n -> withCString string (\s -> FFI.buildGlobalStringPtr b s n))
+    = withForeignPtr b $ \b' ->
+      withCString name (\n -> withCString string (\s -> FFI.buildGlobalStringPtr b' s n))
+
+createFunctionPassManagerForModule m = withForeignPtr m FFI.createFunctionPassManagerForModule
 
 addFunction :: Module -> String -> Type -> IO Value
-addFunction m name ty = withCString name (\n -> FFI.addFunction m n ty)
+addFunction m name ty = withForeignPtr m (\mPtr -> withCString name (\n -> FFI.addFunction mPtr n ty))
 
 getNamedFunction :: Module -> String -> IO (Maybe Value)
-getNamedFunction m name = fmap nullableToMaybe $ withCString name $ FFI.getNamedFunction m
+getNamedFunction m name = fmap nullableToMaybe $
+                          withForeignPtr m (\mPtr -> withCString name $ FFI.getNamedFunction mPtr)
 
 getParams :: Value -> IO [Value]
 getParams f
@@ -432,13 +434,30 @@ constString str dontNullTerminate
     = unsafePerformIO $ withCStringLen str $ \(ptr, len) ->
       return $ FFI.constString ptr (fromIntegral len) dontNullTerminate
 
-withBuilder :: (Builder -> IO a) -> IO a
-withBuilder f = do p <- createBuilder
-                   finally (f p) (disposeBuilder p)
+createBuilder :: IO Builder
+createBuilder = FFI.createBuilder >>= newForeignPtr FFI.ptrDisposeBuilder
 
-wrapBin :: (Builder -> Value -> Value -> CString -> IO Value) ->
+getCurrentDebugLocation b = withForeignPtr b FFI.getCurrentDebugLocation
+setCurrentDebugLocation b v = withForeignPtr b $ \b' -> FFI.setCurrentDebugLocation b' v
+setInstDebugLocation b v = withForeignPtr b $ \b' -> FFI.setInstDebugLocation b' v
+
+getInsertBlock b = withForeignPtr b FFI.getInsertBlock
+positionBuilder b bb v = withForeignPtr b $ \b' -> FFI.positionBuilder b' bb v
+positionBefore b v = withForeignPtr b $ \b' -> FFI.positionBefore b' v
+positionAtEnd b bb = withForeignPtr b $ \b' -> FFI.positionAtEnd b' bb
+
+buildRetVoid b = withForeignPtr b FFI.buildRetVoid
+buildRet b v = withForeignPtr b (flip FFI.buildRet v)
+buildBr b t = withForeignPtr b (flip FFI.buildBr t)
+buildIndirectBr b addr ndests = withForeignPtr b (\b' -> FFI.buildIndirectBr b' addr ndests)
+buildCondBr b c t f = withForeignPtr b (\b' -> FFI.buildCondBr b' c t f)
+buildSwitch b v d cnt = withForeignPtr b (\b' -> FFI.buildSwitch b' v d cnt)
+buildUnreachable b = withForeignPtr b FFI.buildUnreachable
+buildStore b v ptr = withForeignPtr b (\b' -> FFI.buildStore b' v ptr)
+
+wrapBin :: (FFI.BuilderRef -> Value -> Value -> CString -> IO Value) ->
             Builder -> Value -> Value -> String  -> IO Value
-wrapBin f b x y name = withCString name $ f b x y
+wrapBin f b x y name = withForeignPtr b (\b' -> withCString name $ f b' x y)
 
 buildAdd       = wrapBin FFI.buildAdd
 buildSub       = wrapBin FFI.buildSub
@@ -466,9 +485,9 @@ buildAnd       = wrapBin FFI.buildAnd
 buildOr        = wrapBin FFI.buildOr
 buildXor       = wrapBin FFI.buildXor
 
-wrapUn :: (Builder -> Value -> CString -> IO Value) ->
+wrapUn :: (FFI.BuilderRef -> Value -> CString -> IO Value) ->
            Builder -> Value -> String  -> IO Value
-wrapUn f b v name = withCString name $ f b v
+wrapUn f b v name = withForeignPtr b (\b' -> withCString name $ f b' v)
 
 buildNeg    = wrapUn FFI.buildNeg
 buildFNeg   = wrapUn FFI.buildFNeg
@@ -477,28 +496,29 @@ buildNSWNeg = wrapUn FFI.buildNSWNeg
 buildNUWNeg = wrapUn FFI.buildNUWNeg
 
 buildICmp :: Builder -> IntPredicate -> Value -> Value -> String -> IO Value
-buildICmp b p l r n = withCString n $ FFI.buildICmp b (FFI.fromIntPredicate p) l r
+buildICmp b p l r n = withForeignPtr b $ \b' -> withCString n $ FFI.buildICmp b' (FFI.fromIntPredicate p) l r
 
 buildFCmp :: Builder -> FPPredicate -> Value -> Value -> String -> IO Value
-buildFCmp b p l r n = withCString n $ FFI.buildFCmp b (FFI.fromFPPredicate p) l r
+buildFCmp b p l r n = withForeignPtr b $ \b' -> withCString n $ FFI.buildFCmp b' (FFI.fromFPPredicate p) l r
 
 buildAlloca :: Builder -> Type -> String -> IO Value
-buildAlloca b ty name = withCString name $ FFI.buildAlloca b ty
+buildAlloca b ty name = withForeignPtr b $ \b' -> withCString name $ FFI.buildAlloca b' ty
 
 buildLoad :: Builder -> Value -> String -> IO Value
-buildLoad b ptr name = withCString name $ FFI.buildLoad b ptr
+buildLoad b ptr name = withForeignPtr b $ \b' -> withCString name $ FFI.buildLoad b' ptr
 
 buildStructGEP :: Builder -> Value -> CUInt -> String -> IO Value
-buildStructGEP b s idx name = withCString name $ FFI.buildStructGEP b s idx
+buildStructGEP b s idx name = withForeignPtr b $ \b' -> withCString name $ FFI.buildStructGEP b' s idx
 
 buildInBoundsGEP :: Builder -> Value -> [Value] -> String -> IO Value
 buildInBoundsGEP b ptr indices name
     = withArrayLen indices $ \len indicesPtr ->
-      withCString name $ FFI.buildInBoundsGEP b ptr indicesPtr $ fromIntegral len
+      withForeignPtr b $ \b' ->
+      withCString name $ FFI.buildInBoundsGEP b' ptr indicesPtr $ fromIntegral len
 
-wrapCast :: (Builder -> Value -> Type -> CString -> IO Value) ->
+wrapCast :: (FFI.BuilderRef -> Value -> Type -> CString -> IO Value) ->
              Builder -> Value -> Type -> String  -> IO Value
-wrapCast f b v t name = withCString name $ f b v t
+wrapCast f b v t name = withForeignPtr b (\b' -> withCString name $ f b' v t)
 
 buildTrunc          = wrapCast FFI.buildTrunc
 buildZExt           = wrapCast FFI.buildZExt
@@ -519,7 +539,7 @@ buildSExtOrBitCast  = wrapCast FFI.buildSExtOrBitCast
 buildFPCast         = wrapCast FFI.buildFPCast
 
 buildPhi :: Builder -> Type -> String -> IO Value
-buildPhi b ty name = withCString name $ FFI.buildPhi b ty
+buildPhi b ty name = withForeignPtr b (\b' -> withCString name $ FFI.buildPhi b' ty)
 
 addIncoming :: Value -> [(Value, BasicBlock)] -> IO ()
 addIncoming phi incoming
@@ -530,11 +550,11 @@ addIncoming phi incoming
 buildCall :: Builder -> Value -> [Value] -> String -> IO Value
 buildCall b f args name
     = withArrayLen args $ \len ptr ->
-      withCString name $ FFI.buildCall b f ptr (fromIntegral len)
+      withForeignPtr b (\b' -> withCString name $ FFI.buildCall b' f ptr (fromIntegral len))
 
 buildSelect :: Builder -> Value -> Value -> Value -> String -> IO Value
 buildSelect b cond t f name
-    = withCString name $ FFI.buildSelect b cond t f
+    = withForeignPtr b (\b' -> withCString name $ FFI.buildSelect b' cond t f)
 
 -- See LLVMOpcode in llvm-c/Core.h
 isUnreachable :: Value -> IO Bool
@@ -566,16 +586,18 @@ mdString s = unsafePerformIO $
 getNamedMetadataOperands :: Module -> String -> IO [Value]
 getNamedMetadataOperands m name
     = withCString name $ \namePtr -> do
-        count <- liftM fromIntegral (FFI.getNamedMetadataNumOperands m namePtr)
+        count <- liftM fromIntegral (withForeignPtr m (\m' -> FFI.getNamedMetadataNumOperands m' namePtr))
         allocaArray count $ \ptr -> do
-          FFI.getNamedMetadataOperands m namePtr ptr
+          withForeignPtr m (\m' -> FFI.getNamedMetadataOperands m' namePtr ptr)
           peekArray count ptr
 
 addNamedMetadataOperand :: Module -> String -> Value -> IO ()
-addNamedMetadataOperand m name value = withCString name $ \n -> FFI.addNamedMetadataOperand m n value
+addNamedMetadataOperand m name value = withForeignPtr m $
+                                       \m' -> withCString name $
+                                              \n -> FFI.addNamedMetadataOperand m' n value
 
 dumpModuleToString :: Module -> IO String
-dumpModuleToString m = do cstr <- FFI.dumpModuleToString m
+dumpModuleToString m = do cstr <- withForeignPtr m FFI.dumpModuleToString
                           hstr <- peekCString cstr
                           FFI.disposeMessage cstr
                           return hstr
