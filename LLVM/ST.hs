@@ -10,7 +10,6 @@ module LLVM.ST ( ModuleGen
 
 import Control.Applicative
 import Control.Monad.Reader
-import Control.Monad.ST.Class
 import Control.Monad.ST.Safe
 import Control.Monad.ST.Unsafe (unsafeIOToST, unsafeSTToIO)
 
@@ -47,7 +46,7 @@ getModule :: ModuleGen s (STModule s)
 getModule = ask
 
 genModule :: String -> ModuleGen s a -> ST s a
-genModule name (MG mg) = unsafeIOToST (W.withModule name (unsafeSTToIO . runReaderT mg . STM))
+genModule name (MG mg) = unsafeIOToST (W.moduleCreateWithName name >>= (unsafeSTToIO . runReaderT mg . STM))
 
 wrapMG :: IO a -> ModuleGen s a
 wrapMG = MG . lift . unsafeIOToST
@@ -64,6 +63,9 @@ getNamedFunction name = ask >>= unsafeFreeze >>= ((fmap . fmap) STV . wrapMG . f
 addFunction :: String -> STType s -> ModuleGen s (STValue s)
 addFunction name (STT ty) = ask >>= unsafeFreeze >>= (\m -> fmap STV . wrapMG $ W.addFunction m name ty)
 
+appendBasicBlock :: String -> STValue s -> ModuleGen s (STBasicBlock s)
+appendBasicBlock name (STV func) = wrapMG . fmap STB $ W.appendBasicBlock func name
+
 newtype CodeGen s a = CG { unCG :: ReaderT Builder (ST s) a }
 
 instance Functor (CodeGen s) where
@@ -78,7 +80,11 @@ instance Monad (CodeGen s) where
     return x = CG (return x)
 
 genFunction :: String -> STType s -> CodeGen s a -> ModuleGen s a
-genFunction name (STT ty) (CG fg) = wrapMG (W.withBuilder (unsafeSTToIO . runReaderT fg))
+genFunction name ty fg = do f <- addFunction name ty
+                            b <- appendBasicBlock "entry" f
+                            wrapMG (W.createBuilder >>=
+                                         (unsafeSTToIO . runReaderT
+                                                           (unCG (positionAtEnd b >> fg))))
 
 wrapCG :: IO a -> CodeGen s a
 wrapCG = CG . lift . unsafeIOToST
