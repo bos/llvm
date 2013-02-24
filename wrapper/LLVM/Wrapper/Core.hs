@@ -149,6 +149,7 @@ module LLVM.Wrapper.Core
     , buildSExtOrBitCast
 
     -- ** Misc
+    , CUInt
     , buildPhi
     , addIncoming
     , buildCall
