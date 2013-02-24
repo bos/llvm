@@ -1,8 +1,10 @@
 {-# LANGUAGE MultiParamTypeClasses, UndecidableInstances, RankNTypes #-}
 module LLVM.ST
     ( ModuleGen
+    , run, run2
 
     , STModule
+    , Module
     , unsafeFreeze
     , getModule
     , genModule
@@ -25,6 +27,7 @@ module LLVM.ST
     , structCreateNamed, structSetBody
 
     , CodeGen
+    , liftMG
     , positionAtEnd, positionBefore, positionAfter
 
     , getBlock, getFunction, getParams
