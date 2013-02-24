@@ -6,15 +6,18 @@ module LLVM.ST
     , unsafeFreeze
     , getModule
     , genModule
+    , dumpModule
 
     , STBasicBlock
     , appendBasicBlock
 
     , STValue
+    , dumpValue
     , findGlobal, findFunction
     , addFunction, genFunction
 
     , STType
+    , dumpType
     , findType
     , functionType, intType, structType
     , structCreateNamed, structSetBody
@@ -45,6 +48,15 @@ newtype STValue s = STV Value
 
 unsafeFreeze :: STModule s -> ModuleGen s Module
 unsafeFreeze (STM m) = return m
+
+dumpModule :: STModule s -> ST s String
+dumpModule (STM m) = unsafeIOToST . W.dumpModuleToString $ m
+
+dumpType :: STType s -> ST s String
+dumpType (STT t) = unsafeIOToST . W.dumpTypeToString $ t
+
+dumpValue :: STValue s -> ST s String
+dumpValue (STV v) = unsafeIOToST . W.dumpValueToString $ v
 
 functionType :: STType s -> [STType s] -> Bool -> STType s
 functionType (STT ret) args variadic =
