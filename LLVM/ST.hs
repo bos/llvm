@@ -10,6 +10,7 @@ module LLVM.ST
     , writeBitcodeToFile
     , getModule
     , genModule
+    , verifyModule
     , showModule
     , linkModules
 
@@ -20,6 +21,7 @@ module LLVM.ST
     , showValue
     , findGlobal, findFunction
     , addFunction, genFunction
+    , verifyFunction
 
     , STType
     , showType
@@ -52,6 +54,7 @@ import qualified LLVM.Wrapper.Core as W
 import qualified LLVM.Wrapper.Linker as W
 import qualified LLVM.Wrapper.BitReader as W
 import qualified LLVM.Wrapper.BitWriter as W
+import qualified LLVM.Wrapper.Analysis as W
 import LLVM.Wrapper.Core (BasicBlock, Type, Value, Builder, CUInt)
 
 newtype Module = PM { unPM :: W.Module }
@@ -84,6 +87,9 @@ parseBitcodeForGen = return . fmap (STM . unPM) . parseBitcode
 writeBitcodeToFile :: Module -> FilePath -> IO ()
 writeBitcodeToFile (PM m) = W.writeBitcodeToFile m
 
+verifyModule :: Module -> Maybe String
+verifyModule (PM m) = unsafePerformIO (W.verifyModule m)
+
 instance Show Module where
     show (PM m) = unsafePerformIO $ W.dumpModuleToString m
 
@@ -115,6 +121,7 @@ pointerTypeInSpace (STT t) addrSpace = STT (W.pointerType t addrSpace)
 pointerType :: STType s -> STType s
 pointerType ty = pointerTypeInSpace ty 0
 
+-- TODO: Thread LLVM context through
 newtype ModuleGen s a = MG { unMG :: ReaderT W.Module (ST s) a }
 
 instance Functor (ModuleGen s) where
@@ -195,6 +202,9 @@ genFunction name ty fg =
        m <- MG ask
        wrapMG (do b <- W.createBuilder
                   unsafeSTToIO (runReaderT (unCG (positionAtEnd bb >> fg)) (CGS b m)))
+
+verifyFunction :: STValue s -> ST s Bool
+verifyFunction (STV f) = unsafeIOToST (W.verifyFunction f)
 
 wrapCG :: IO a -> CodeGen s a
 wrapCG = CG . lift . unsafeIOToST
