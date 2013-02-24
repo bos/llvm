@@ -9,8 +9,10 @@ import LLVM.Wrapper.Internal
 
 import Foreign.C.String (peekCString)
 import Foreign.Marshal.Alloc (alloca)
-import Foreign.Storable (peek, poke)
+import Foreign.Storable (peek)
 import Foreign.ForeignPtr.Safe (withForeignPtr)
+
+import Data.IORef
 
 linkModules :: Module -> Module -> LinkerMode -> IO (Maybe String)
 linkModules (MkModule dest _) (MkModule src srcOurs) mode =
@@ -18,7 +20,7 @@ linkModules (MkModule dest _) (MkModule src srcOurs) mode =
     withForeignPtr src $ \src' ->
     alloca (\msgPtr -> do
               result <- FFI.linkModules dest' src' (FFI.fromLinkerMode mode) msgPtr
-              poke srcOurs False
+              writeIORef srcOurs False
               msg <- peek msgPtr
               case result of
                 False -> return Nothing

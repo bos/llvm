@@ -1,7 +1,8 @@
 {-# LANGUAGE ForeignFunctionInterface #-}
 module LLVM.Wrapper.Internal where
 
-import Foreign.ForeignPtr.Safe (ForeignPtr, newForeignPtrEnv)
+import Foreign.ForeignPtr.Safe (ForeignPtr)
+import Foreign.Concurrent (newForeignPtr)
 import Foreign.Ptr (Ptr, FunPtr)
 import Foreign.C.String (withCString)
 import Foreign.Marshal.Alloc (malloc, free)
@@ -10,30 +11,24 @@ import System.IO.Unsafe (unsafePerformIO)
 
 import Control.Monad
 import Control.Exception.Base
+import Data.IORef
 
 import qualified LLVM.FFI.Core as FFI
 
-data Module = MkModule (ForeignPtr FFI.Module) (Ptr Bool)
+data Module = MkModule (ForeignPtr FFI.Module) (IORef Bool)
 
 withMemoryBuffer :: String -> Ptr a -> Int -> (FFI.MemoryBufferRef -> IO b) -> IO b
 withMemoryBuffer name p len =
     bracket (withCString name $ \str -> FFI.createMemoryBufferWithMemoryRange p (fromIntegral len) str False)
             FFI.disposeMemoryBuffer
 
-type EnvFinalizer env a = Ptr env -> Ptr a -> IO ()
-foreign import ccall "wrapper"
-   mkFinalizer :: EnvFinalizer env a -> IO (FunPtr (EnvFinalizer env a))
-
-{-# NOINLINE moduleFinalizer #-}
-moduleFinalizer :: FunPtr (EnvFinalizer Bool FFI.Module)
-moduleFinalizer = unsafePerformIO . mkFinalizer $ \ours m -> do
-                    isOurs <- peek ours
-                    free ours
-                    when isOurs $ FFI.disposeModule m
+moduleFinalizer :: Ptr FFI.Module -> IORef Bool -> IO ()
+moduleFinalizer m ours = do
+  isOurs <- readIORef ours
+  when isOurs $ FFI.disposeModule m
 
 initModule :: Ptr FFI.Module -> IO Module
 initModule ptr = do
-  ours <- malloc
-  poke ours True
-  ptr <- newForeignPtrEnv moduleFinalizer ours ptr
+  ours <- newIORef True
+  ptr <- newForeignPtr ptr (moduleFinalizer ptr ours)
   return $ MkModule ptr ours
