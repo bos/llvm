@@ -7,6 +7,7 @@ import Foreign.C.String (peekCString, withCString)
 import Foreign.Storable (peek)
 import System.IO.Unsafe (unsafePerformIO)
 import System.IO (FilePath)
+import Control.Exception.Base (finally)
 
 import qualified LLVM.FFI.Core as FFI
 import qualified LLVM.FFI.BitReader as FFI
@@ -27,7 +28,9 @@ parseBitcodeFromFile path =
                      FFI.createMemoryBufferWithContentsOfFile cpath bufPtr msgPtr
       case errOccurred of
         True -> peek msgPtr >>= peekCString >>= fail
-        False -> peek bufPtr >>= parseFromBuf 
+        False -> do buf <- peek bufPtr
+                    finally (parseFromBuf buf)
+                            (FFI.disposeMemoryBuffer buf)
           
 
 parseFromBuf :: FFI.MemoryBufferRef -> IO (Either String Module)
