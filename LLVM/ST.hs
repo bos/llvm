@@ -18,9 +18,11 @@ module LLVM.ST
     , appendBasicBlock
 
     , STValue
+    , Linkage(..)
     , showValue
     , findGlobal, findFunction
     , addFunction, genFunction
+    , getLinkage, setLinkage
     , verifyFunction
 
     , STType
@@ -55,7 +57,7 @@ import qualified LLVM.Wrapper.Linker as W
 import qualified LLVM.Wrapper.BitReader as W
 import qualified LLVM.Wrapper.BitWriter as W
 import qualified LLVM.Wrapper.Analysis as W
-import LLVM.Wrapper.Core (BasicBlock, Type, Value, Builder, CUInt)
+import LLVM.Wrapper.Core (BasicBlock, Type, Value, Builder, CUInt, Linkage(..))
 
 newtype Module = PM { unPM :: W.Module }
 newtype STModule s = STM { unSTM :: W.Module }
@@ -172,6 +174,12 @@ findFunction name = MG ask >>= ((fmap . fmap) STV . wrapMG . flip W.getNamedFunc
 
 addFunction :: String -> STType s -> ModuleGen s (STValue s)
 addFunction name (STT ty) = MG ask >>= (\m -> fmap STV . wrapMG $ W.addFunction m name ty)
+
+getLinkage :: STValue s -> ST s Linkage
+getLinkage (STV v) = unsafeIOToST (W.getLinkage v)
+
+setLinkage :: STValue s -> Linkage -> ST s ()
+setLinkage (STV v) l = unsafeIOToST (W.setLinkage v l)
 
 appendBasicBlock :: String -> STValue s -> ModuleGen s (STBasicBlock s)
 appendBasicBlock name (STV func) = fmap STB . wrapMG $ W.appendBasicBlock func name
