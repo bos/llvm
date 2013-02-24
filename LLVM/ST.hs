@@ -46,7 +46,7 @@ newtype STBasicBlock s = STB BasicBlock
 newtype STType s = STT { unSTT :: Type }
 newtype STValue s = STV Value
 
-unsafeFreeze :: STModule s -> ModuleGen s Module
+unsafeFreeze :: STModule s -> ST s Module
 unsafeFreeze (STM m) = return m
 
 dumpModule :: STModule s -> ST s String
