@@ -7,13 +7,13 @@ module LLVM.ST
     , createMemoryBufferWithMemoryRange
     , createMemoryBufferWithMemoryRangeCopy
     , liftLL
-    , runLLVM
+    , run, run2, runLLVM
     , Context
     , W.getGlobalContext
     , W.contextCreate
 
     , ModuleGen
-    , run, run2
+    , runModuleGen
 
     , STModule
     , Module
@@ -113,6 +113,12 @@ instance MonadLLVM LLVM where
 
 wrapLL :: IO a -> LLVM c s a
 wrapLL = LL . lift . unsafeIOToST
+
+run :: Context -> (forall c s. LLVM c s (STModule c s)) -> Module
+run ctx action = runST $ runLLVM ctx (action >>= unsafeFreeze)
+
+run2 :: Context -> (forall c s. LLVM c s (STModule c s, a)) -> (Module, a)
+run2 ctx action = runST $ runLLVM ctx (do (m, x) <- action; m' <- unsafeFreeze m; return (m', x))
 
 runLLVM :: Context -> (forall c. LLVM c s a) -> ST s a
 runLLVM ctx (LL lm) = runReaderT lm ctx
@@ -229,11 +235,10 @@ genModule name (MG mg) = do
     mod <- W.moduleCreateWithNameInContext name ctx
     unsafeSTToIO . runReaderT mg $ MGS mod ctx
 
-run :: Context -> (forall c s. LLVM c s (STModule c s)) -> Module
-run ctx action = runST $ runLLVM ctx (action >>= unsafeFreeze)
-
-run2 :: Context -> (forall c s. LLVM c s (STModule c s, a)) -> (Module, a)
-run2 ctx action = runST $ runLLVM ctx (do (m, x) <- action; m' <- unsafeFreeze m; return (m', x))
+runModuleGen :: STModule c s -> ModuleGen c s a -> LLVM c s a
+runModuleGen (STM mod) (MG mg) = do
+  ctx <- getContext
+  LL . lift . runReaderT mg $ MGS mod ctx
 
 wrapMG :: IO a -> ModuleGen c s a
 wrapMG = MG . lift . unsafeIOToST
