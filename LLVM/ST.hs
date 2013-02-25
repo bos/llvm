@@ -164,16 +164,16 @@ structCreateNamed n = getContext >>= wrapLL . fmap STT . (flip W.structCreateNam
 structSetBody :: STType c s -> [STType c s] -> Bool -> LLVM c s ()
 structSetBody (STT struct) body packed = wrapLL $ W.structSetBody struct (map unSTT body) packed
 
-vectorType :: STType c s -> CUInt -> STType c s
-vectorType (STT t) count = STT (W.vectorType t count)
+vectorType :: STType c s -> CUInt -> LLVM c s (STType c s)
+vectorType (STT t) count = return $ STT (W.vectorType t count)
 
-arrayType :: STType c s -> CUInt -> STType c s
-arrayType (STT t) count = STT (W.arrayType t count)
+arrayType :: STType c s -> CUInt -> LLVM c s (STType c s)
+arrayType (STT t) count = return $ STT (W.arrayType t count)
 
-pointerTypeInSpace :: STType c s -> CUInt -> STType c s
-pointerTypeInSpace (STT t) addrSpace = STT (W.pointerType t addrSpace)
+pointerTypeInSpace :: STType c s -> CUInt -> LLVM c s (STType c s)
+pointerTypeInSpace (STT t) addrSpace = return $ STT (W.pointerType t addrSpace)
 
-pointerType :: STType c s -> STType c s
+pointerType :: STType c s -> LLVM c s (STType c s)
 pointerType ty = pointerTypeInSpace ty 0
 
 getValueName :: STValue c s -> LLVM c s String
