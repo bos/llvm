@@ -10,17 +10,11 @@ import Foreign.Storable (peek, poke)
 import System.IO.Unsafe (unsafePerformIO)
 
 import Control.Monad
-import Control.Exception.Base
 import Data.IORef
 
 import qualified LLVM.FFI.Core as FFI
 
 data Module = MkModule (ForeignPtr FFI.Module) (IORef Bool)
-
-withMemoryBuffer :: String -> Ptr a -> Int -> (FFI.MemoryBufferRef -> IO b) -> IO b
-withMemoryBuffer name p len =
-    bracket (withCString name $ \str -> FFI.createMemoryBufferWithMemoryRange p (fromIntegral len) str False)
-            FFI.disposeMemoryBuffer
 
 moduleFinalizer :: Ptr FFI.Module -> IORef Bool -> IO ()
 moduleFinalizer m ours = do

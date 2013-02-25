@@ -1,6 +1,15 @@
 module LLVM.Wrapper.Core
     ( module LLVM.FFI.Core
     , Context
+    , getGlobalContext
+    , contextCreate
+
+    , MemoryBuffer
+    , createMemoryBufferWithContentsOfFile
+    , createMemoryBufferWithSTDIN
+    , createMemoryBufferWithMemoryRange
+    , createMemoryBufferWithMemoryRangeCopy
+
     -- ** Modules
     , Module
     , moduleCreateWithName
@@ -10,6 +19,11 @@ module LLVM.Wrapper.Core
 
     -- * Types
     , Type
+    , intTypeInContext
+    , floatTypeInContext
+    , doubleTypeInContext
+    , x86FP80TypeInContext
+    , voidTypeInContext
 
     -- ** Function types
     , functionType
@@ -157,6 +171,7 @@ module LLVM.Wrapper.Core
 
     -- ** Misc
     , CUInt
+    , CSize
     , buildPhi
     , addIncoming
     , buildCall
@@ -175,7 +190,7 @@ import Foreign.C.Types
 import Foreign.Marshal.Array
 import Foreign.Marshal.Alloc (alloca)
 import Foreign.Storable (peek)
-import Foreign.ForeignPtr.Safe (ForeignPtr, withForeignPtr, newForeignPtr)
+import Foreign.ForeignPtr.Safe (ForeignPtr, withForeignPtr, newForeignPtr, newForeignPtr_)
 import System.IO.Unsafe (unsafePerformIO)
 import Control.Exception
 import Control.Monad
@@ -186,24 +201,17 @@ import LLVM.FFI.Core
     ( TypeKind(..)
     , getTypeKind
 
-    , getGlobalContext
-    , contextCreate
-
     , int1Type
     , int8Type
     , int16Type
     , int32Type
     , int64Type
     , integerType
-    , intTypeInContext
     , getIntTypeWidth
 
     , floatType
-    , floatTypeInContext
     , doubleType
-    , doubleTypeInContext
     , x86FP80Type
-    , x86FP80TypeInContext
     , fp128Type
     , ppcFP128Type
 
@@ -211,7 +219,6 @@ import LLVM.FFI.Core
     , pointerType
     , vectorType
     , voidType
-    , voidTypeInContext
 
     , typeOf
     , dumpValue
@@ -314,15 +321,52 @@ type Type         = FFI.TypeRef
 type Value        = FFI.ValueRef
 type Builder      = ForeignPtr FFI.Builder
 type BasicBlock   = FFI.BasicBlockRef
-type Context      = FFI.ContextRef
+type Context      = ForeignPtr FFI.Context
 type PassManager  = FFI.PassManagerRef
+type MemoryBuffer = ForeignPtr FFI.MemoryBuffer
+
+contextCreate :: IO Context
+contextCreate = FFI.contextCreate >>= newForeignPtr FFI.ptrContextDispose
+
+getGlobalContext :: IO Context
+getGlobalContext = FFI.getGlobalContext >>= newForeignPtr_
+
+createMemoryBufferWithContentsOfFile :: FilePath -> IO MemoryBuffer
+createMemoryBufferWithContentsOfFile path =
+    alloca $ \bufPtr ->
+    alloca $ \msgPtr -> do
+      errOccurred <- withCString path $ \cpath ->
+                     FFI.createMemoryBufferWithContentsOfFile cpath bufPtr msgPtr
+      case errOccurred of
+        True -> peek msgPtr >>= peekCString >>= fail
+        False -> peek bufPtr >>= newForeignPtr FFI.ptrDisposeMemoryBuffer
+
+createMemoryBufferWithSTDIN :: IO MemoryBuffer
+createMemoryBufferWithSTDIN = 
+    alloca $ \bufPtr ->
+    alloca $ \msgPtr -> do
+      errOccurred <- FFI.createMemoryBufferWithSTDIN bufPtr msgPtr
+      case errOccurred of
+        True -> peek msgPtr >>= peekCString >>= fail
+        False -> peek bufPtr >>= newForeignPtr FFI.ptrDisposeMemoryBuffer
+
+createMemoryBufferWithMemoryRange :: Ptr a -> CSize -> String -> Bool -> IO MemoryBuffer
+createMemoryBufferWithMemoryRange p len name null =
+    (withCString name $ \cname -> FFI.createMemoryBufferWithMemoryRange p len cname null)
+    >>= newForeignPtr FFI.ptrDisposeMemoryBuffer
+
+createMemoryBufferWithMemoryRangeCopy :: Ptr a -> CSize -> String -> IO MemoryBuffer
+createMemoryBufferWithMemoryRangeCopy p len name =
+    (withCString name $ FFI.createMemoryBufferWithMemoryRangeCopy p len)
+    >>= newForeignPtr FFI.ptrDisposeMemoryBuffer
 
 moduleCreateWithName :: String -> IO Module
 moduleCreateWithName name = initModule =<< withCString name FFI.moduleCreateWithName
 
 moduleCreateWithNameInContext :: String -> Context -> IO Module
 moduleCreateWithNameInContext name ctx =
-    initModule =<< withCString name (flip FFI.moduleCreateWithNameInContext ctx)
+    withForeignPtr ctx $ \ctx' ->
+    initModule =<< withCString name (flip FFI.moduleCreateWithNameInContext ctx')
 
 printModuleToFile :: Module -> FilePath -> IO ()
 printModuleToFile (MkModule m _) file
@@ -396,6 +440,19 @@ getInstructionCallConv f = fmap FFI.toCallingConvention $ FFI.getInstructionCall
 setInstructionCallConv :: Value -> CallingConvention -> IO ()
 setInstructionCallConv f c = FFI.setInstructionCallConv f $ FFI.fromCallingConvention c
 
+intTypeInContext :: Context -> CUInt -> IO Type
+intTypeInContext ctx width =
+    withForeignPtr ctx $ \ctx' ->
+    FFI.intTypeInContext ctx' width
+floatTypeInContext :: Context -> IO Type
+floatTypeInContext ctx = withForeignPtr ctx FFI.floatTypeInContext
+doubleTypeInContext :: Context -> IO Type
+doubleTypeInContext ctx = withForeignPtr ctx FFI.doubleTypeInContext
+x86FP80TypeInContext :: Context -> IO Type
+x86FP80TypeInContext ctx = withForeignPtr ctx FFI.x86FP80TypeInContext
+voidTypeInContext :: Context -> IO Type
+voidTypeInContext ctx = withForeignPtr ctx FFI.voidTypeInContext
+
 -- unsafePerformIO just to wrap the non-effecting withArrayLen call
 functionType :: Type -> [Type] -> Bool -> Type
 functionType returnTy argTys isVarArg
@@ -410,16 +467,18 @@ structType types packed = unsafePerformIO $
 
 structTypeInContext :: Context -> [Type] -> Bool -> IO Type
 structTypeInContext ctx types packed =
+    withForeignPtr ctx $ \ctx' ->
     withArrayLen types $ \ len ptr ->
-        FFI.structTypeInContext ctx ptr (fromIntegral len) packed
+        FFI.structTypeInContext ctx' ptr (fromIntegral len) packed
 
 structCreateNamed :: String -> IO Type
-structCreateNamed name
-    = do ctx <- FFI.getGlobalContext
-         structCreateNamedInContext ctx name
+structCreateNamed name = do
+  ctx <- getGlobalContext
+  structCreateNamedInContext ctx name
 
 structCreateNamedInContext :: Context -> String -> IO Type
-structCreateNamedInContext ctx name = withCString name $ FFI.structCreateNamed ctx
+structCreateNamedInContext ctx name = withForeignPtr ctx $ \ctx' ->
+                                      withCString name $ FFI.structCreateNamed ctx'
 
 structSetBody :: Type -> [Type] -> Bool -> IO ()
 structSetBody struct body packed
@@ -431,7 +490,8 @@ appendBasicBlock function name = withCString name $ FFI.appendBasicBlock functio
 
 appendBasicBlockInContext :: Context -> Value -> String -> IO BasicBlock
 appendBasicBlockInContext ctx function name =
-    withCString name $ FFI.appendBasicBlockInContext ctx function
+    withForeignPtr ctx $ \ctx' ->
+    withCString name $ FFI.appendBasicBlockInContext ctx' function
 
 getBasicBlocks :: Value -> IO [BasicBlock]
 getBasicBlocks v
@@ -454,8 +514,9 @@ setLinkage v l = FFI.setLinkage v (FFI.fromLinkage l)
 
 constStructInContext :: Context -> [Value] -> Bool -> IO Value
 constStructInContext ctx values packed =
+    withForeignPtr ctx $ \ctx' ->
     withArrayLen values $ \ len ptr ->
-        FFI.constStructInContext ctx ptr (fromIntegral len) packed
+        FFI.constStructInContext ctx' ptr (fromIntegral len) packed
 
 -- unsafePerformIO just to wrap the non-effecting withCString call
 constRealOfString :: Type -> String -> Value
@@ -469,15 +530,18 @@ constString str dontNullTerminate
       return $ FFI.constString ptr (fromIntegral len) dontNullTerminate
 
 constStringInContext :: Context -> String -> Bool -> IO Value
-constStringInContext ctx str dontNullTerminate
-    = withCStringLen str $ \(ptr, len) ->
-      FFI.constStringInContext ctx ptr (fromIntegral len) dontNullTerminate
+constStringInContext ctx str dontNullTerminate =
+    withForeignPtr ctx $ \ctx' ->
+    withCStringLen str $ \(ptr, len) ->
+    FFI.constStringInContext ctx' ptr (fromIntegral len) dontNullTerminate
 
 createBuilder :: IO Builder
 createBuilder = FFI.createBuilder >>= newForeignPtr FFI.ptrDisposeBuilder
 
 createBuilderInContext :: Context -> IO Builder
-createBuilderInContext ctx = FFI.createBuilderInContext ctx >>= newForeignPtr FFI.ptrDisposeBuilder
+createBuilderInContext ctx =
+    withForeignPtr ctx $ \ctx' ->
+    FFI.createBuilderInContext ctx' >>= newForeignPtr FFI.ptrDisposeBuilder
 
 getCurrentDebugLocation b = withForeignPtr b FFI.getCurrentDebugLocation
 setCurrentDebugLocation b v = withForeignPtr b $ \b' -> FFI.setCurrentDebugLocation b' v

@@ -413,6 +413,7 @@ module LLVM.FFI.Core
     , createMemoryBufferWithMemoryRange
     , createMemoryBufferWithMemoryRangeCopy
     , disposeMemoryBuffer
+    , ptrDisposeMemoryBuffer
 
     -- * Error handling
     , disposeMessage
@@ -476,6 +477,7 @@ module LLVM.FFI.Core
     , createBuilderInContext
 
     , contextDispose
+    , ptrContextDispose
 
     , constStringInContext
     , constStructInContext
@@ -1369,6 +1371,8 @@ foreign import ccall unsafe "LLVMCreateMemoryBufferWithMemoryRangeCopy" createMe
     :: Ptr a -> CSize -> CString -> IO MemoryBufferRef
 foreign import ccall unsafe "LLVMDisposeMemoryBuffer" disposeMemoryBuffer
     :: MemoryBufferRef -> IO ()
+foreign import ccall unsafe "&LLVMDisposeMemoryBuffer" ptrDisposeMemoryBuffer
+    :: FunPtr (MemoryBufferRef -> IO ())
 foreign import ccall unsafe "LLVMDisposeMessage" disposeMessage
     :: CString -> IO ()
 foreign import ccall unsafe "LLVMGetArrayLength" getArrayLength
@@ -1679,6 +1683,8 @@ foreign import ccall unsafe "LLVMConstZExtOrBitCast" constZExtOrBitCast
     :: ValueRef -> TypeRef -> IO ValueRef
 foreign import ccall unsafe "LLVMContextDispose" contextDispose
     :: ContextRef -> IO ()
+foreign import ccall unsafe "&LLVMContextDispose" ptrContextDispose
+    :: FunPtr (ContextRef -> IO ())
 foreign import ccall unsafe "LLVMCreateBuilderInContext" createBuilderInContext
     :: ContextRef -> IO BuilderRef
 foreign import ccall unsafe "LLVMDoubleTypeInContext" doubleTypeInContext
