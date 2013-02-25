@@ -170,6 +170,12 @@ pointerTypeInSpace (STT t) addrSpace = STT (W.pointerType t addrSpace)
 pointerType :: STType c s -> STType c s
 pointerType ty = pointerTypeInSpace ty 0
 
+getValueName :: STValue c s -> LLVM c s String
+getValueName (STV v) = wrapLM $ W.getValueName v
+
+setValueName :: STValue c s -> String -> LLVM c s ()
+setValueName (STV v) = wrapLM . W.setValueName v
+
 constString :: String -> Bool -> LLVM c s (STValue c s)
 constString str nullTerminated = do
   ctx <- getContext
@@ -304,12 +310,6 @@ getFunction = getBlock >>= (\(STB b) -> wrapCG . fmap STV $ W.getBasicBlockParen
 
 getParams :: CodeGen c s [STValue c s]
 getParams = getFunction >>= (\(STV func) -> (fmap . fmap) STV . wrapCG $ W.getParams func)
-
-getValueName :: STValue c s -> CodeGen c s String
-getValueName (STV v) = wrapCG $ W.getValueName v
-
-setValueName :: STValue c s -> String -> CodeGen c s ()
-setValueName (STV v) = wrapCG . W.setValueName v
 
 wrapUn :: (Builder -> Value -> String -> IO Value) ->
            String -> STValue c s -> CodeGen c s (STValue c s)
