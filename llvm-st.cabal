@@ -10,5 +10,5 @@ build-type:         Simple
 
 library
   build-depends: base >= 3 && < 5, llvm-wrapper >= 3.2.0.0 && < 4,
-                 mtl >= 2.1 && < 3, bytestring >= 0.10
+                 mtl >= 2.1 && < 3
   exposed-modules: LLVM.ST
