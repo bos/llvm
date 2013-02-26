@@ -150,6 +150,7 @@ module LLVM.Wrapper.Core
     , buildLoad
     , buildStructGEP
     , buildInBoundsGEP
+    , constGEP
     , buildStore
     -- ** Casts
     , buildTrunc
@@ -260,7 +261,6 @@ import LLVM.FFI.Core
     , constShl
     , constLShr
     , constAShr
-    , constGEP
     , constTrunc
     , constSExt
     , constZExt
@@ -622,6 +622,11 @@ buildInBoundsGEP b ptr indices name
     = withArrayLen indices $ \len indicesPtr ->
       withForeignPtr b $ \b' ->
       withCString name $ FFI.buildInBoundsGEP b' ptr indicesPtr $ fromIntegral len
+
+constGEP :: Value -> [Value] -> IO Value
+constGEP ptr indices =
+    withArrayLen indices $ \len indicesPtr ->
+    return $ FFI.constGEP ptr indicesPtr $ fromIntegral len
 
 wrapCast :: (FFI.BuilderRef -> Value -> Type -> CString -> IO Value) ->
              Builder -> Value -> Type -> String  -> IO Value
