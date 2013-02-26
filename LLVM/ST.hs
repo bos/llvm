@@ -41,7 +41,7 @@ module LLVM.ST
     , addParamAttrib, addFuncAttrib, removeAttrib
     , getLinkage, setLinkage
     , verifyFunction
-    , getUndef
+    , getUndef, isUnreachable
     , constString, constStruct
 
     , STType
@@ -190,6 +190,9 @@ getValueName (STV v) = wrap $ W.getValueName v
 
 setValueName :: (Monad (m c s), MonadLLVM m) => STValue c s -> String -> m c s ()
 setValueName (STV v) = wrap . W.setValueName v
+
+isUnreachable :: (Monad (m c s), MonadLLVM m) => STValue c s -> m c s Bool
+isUnreachable (STV v) = wrap $ W.isUnreachable v
 
 getUndef :: (Monad (m c s), MonadLLVM m) => STType c s -> m c s (STValue c s)
 getUndef = return . STV . W.getUndef . unSTT
