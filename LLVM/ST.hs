@@ -31,10 +31,12 @@ module LLVM.ST
 
     , STValue
     , Linkage(..)
+    , Attribute(..)
     , showValue
     , findGlobal, findFunction
     , addFunction, genFunction
     , getFunctionParams
+    , addParamAttrib, addFuncAttrib, removeAttrib
     , getLinkage, setLinkage
     , verifyFunction
     , constString, constStruct
@@ -70,6 +72,7 @@ import qualified LLVM.Wrapper.BitReader as W
 import qualified LLVM.Wrapper.BitWriter as W
 import qualified LLVM.Wrapper.Analysis as W
 import LLVM.Wrapper.Core ( MemoryBuffer, Context, BasicBlock, Type, Value, Builder, CUInt, Linkage(..)
+                         , Attribute(..)
                          , createMemoryBufferWithContentsOfFile
                          , createMemoryBufferWithSTDIN
                          , createMemoryBufferWithMemoryRange
@@ -203,6 +206,15 @@ appendBasicBlock name (STV func) = do
 getFunctionParams :: (Functor (m c s), Monad (m c s), MonadLLVM m) =>
                      STValue c s -> m c s [STValue c s]
 getFunctionParams (STV func) = (fmap . fmap) STV . wrap $ W.getParams func
+
+addParamAttrib :: (Monad (m c s), MonadLLVM m) => STValue c s -> Attribute -> m c s ()
+addParamAttrib (STV param) = wrap . W.addAttribute param
+
+addFuncAttrib :: (Monad (m c s), MonadLLVM m) => STValue c s -> Attribute -> m c s ()
+addFuncAttrib (STV func) = wrap . W.addFunctionAttr func
+
+removeAttrib :: (Monad (m c s), MonadLLVM m) => STValue c s -> Attribute -> m c s ()
+removeAttrib (STV val) = wrap . W.removeAttribute val
 
 data MGS = MGS { mgModule :: W.Module, mgCtx :: Context }
 
