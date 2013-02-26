@@ -43,6 +43,7 @@ module LLVM.ST
     , getTailCall, setTailCall
     , verifyFunction
     , getUndef, isUnreachable
+    , constInt
     , constPtrNull
     , constString, constStruct
 
@@ -78,7 +79,9 @@ import qualified LLVM.Wrapper.Linker as W
 import qualified LLVM.Wrapper.BitReader as W
 import qualified LLVM.Wrapper.BitWriter as W
 import qualified LLVM.Wrapper.Analysis as W
-import LLVM.Wrapper.Core ( MemoryBuffer, Context, BasicBlock, Type, Value, Builder, CUInt, Linkage(..)
+import LLVM.Wrapper.Core ( MemoryBuffer, Context, BasicBlock, Type, Value, Builder
+                         , CUInt, CULLong
+                         , Linkage(..)
                          , Attribute(..)
                          , CallingConvention(..)
                          , createMemoryBufferWithContentsOfFile
@@ -200,6 +203,9 @@ isUnreachable (STV v) = wrap $ W.isUnreachable v
 
 getUndef :: (Monad (m c s), MonadLLVM m) => STType c s -> m c s (STValue c s)
 getUndef = return . STV . W.getUndef . unSTT
+
+constInt :: (Monad (m c s), MonadLLVM m) => STType c s -> CULLong -> Bool -> m c s (STValue c s)
+constInt (STT intTy) value signExtend = return . STV $ W.constInt intTy value signExtend
 
 constPtrNull :: (Monad (m c s), MonadLLVM m) => STType c s -> m c s (STValue c s)
 constPtrNull (STT ty) = wrap . fmap STV $ W.constPointerNull ty
