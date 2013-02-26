@@ -64,6 +64,7 @@ module LLVM.ST
     , buildInBoundsGEP
     , buildCall
     , buildRet, buildUnreachable
+    , buildPtrToInt
     , buildAdd, buildSub, buildMul
     )
     where
@@ -406,12 +407,19 @@ buildRet (STV x) = do b <- CG ask; fmap STV . wrap $ W.buildRet (cgBuilder b) x
 buildUnreachable :: CodeGen c s (STValue c s)
 buildUnreachable = do b <- CG ask; fmap STV . wrap $ W.buildUnreachable (cgBuilder b)
 
-wrapUn :: (Builder -> Value -> String -> IO Value) ->
-           String -> STValue c s -> CodeGen c s (STValue c s)
+wrapCast :: (Builder -> Value -> Type -> String -> IO Value)
+         -> String -> STValue c s  -> STType c s -> CodeGen c s (STValue c s)
+wrapCast f n (STV v) (STT t) =
+    do b <- CG ask; fmap STV . wrap $ f (cgBuilder b) v t n
+
+buildPtrToInt = wrapCast W.buildPtrToInt
+
+wrapUn :: (Builder -> Value -> String -> IO Value)
+       -> String -> STValue c s -> CodeGen c s (STValue c s)
 wrapUn f n (STV x) = do b <- CG ask; fmap STV . wrap $ f (cgBuilder b) x n
 
-wrapBin :: (Builder -> Value -> Value -> String -> IO Value) ->
-           String -> STValue c s -> STValue c s -> CodeGen c s (STValue c s)
+wrapBin :: (Builder -> Value -> Value -> String -> IO Value)
+        -> String -> STValue c s -> STValue c s -> CodeGen c s (STValue c s)
 wrapBin f n (STV l) (STV r) = do b <- CG ask; fmap STV . wrap $ f (cgBuilder b) l r n
 
 buildAdd = wrapBin W.buildAdd
