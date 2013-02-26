@@ -34,6 +34,7 @@ module LLVM.ST
     , showValue
     , findGlobal, findFunction
     , addFunction, genFunction
+    , getFunctionParams
     , getLinkage, setLinkage
     , verifyFunction
     , constString, constStruct
@@ -199,6 +200,10 @@ appendBasicBlock name (STV func) = do
   ctx <- getContext
   fmap STB . wrap $ W.appendBasicBlockInContext ctx func name
 
+getFunctionParams :: (Functor (m c s), Monad (m c s), MonadLLVM m) =>
+                     STValue c s -> m c s [STValue c s]
+getFunctionParams (STV func) = (fmap . fmap) STV . wrap $ W.getParams func
+
 data MGS = MGS { mgModule :: W.Module, mgCtx :: Context }
 
 newtype ModuleGen c s a = MG { unMG :: ReaderT MGS (ST s) a }
@@ -315,7 +320,7 @@ getFunction :: CodeGen c s (STValue c s)
 getFunction = getBlock >>= (\(STB b) -> wrap . fmap STV $ W.getBasicBlockParent b)
 
 getParams :: CodeGen c s [STValue c s]
-getParams = getFunction >>= (\(STV func) -> (fmap . fmap) STV . wrap $ W.getParams func)
+getParams = getFunction >>= getFunctionParams
 
 wrapUn :: (Builder -> Value -> String -> IO Value) ->
            String -> STValue c s -> CodeGen c s (STValue c s)
