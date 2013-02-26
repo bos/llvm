@@ -46,19 +46,27 @@
 #define __STDC_CONSTANT_MACROS
 
 // LLVM includes
+#if HS_LLVM_VERSION < 303
 #include "llvm/LLVMContext.h"
-#include "llvm/Bitcode/ReaderWriter.h"
-#include "llvm/Support/MemoryBuffer.h"
-#include "llvm/Support/Casting.h"
 #include "llvm/Constants.h"
 #include "llvm/DerivedTypes.h"
 #include "llvm/GlobalVariable.h"
+#include "llvm/IntrinsicInst.h"
+#else
+#include "llvm/IR/LLVMContext.h"
+#include "llvm/IR/Constants.h"
+#include "llvm/IR/DerivedTypes.h"
+#include "llvm/IR/GlobalVariable.h"
+#include "llvm/IR/IntrinsicInst.h"
+#endif
+#include "llvm/Bitcode/ReaderWriter.h"
+#include "llvm/Support/MemoryBuffer.h"
+#include "llvm/Support/Casting.h"
 #if HS_LLVM_VERSION < 300
 #include "llvm/TypeSymbolTable.h"
 #endif
 #include "llvm/Support/MemoryBuffer.h"
 #include "llvm/Support/CallSite.h"
-#include "llvm/IntrinsicInst.h"
 #include "llvm/Analysis/Verifier.h"
 #include "llvm/Assembly/Parser.h"
 #ifdef HAVE_LLVM_SUPPORT_DYNAMICLIBRARY_H
