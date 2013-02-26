@@ -68,6 +68,7 @@ module LLVM.ST
     , buildPtrToInt
     , constPtrToInt
     , buildAdd, buildSub, buildMul
+    , buildGlobalString, buildGlobalStringPtr
     )
     where
 
@@ -338,6 +339,7 @@ instance MonadLLVM CodeGen where
     liftLL (LL s) = do ctx <- getContext
                        CG (lift $ runReaderT s ctx)
 
+-- TODO: Replace with MonadModuleGen (and implement MonadCodeGen while you're at it)
 liftMG :: ModuleGen c s a -> CodeGen c s a
 liftMG (MG mg) = do r <- CG ask
                     CG (lift $ runReaderT mg (cgMGS r))
@@ -438,3 +440,13 @@ wrapBin f n (STV l) (STV r) = do b <- CG ask; fmap STV . wrap $ f (cgBuilder b) 
 buildAdd = wrapBin W.buildAdd
 buildSub = wrapBin W.buildSub
 buildMul = wrapBin W.buildMul
+
+buildGlobalString :: String -> String -> CodeGen c s (STValue c s)
+buildGlobalString name value = do
+  b <- fmap cgBuilder (CG ask)
+  wrap . fmap STV $ W.buildGlobalString b value name
+
+buildGlobalStringPtr :: String -> String -> CodeGen c s (STValue c s)
+buildGlobalStringPtr name value = do
+  b <- fmap cgBuilder (CG ask)
+  wrap . fmap STV $ W.buildGlobalStringPtr b value name
