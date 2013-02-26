@@ -40,6 +40,7 @@ module LLVM.ST
     , getFunctionParams
     , addParamAttrib, addFuncAttrib, removeAttrib
     , getLinkage, setLinkage
+    , getTailCall, setTailCall
     , verifyFunction
     , getUndef, isUnreachable
     , constString, constStruct
@@ -287,6 +288,12 @@ getLinkage (STV v) = wrap (W.getLinkage v)
 
 setLinkage :: (Monad (m c s), MonadLLVM m) => STValue c s -> Linkage -> m c s ()
 setLinkage (STV v) = wrap . W.setLinkage v
+
+getTailCall :: (Monad (m c s), MonadLLVM m) => STValue c s -> m c s Bool
+getTailCall (STV call) = wrap $ W.isTailCall call
+
+setTailCall :: (Monad (m c s), MonadLLVM m) => STValue c s -> Bool -> m c s ()
+setTailCall (STV call) = wrap . W.setTailCall call
 
 setFuncCallConv :: (Monad (m c s), MonadLLVM m) => STValue c s -> CallingConvention -> m c s ()
 setFuncCallConv (STV func) = wrap . W.setFunctionCallConv func
