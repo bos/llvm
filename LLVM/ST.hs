@@ -58,7 +58,7 @@ module LLVM.ST
     , getBlock, getFunction, getParams
     , getValueName, setValueName
 
-    , buildRet
+    , buildRet, buildUnreachable
     , buildAdd, buildSub, buildMul
     )
     where
@@ -377,6 +377,8 @@ wrapUn f n (STV x) = do b <- CG ask; fmap STV . wrap $ f (cgBuilder b) x n
 
 buildRet :: STValue c s -> CodeGen c s (STValue c s)
 buildRet (STV x) = do b <- CG ask; fmap STV . wrap $ W.buildRet (cgBuilder b) x
+buildUnreachable :: CodeGen c s (STValue c s)
+buildUnreachable = do b <- CG ask; fmap STV . wrap $ W.buildUnreachable (cgBuilder b)
 
 wrapBin :: (Builder -> Value -> Value -> String -> IO Value) ->
            String -> STValue c s -> STValue c s -> CodeGen c s (STValue c s)
