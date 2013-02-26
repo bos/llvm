@@ -35,7 +35,7 @@ module LLVM.ST
     , CallingConvention(..)
     , showValue
     , findGlobal, findFunction
-    , addFunction, genFunction
+    , addFunction, genFunction, defineFunction, runCodeGen
     , getFuncCallConv, setFuncCallConv, setInstrCallConv
     , getFunctionParams
     , addParamAttrib, addFuncAttrib, removeAttrib
@@ -313,13 +313,31 @@ liftMG :: ModuleGen c s a -> CodeGen c s a
 liftMG (MG mg) = do r <- CG ask
                     CG (lift $ runReaderT mg (cgMGS r))
 
+-- Declare, initialize, and define
 genFunction :: String -> STType c s -> CodeGen c s a -> ModuleGen c s a
-genFunction name ty fg =
-    do f <- addFunction name ty
-       bb <- liftLL $ appendBasicBlock "entry" f
-       mgs <- MG ask
-       wrap (do b <- W.createBuilderInContext (mgCtx mgs)
-                unsafeSTToIO (runReaderT (unCG (positionAtEnd bb >> fg)) (CGS b mgs)))
+genFunction name ty cg = do
+  f <- addFunction name ty
+  bb <- appendBasicBlock "entry" f
+  mgs <- MG ask
+  wrap (do b <- W.createBuilderInContext (mgCtx mgs)
+           unsafeSTToIO (runReaderT (unCG (positionAtEnd bb >> cg)) (CGS b mgs)))
+
+-- Initialize and define
+defineFunction :: STValue c s -> CodeGen c s a -> ModuleGen c s a
+defineFunction func cg = do
+  bb <- appendBasicBlock "entry" func
+  mgs <- MG ask
+  wrap (do b <- W.createBuilderInContext (mgCtx mgs)
+           unsafeSTToIO (runReaderT (unCG (positionAtEnd bb >> cg)) (CGS b mgs)))
+
+-- Just establish a context
+runCodeGen :: STValue c s -> CodeGen c s a -> ModuleGen c s a
+runCodeGen (STV func) cg = do
+  bbs <- wrap $ W.getBasicBlocks func
+  let cg' = if null bbs then cg else (positionAtEnd (STB (last bbs)) >> cg)
+  mgs <- MG ask
+  wrap (do b <- W.createBuilderInContext (mgCtx mgs)
+           unsafeSTToIO (runReaderT (unCG cg') (CGS b mgs)))
 
 verifyFunction :: (Monad (m c s), MonadLLVM m) => STValue c s -> m c s Bool
 verifyFunction (STV f) = wrap (W.verifyFunction f)
