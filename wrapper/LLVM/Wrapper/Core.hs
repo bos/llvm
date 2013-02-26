@@ -171,6 +171,7 @@ module LLVM.Wrapper.Core
 
     -- ** Misc
     , CUInt
+    , CULLong
     , CSize
     , buildPhi
     , addIncoming
