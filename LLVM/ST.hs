@@ -59,6 +59,7 @@ module LLVM.ST
     , getBlock, getFunction, getParams
     , getValueName, setValueName
 
+    , buildInBoundsGEP
     , buildCall
     , buildRet, buildUnreachable
     , buildAdd, buildSub, buildMul
@@ -378,6 +379,11 @@ getFunction = getBlock >>= (\(STB b) -> wrap . fmap STV $ W.getBasicBlockParent 
 
 getParams :: CodeGen c s [STValue c s]
 getParams = getFunction >>= getFunctionParams
+
+buildInBoundsGEP :: String -> STValue c s -> [STValue c s] -> CodeGen c s (STValue c s)
+buildInBoundsGEP name (STV aggPtr) indices = do
+  b <- fmap cgBuilder (CG ask)
+  wrap . fmap STV $ W.buildInBoundsGEP b aggPtr (map unSTV indices) name
 
 buildCall :: String -> STValue c s -> [STValue c s] -> CodeGen c s (STValue c s)
 buildCall name (STV func) args = do
