@@ -62,9 +62,11 @@ module LLVM.ST
     , getValueName, setValueName
 
     , buildInBoundsGEP
+    , constGEP
     , buildCall
     , buildRet, buildUnreachable
     , buildPtrToInt
+    , constPtrToInt
     , buildAdd, buildSub, buildMul
     )
     where
@@ -396,6 +398,10 @@ buildInBoundsGEP name (STV aggPtr) indices = do
   b <- fmap cgBuilder (CG ask)
   wrap . fmap STV $ W.buildInBoundsGEP b aggPtr (map unSTV indices) name
 
+constGEP :: STValue c s -> [STValue c s] -> CodeGen c s (STValue c s)
+constGEP (STV aggPtr) indices = do
+  wrap . fmap STV $ W.constGEP aggPtr (map unSTV indices)
+
 buildCall :: String -> STValue c s -> [STValue c s] -> CodeGen c s (STValue c s)
 buildCall name (STV func) args = do
   b <- fmap cgBuilder (CG ask)
@@ -413,6 +419,13 @@ wrapCast f n (STV v) (STT t) =
     do b <- CG ask; fmap STV . wrap $ f (cgBuilder b) v t n
 
 buildPtrToInt = wrapCast W.buildPtrToInt
+
+wrapConstCast :: (Value -> Type -> Value)
+              -> STValue c s  -> STType c s -> CodeGen c s (STValue c s)
+wrapConstCast f (STV v) (STT t) =
+    return . STV $ f v t
+
+constPtrToInt = wrapConstCast W.constPtrToInt
 
 wrapUn :: (Builder -> Value -> String -> IO Value)
        -> String -> STValue c s -> CodeGen c s (STValue c s)
