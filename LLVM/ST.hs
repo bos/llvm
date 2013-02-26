@@ -43,6 +43,7 @@ module LLVM.ST
     , getTailCall, setTailCall
     , verifyFunction
     , getUndef, isUnreachable
+    , constPtrNull
     , constString, constStruct
 
     , STType
@@ -199,6 +200,9 @@ isUnreachable (STV v) = wrap $ W.isUnreachable v
 
 getUndef :: (Monad (m c s), MonadLLVM m) => STType c s -> m c s (STValue c s)
 getUndef = return . STV . W.getUndef . unSTT
+
+constPtrNull :: (Monad (m c s), MonadLLVM m) => STType c s -> m c s (STValue c s)
+constPtrNull (STT ty) = wrap . fmap STV $ W.constPointerNull ty
 
 constString :: (Monad (m c s), MonadLLVM m) => String -> Bool -> m c s (STValue c s)
 constString str nullTerminated = do
