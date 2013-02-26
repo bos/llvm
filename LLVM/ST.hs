@@ -32,9 +32,11 @@ module LLVM.ST
     , STValue
     , Linkage(..)
     , Attribute(..)
+    , CallingConvention(..)
     , showValue
     , findGlobal, findFunction
     , addFunction, genFunction
+    , getFuncCallConv, setFuncCallConv, setInstrCallConv
     , getFunctionParams
     , addParamAttrib, addFuncAttrib, removeAttrib
     , getLinkage, setLinkage
@@ -73,6 +75,7 @@ import qualified LLVM.Wrapper.BitWriter as W
 import qualified LLVM.Wrapper.Analysis as W
 import LLVM.Wrapper.Core ( MemoryBuffer, Context, BasicBlock, Type, Value, Builder, CUInt, Linkage(..)
                          , Attribute(..)
+                         , CallingConvention(..)
                          , createMemoryBufferWithContentsOfFile
                          , createMemoryBufferWithSTDIN
                          , createMemoryBufferWithMemoryRange
@@ -275,7 +278,16 @@ getLinkage :: (Monad (m c s), MonadLLVM m) => STValue c s -> m c s Linkage
 getLinkage (STV v) = wrap (W.getLinkage v)
 
 setLinkage :: (Monad (m c s), MonadLLVM m) => STValue c s -> Linkage -> m c s ()
-setLinkage (STV v) l = wrap (W.setLinkage v l)
+setLinkage (STV v) = wrap . W.setLinkage v
+
+setFuncCallConv :: (Monad (m c s), MonadLLVM m) => STValue c s -> CallingConvention -> m c s ()
+setFuncCallConv (STV func) = wrap . W.setFunctionCallConv func
+
+getFuncCallConv :: (Monad (m c s), MonadLLVM m) => STValue c s -> m c s CallingConvention
+getFuncCallConv (STV func) = wrap $ W.getFunctionCallConv func
+
+setInstrCallConv :: (Monad (m c s), MonadLLVM m) => STValue c s -> CallingConvention -> m c s ()
+setInstrCallConv (STV func) = wrap . W.setInstructionCallConv func
 
 data CGS = CGS { cgBuilder :: Builder, cgMGS :: MGS }
 
