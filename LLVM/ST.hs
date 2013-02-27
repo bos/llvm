@@ -35,6 +35,7 @@ module LLVM.ST
     , Attribute(..)
     , CallingConvention(..)
     , showValue
+    , typeOf
     , findGlobal, findFunction
     , addFunction, genFunction, defineFunction, runCodeGen
     , getFuncCallConv, setFuncCallConv, setInstrCallConv
@@ -51,6 +52,7 @@ module LLVM.ST
     , STType
     , showType
     , findType
+    , sizeOf
     , functionType, intType, structType
     , vectorType, arrayType
     , pointerTypeInSpace, pointerType
@@ -165,6 +167,9 @@ parseBitcode :: (Functor (m c s), Monad (m c s), MonadLLVM m) =>
 parseBitcode buf = do ctx <- getContext
                       (fmap . fmap) STM . wrap $ W.parseBitcodeInContext ctx buf
 
+sizeOf :: (Monad (m c s), MonadLLVM m) => STType c s -> m c s (STValue c s)
+sizeOf (STT ty) = wrap . fmap STV $ W.sizeOf ty
+
 showType :: (Monad (m c s), MonadLLVM m) => STType c s -> m c s String
 showType (STT t) = wrap . W.dumpTypeToString $ t
 
@@ -247,6 +252,9 @@ addFuncAttrib (STV func) = wrap . W.addFunctionAttr func
 
 removeAttrib :: (Monad (m c s), MonadLLVM m) => STValue c s -> Attribute -> m c s ()
 removeAttrib (STV val) = wrap . W.removeAttribute val
+
+typeOf :: (Monad (m c s), MonadLLVM m) => STValue c s -> m c s (STType c s)
+typeOf (STV v) = wrap . fmap STT $ W.typeOf v
 
 data MGS = MGS { mgModule :: W.Module, mgCtx :: Context }
 
