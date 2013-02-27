@@ -466,9 +466,6 @@ buildCase (STV value) defaultCode alts = do
                    result <- cg
                    isUnreachable result >>= flip unless (void $ buildBr end)
                    outBlock <- getInsertBlock
-                   unreachable <- isUnreachable result
-                   unless unreachable $ void $
-                          buildBr end
                    return (result, outBlock)) (zip blocks alts)
   positionAtEnd end
   ty <- case exits of
@@ -509,7 +506,7 @@ buildUnreachable :: CodeGen c s (STValue c s)
 buildUnreachable = do b <- CG ask; fmap STV . wrap $ W.buildUnreachable (cgBuilder b)
 
 wrapCast :: (Builder -> Value -> Type -> String -> IO Value)
-         -> String -> STValue c s  -> STType c s -> CodeGen c s (STValue c s)
+         -> String -> STValue c s -> STType c s -> CodeGen c s (STValue c s)
 wrapCast f n (STV v) (STT t) =
     do b <- CG ask; fmap STV . wrap $ f (cgBuilder b) v t n
 
