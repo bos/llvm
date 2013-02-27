@@ -55,8 +55,8 @@ module LLVM.ST
     , showType
     , findType
     , sizeOf
-    , functionType, intType, structType
-    , vectorType, arrayType
+    , intType, floatType, doubleType, voidType
+    , functionType, structType, vectorType, arrayType
     , pointerTypeInSpace, pointerType
     , structCreateNamed, structSetBody
 
@@ -188,6 +188,18 @@ functionType (STT ret) args variadic =
 intType :: (Monad (m c s), MonadLLVM m) => CUInt -> m c s (STType c s)
 intType i = do ctx <- getContext
                wrap . fmap STT $ W.intTypeInContext ctx i
+
+doubleType :: (Monad (m c s), MonadLLVM m) => m c s (STType c s)
+doubleType = do ctx <- getContext
+                wrap . fmap STT $ W.doubleTypeInContext ctx
+
+floatType :: (Monad (m c s), MonadLLVM m) => m c s (STType c s)
+floatType = do ctx <- getContext
+               wrap . fmap STT $ W.floatTypeInContext ctx
+
+voidType :: (Monad (m c s), MonadLLVM m) => m c s (STType c s)
+voidType = do ctx <- getContext
+              wrap . fmap STT $ W.voidTypeInContext ctx
 
 structType :: (Monad (m c s), MonadLLVM m) => [STType c s] -> Bool -> m c s (STType c s)
 structType types packed = do ctx <- getContext
