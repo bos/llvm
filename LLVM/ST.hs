@@ -1,6 +1,8 @@
 {-# LANGUAGE MultiParamTypeClasses, UndecidableInstances, RankNTypes #-}
 module LLVM.ST
     ( CUInt, CULLong
+    , IntPredicate(..), FPPredicate(..)
+
     , LLVM
     , MemoryBuffer
     , createMemoryBufferWithContentsOfFile
@@ -73,6 +75,8 @@ module LLVM.ST
     , buildPtrToInt, buildPointerCast
     , constPtrToInt
     , buildAdd, buildSub, buildMul
+    , buildAnd, buildShl
+    , buildICmp, buildFCmp
     , buildGlobalString, buildGlobalStringPtr
     )
     where
@@ -93,6 +97,7 @@ import LLVM.Wrapper.Core ( MemoryBuffer, Context, BasicBlock, Type, Value, Build
                          , Linkage(..)
                          , Attribute(..)
                          , CallingConvention(..)
+                         , IntPredicate(..), FPPredicate(..)
                          , createMemoryBufferWithContentsOfFile
                          , createMemoryBufferWithSTDIN
                          , createMemoryBufferWithMemoryRange
@@ -531,6 +536,18 @@ wrapBin f n (STV l) (STV r) = do b <- CG ask; fmap STV . wrap $ f (cgBuilder b) 
 buildAdd = wrapBin W.buildAdd
 buildSub = wrapBin W.buildSub
 buildMul = wrapBin W.buildMul
+buildAnd = wrapBin W.buildAnd
+buildShl = wrapBin W.buildShl
+
+buildICmp :: String -> IntPredicate -> STValue c s -> STValue c s -> CodeGen c s (STValue c s)
+buildICmp name pred (STV l) (STV r) = do
+  b <- fmap cgBuilder (CG ask)
+  wrap . fmap STV $ W.buildICmp b pred l r name
+
+buildFCmp :: String -> FPPredicate -> STValue c s -> STValue c s -> CodeGen c s (STValue c s)
+buildFCmp name pred (STV l) (STV r) = do
+  b <- fmap cgBuilder (CG ask)
+  wrap . fmap STV $ W.buildFCmp b pred l r name
 
 buildGlobalString :: String -> String -> CodeGen c s (STValue c s)
 buildGlobalString name value = do
