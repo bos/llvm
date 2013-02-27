@@ -1,12 +1,13 @@
 {-# LANGUAGE MultiParamTypeClasses, UndecidableInstances, RankNTypes #-}
 module LLVM.ST
-    ( LLVM
+    ( CUInt, CULLong
+    , LLVM
     , MemoryBuffer
     , createMemoryBufferWithContentsOfFile
     , createMemoryBufferWithSTDIN
     , createMemoryBufferWithMemoryRange
     , createMemoryBufferWithMemoryRangeCopy
-    , liftLL
+    , liftLL, liftST
     , run, run2, runLLVM
     , Context
     , W.getGlobalContext
@@ -63,9 +64,11 @@ module LLVM.ST
 
     , buildInBoundsGEP
     , constGEP
+    , buildLoad, buildStore
     , buildCall
-    , buildRet, buildUnreachable
-    , buildPtrToInt
+    , buildCase, buildIf
+    , buildRet, buildUnreachable, buildBr
+    , buildPtrToInt, buildPointerCast
     , constPtrToInt
     , buildAdd, buildSub, buildMul
     , buildGlobalString, buildGlobalStringPtr
@@ -96,7 +99,7 @@ import LLVM.Wrapper.Core ( MemoryBuffer, Context, BasicBlock, Type, Value, Build
 
 newtype Module = PM { unPM :: W.Module }
 newtype STModule c s = STM { unSTM :: W.Module }
-newtype STBasicBlock c s = STB BasicBlock
+newtype STBasicBlock c s = STB { unSTB :: BasicBlock }
 newtype STType c s = STT { unSTT :: Type }
 newtype STValue c s = STV { unSTV :: Value }
 
@@ -114,6 +117,7 @@ newtype LLVM c s a = LL { unLL :: ReaderT Context (ST s) a }
 class MonadLLVM m where
     getContext :: m c s Context
     liftLL :: LLVM c s a -> m c s a
+    liftST :: ST s a -> m c s a
 
 instance Functor (LLVM c s) where
     fmap f (LL g) = LL (fmap f g)
@@ -129,6 +133,7 @@ instance Monad (LLVM c s) where
 instance MonadLLVM LLVM where
     getContext = LL ask
     liftLL = id
+    liftST = LL . lift
 
 wrap :: (Monad (m c s), MonadLLVM m) => IO a -> m c s a
 wrap = liftLL . LL . lift . unsafeIOToST
@@ -266,6 +271,7 @@ instance MonadLLVM ModuleGen where
     getContext = fmap mgCtx $ MG ask
     liftLL (LL s) = do ctx <- getContext
                        MG (lift $ runReaderT s ctx)
+    liftST = MG . lift
 
 -- Internal
 unsafeMod :: ModuleGen c s W.Module
@@ -338,6 +344,7 @@ instance MonadLLVM CodeGen where
     getContext = fmap (mgCtx . cgMGS) $ CG ask
     liftLL (LL s) = do ctx <- getContext
                        CG (lift $ runReaderT s ctx)
+    liftST = CG . lift
 
 -- TODO: Replace with MonadModuleGen (and implement MonadCodeGen while you're at it)
 liftMG :: ModuleGen c s a -> CodeGen c s a
@@ -386,6 +393,11 @@ positionAfter (STV v) =
                       block <- W.getInstructionParent v
                       W.positionBuilder builder block v) . cgBuilder
 
+getInsertBlock :: CodeGen c s (STBasicBlock c s)
+getInsertBlock = do
+  b <- fmap cgBuilder (CG ask)
+  wrap . fmap STB $ W.getInsertBlock b
+
 getBlock :: CodeGen c s (STBasicBlock c s)
 getBlock = CG ask >>= wrap . fmap STB . W.getInsertBlock . cgBuilder
 
@@ -404,6 +416,16 @@ constGEP :: STValue c s -> [STValue c s] -> CodeGen c s (STValue c s)
 constGEP (STV aggPtr) indices = do
   wrap . fmap STV $ W.constGEP aggPtr (map unSTV indices)
 
+buildLoad :: String -> STValue c s -> CodeGen c s (STValue c s)
+buildLoad name (STV ptr) = do
+  b <- fmap cgBuilder (CG ask)
+  wrap . fmap STV $ W.buildLoad b ptr name
+
+buildStore :: STValue c s -> STValue c s -> CodeGen c s (STValue c s)
+buildStore (STV value) (STV ptr) = do
+  b <- fmap cgBuilder (CG ask)
+  wrap . fmap STV $ W.buildStore b value ptr
+
 buildCall :: String -> STValue c s -> [STValue c s] -> CodeGen c s (STValue c s)
 buildCall name (STV func) args = do
   b <- fmap cgBuilder (CG ask)
@@ -411,6 +433,69 @@ buildCall name (STV func) args = do
 
 buildRet :: STValue c s -> CodeGen c s (STValue c s)
 buildRet (STV x) = do b <- CG ask; fmap STV . wrap $ W.buildRet (cgBuilder b) x
+
+buildBr :: STBasicBlock c s -> CodeGen c s (STValue c s)
+buildBr (STB block) = do
+  b <- fmap cgBuilder (CG ask)
+  wrap . fmap STV $ W.buildBr b block
+
+buildCase :: STValue c s -> CodeGen c s (STValue c s) -> [(STValue c s, CodeGen c s (STValue c s))]
+          -> CodeGen c s (STValue c s)
+buildCase (STV value) defaultCode alts = do
+  b <- fmap cgBuilder (CG ask)
+  func <- getFunction
+  defBlock <- appendBasicBlock "caseDefault" func
+  switch <- wrap . fmap STV $ W.buildSwitch b value (unSTB defBlock) (fromIntegral (length alts))
+  blocks <- replicateM (length alts) (appendBasicBlock "caseAlt" func)
+  end <- appendBasicBlock "caseExit" func
+  positionAtEnd defBlock
+  defResult <- defaultCode
+  isUnreachable defResult >>= flip unless (void $ buildBr end)
+  defExit <- getInsertBlock
+  exits <- mapM (\(block, (val, cg)) -> do
+                   wrap $ W.addCase (unSTV switch) (unSTV val) (unSTB block)
+                   positionAtEnd block
+                   result <- cg
+                   isUnreachable result >>= flip unless (void $ buildBr end)
+                   outBlock <- getInsertBlock
+                   unreachable <- isUnreachable result
+                   unless unreachable $ void $
+                          buildBr end
+                   return (result, outBlock)) (zip blocks alts)
+  positionAtEnd end
+  ty <- case exits of
+          ((result, _):_) -> wrap $ W.typeOf (unSTV result)
+          [] -> wrap $ W.typeOf (unSTV defResult)
+  phi <- wrap $ W.buildPhi b ty "caseResult"
+  wrap $ W.addIncoming phi (map (\(STV result, STB block) -> (result, block)) exits)
+  return $ STV phi
+
+buildIf :: STValue c s -> CodeGen c s (STValue c s) -> CodeGen c s (STValue c s)
+        -> CodeGen c s (STValue c s)
+buildIf (STV cond) whenTrue whenFalse = do
+  b <- fmap cgBuilder (CG ask)
+  func <- getFunction
+  trueBlock <- appendBasicBlock "ifTrue" func
+  falseBlock <- appendBasicBlock "ifFalse" func
+  exitBlock <- appendBasicBlock "ifExit" func
+  wrap $ W.buildCondBr b cond (unSTB trueBlock) (unSTB falseBlock)
+
+  positionAtEnd trueBlock
+  trueResult <- whenTrue
+  buildBr exitBlock
+  trueExit <- getInsertBlock
+
+  positionAtEnd falseBlock
+  falseResult <- whenFalse
+  buildBr exitBlock
+  falseExit <- getInsertBlock
+
+  positionAtEnd exitBlock
+  ty <- wrap $ W.typeOf (unSTV trueResult)
+  phi <- wrap $ W.buildPhi b ty "ifResult"
+  wrap $ W.addIncoming phi [ (unSTV trueResult, unSTB trueBlock)
+                           , (unSTV falseResult, unSTB falseBlock)]
+  return $ STV phi
 
 buildUnreachable :: CodeGen c s (STValue c s)
 buildUnreachable = do b <- CG ask; fmap STV . wrap $ W.buildUnreachable (cgBuilder b)
@@ -421,6 +506,7 @@ wrapCast f n (STV v) (STT t) =
     do b <- CG ask; fmap STV . wrap $ f (cgBuilder b) v t n
 
 buildPtrToInt = wrapCast W.buildPtrToInt
+buildPointerCast = wrapCast W.buildPointerCast
 
 wrapConstCast :: (Value -> Type -> Value)
               -> STValue c s  -> STType c s -> CodeGen c s (STValue c s)
