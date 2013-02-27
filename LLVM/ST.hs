@@ -471,52 +471,67 @@ buildCase (STV value) defaultCode alts = do
   func <- getFunction
   defBlock <- appendBasicBlock "caseDefault" func
   switch <- wrap . fmap STV $ W.buildSwitch b value (unSTB defBlock) (fromIntegral (length alts))
-  blocks <- replicateM (length alts) (appendBasicBlock "caseAlt" func)
-  end <- appendBasicBlock "caseExit" func
   positionAtEnd defBlock
   defResult <- defaultCode
-  isUnreachable defResult >>= flip unless (void $ buildBr end)
   defExit <- getInsertBlock
-  exits <- mapM (\(block, (val, cg)) -> do
-                   wrap $ W.addCase (unSTV switch) (unSTV val) (unSTB block)
-                   positionAtEnd block
-                   result <- cg
-                   isUnreachable result >>= flip unless (void $ buildBr end)
-                   outBlock <- getInsertBlock
-                   return (result, outBlock)) (zip blocks alts)
+  results <- mapM (\(val, cg) -> do
+                     inBlock <- appendBasicBlock "caseAlt" func
+                     wrap $ W.addCase (unSTV switch) (unSTV val) (unSTB inBlock)
+                     positionAtEnd inBlock
+                     result <- cg
+                     outBlock <- getInsertBlock
+                     return (result, inBlock, outBlock)) alts
+  end <- appendBasicBlock "caseExit" func
+  positionAtEnd defBlock
+  isUnreachable defResult >>= flip unless (void $ buildBr end)
+  forM results $ \(result, _, outBlock) ->
+      do unreachable <- isUnreachable result
+         unless unreachable $ void $ positionAtEnd outBlock >> buildBr end
   positionAtEnd end
-  ty <- case exits of
-          ((result, _):_) -> wrap $ W.typeOf (unSTV result)
-          [] -> wrap $ W.typeOf (unSTV defResult)
-  phi <- wrap $ W.buildPhi b ty "caseResult"
-  wrap $ W.addIncoming phi (map (\(STV result, STB block) -> (result, block)) exits)
-  return $ STV phi
+  case results of
+    [] -> return defResult
+    (result, _, _):_ ->
+        do ty <- wrap $ W.typeOf (unSTV result)
+           phi <- wrap $ W.buildPhi b ty "caseResult"
+           inputs <- filterM (\(r, _, _) -> fmap not $ isUnreachable r)
+                     ((defResult, defBlock, defExit):results)
+           wrap $ W.addIncoming phi (map (\(STV result, _, STB outBlock) ->
+                                              (result, outBlock))
+                                     inputs)
+           return $ STV phi
 
 buildIf :: STValue c s -> CodeGen c s (STValue c s) -> CodeGen c s (STValue c s)
         -> CodeGen c s (STValue c s)
 buildIf (STV cond) whenTrue whenFalse = do
   b <- fmap cgBuilder (CG ask)
   func <- getFunction
-  trueBlock <- appendBasicBlock "ifTrue" func
-  falseBlock <- appendBasicBlock "ifFalse" func
-  exitBlock <- appendBasicBlock "ifExit" func
-  wrap $ W.buildCondBr b cond (unSTB trueBlock) (unSTB falseBlock)
+  initialBlock <- getInsertBlock
 
+  trueBlock <- appendBasicBlock "ifTrue" func
   positionAtEnd trueBlock
   trueResult <- whenTrue
-  buildBr exitBlock
   trueExit <- getInsertBlock
 
+  falseBlock <- appendBasicBlock "ifFalse" func
   positionAtEnd falseBlock
   falseResult <- whenFalse
-  buildBr exitBlock
   falseExit <- getInsertBlock
 
+  exitBlock <- appendBasicBlock "ifExit" func
   positionAtEnd exitBlock
   ty <- wrap $ W.typeOf (unSTV trueResult)
   phi <- wrap $ W.buildPhi b ty "ifResult"
-  wrap $ W.addIncoming phi [ (unSTV trueResult, unSTB trueBlock)
-                           , (unSTV falseResult, unSTB falseBlock)]
+  wrap $ W.addIncoming phi [ (unSTV trueResult, unSTB trueExit)
+                           , (unSTV falseResult, unSTB falseExit)]
+
+  positionAtEnd initialBlock
+  wrap $ W.buildCondBr b cond (unSTB trueBlock) (unSTB falseBlock)
+
+  positionAtEnd trueExit
+  buildBr exitBlock
+  positionAtEnd falseExit
+  buildBr exitBlock
+  positionAtEnd exitBlock
   return $ STV phi
 
 buildUnreachable :: CodeGen c s (STValue c s)
