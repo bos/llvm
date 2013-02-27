@@ -3,7 +3,7 @@ module LLVM.ST
     ( CUInt, CULLong
     , IntPredicate(..), FPPredicate(..)
 
-    , LLVM
+    , LLVM, MonadLLVM
     , MemoryBuffer
     , createMemoryBufferWithContentsOfFile
     , createMemoryBufferWithSTDIN
