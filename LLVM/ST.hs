@@ -66,16 +66,61 @@ module LLVM.ST
     , getBlock, getFunction, getParams
     , getValueName, setValueName
 
+    , buildTrunc
+    , buildZExt
+    , buildSExt
+    , buildFPToUI
+    , buildFPToSI
+    , buildUIToFP
+    , buildSIToFP
+    , buildFPTrunc
+    , buildFPExt
+    , buildPtrToInt
+    , buildIntToPtr
+    , buildBitCast
+    , buildPointerCast
+    , buildTruncOrBitCast
+    , buildZExtOrBitCast
+    , buildSExtOrBitCast
+
     , buildInBoundsGEP
     , constGEP
     , buildLoad, buildStore
     , buildCall
     , buildCase, buildIf
     , buildRet, buildUnreachable, buildBr
-    , buildPtrToInt, buildPointerCast
     , constPtrToInt
-    , buildAdd, buildSub, buildMul
-    , buildAnd, buildShl
+    , buildAdd
+    , buildSub
+    , buildMul
+    , buildFAdd
+    , buildFMul
+    , buildFPCast
+    , buildFSub
+    , buildUDiv
+    , buildSDiv
+    , buildExactSDiv
+    , buildFDiv
+    , buildURem
+    , buildSRem
+    , buildFRem
+    , buildShl
+    , buildLShr
+    , buildAShr
+    , buildAnd
+    , buildOr
+    , buildXor
+    , buildNeg
+    , buildFNeg
+    , buildNot
+    , buildNSWAdd
+    , buildNSWMul
+    , buildNSWNeg
+    , buildNSWSub
+    , buildNUWAdd
+    , buildNUWMul
+    , buildNUWNeg
+    , buildNUWSub
     , buildICmp, buildFCmp
     , buildGlobalString, buildGlobalStringPtr
     )
@@ -542,8 +587,23 @@ wrapCast :: (Builder -> Value -> Type -> String -> IO Value)
 wrapCast f n (STV v) (STT t) =
     do b <- CG ask; fmap STV . wrap $ f (cgBuilder b) v t n
 
-buildPtrToInt = wrapCast W.buildPtrToInt
-buildPointerCast = wrapCast W.buildPointerCast
+buildTrunc          = wrapCast W.buildTrunc
+buildZExt           = wrapCast W.buildZExt
+buildSExt           = wrapCast W.buildSExt
+buildFPToUI         = wrapCast W.buildFPToUI
+buildFPToSI         = wrapCast W.buildFPToSI
+buildUIToFP         = wrapCast W.buildUIToFP
+buildSIToFP         = wrapCast W.buildSIToFP
+buildFPTrunc        = wrapCast W.buildFPTrunc
+buildFPExt          = wrapCast W.buildFPExt
+buildPtrToInt       = wrapCast W.buildPtrToInt
+buildIntToPtr       = wrapCast W.buildIntToPtr
+buildBitCast        = wrapCast W.buildBitCast
+buildPointerCast    = wrapCast W.buildPointerCast
+buildTruncOrBitCast = wrapCast W.buildTruncOrBitCast
+buildZExtOrBitCast  = wrapCast W.buildZExtOrBitCast
+buildSExtOrBitCast  = wrapCast W.buildSExtOrBitCast
+buildFPCast         = wrapCast W.buildFPCast
 
 wrapConstCast :: (Value -> Type -> Value)
               -> STValue c s  -> STType c s -> CodeGen c s (STValue c s)
@@ -556,15 +616,41 @@ wrapUn :: (Builder -> Value -> String -> IO Value)
        -> String -> STValue c s -> CodeGen c s (STValue c s)
 wrapUn f n (STV x) = do b <- CG ask; fmap STV . wrap $ f (cgBuilder b) x n
 
+buildNeg    = wrapUn W.buildNeg
+buildFNeg   = wrapUn W.buildFNeg
+buildNot    = wrapUn W.buildNot
+buildNSWNeg = wrapUn W.buildNSWNeg
+buildNUWNeg = wrapUn W.buildNUWNeg
+
 wrapBin :: (Builder -> Value -> Value -> String -> IO Value)
         -> String -> STValue c s -> STValue c s -> CodeGen c s (STValue c s)
 wrapBin f n (STV l) (STV r) = do b <- CG ask; fmap STV . wrap $ f (cgBuilder b) l r n
 
-buildAdd = wrapBin W.buildAdd
-buildSub = wrapBin W.buildSub
-buildMul = wrapBin W.buildMul
-buildAnd = wrapBin W.buildAnd
-buildShl = wrapBin W.buildShl
+buildAdd       = wrapBin W.buildAdd
+buildSub       = wrapBin W.buildSub
+buildMul       = wrapBin W.buildMul
+buildNSWAdd    = wrapBin W.buildNSWAdd
+buildNSWSub    = wrapBin W.buildNSWSub
+buildNSWMul    = wrapBin W.buildNSWMul
+buildNUWAdd    = wrapBin W.buildNUWAdd
+buildNUWSub    = wrapBin W.buildNUWSub
+buildNUWMul    = wrapBin W.buildNUWMul
+buildUDiv      = wrapBin W.buildUDiv
+buildSDiv      = wrapBin W.buildSDiv
+buildExactSDiv = wrapBin W.buildExactSDiv
+buildURem      = wrapBin W.buildURem
+buildSRem      = wrapBin W.buildSRem
+buildFAdd      = wrapBin W.buildFAdd
+buildFSub      = wrapBin W.buildFSub
+buildFMul      = wrapBin W.buildFMul
+buildFDiv      = wrapBin W.buildFDiv
+buildFRem      = wrapBin W.buildFRem
+buildShl       = wrapBin W.buildShl
+buildLShr      = wrapBin W.buildLShr
+buildAShr      = wrapBin W.buildAShr
+buildAnd       = wrapBin W.buildAnd
+buildOr        = wrapBin W.buildOr
+buildXor       = wrapBin W.buildXor
 
 buildICmp :: String -> IntPredicate -> STValue c s -> STValue c s -> CodeGen c s (STValue c s)
 buildICmp name pred (STV l) (STV r) = do
