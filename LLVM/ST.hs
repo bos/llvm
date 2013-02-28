@@ -1,4 +1,4 @@
-{-# LANGUAGE MultiParamTypeClasses, UndecidableInstances, RankNTypes #-}
+{-# LANGUAGE MultiParamTypeClasses, UndecidableInstances, RankNTypes, NoMonomorphismRestriction #-}
 module LLVM.ST
     ( CUInt, CULLong
     , IntPredicate(..), FPPredicate(..)
@@ -52,6 +52,7 @@ module LLVM.ST
     , constString, constStruct
 
     , STType
+    , TypeKind(..)
     , showType
     , findType
     , sizeOf
@@ -84,12 +85,10 @@ module LLVM.ST
     , buildSExtOrBitCast
 
     , buildInBoundsGEP
-    , constGEP
     , buildLoad, buildStore
     , buildCall
     , buildCase, buildIf
     , buildRet, buildUnreachable, buildBr
-    , constPtrToInt
     , buildAdd
     , buildSub
     , buildMul
@@ -123,6 +122,57 @@ module LLVM.ST
     , buildNUWSub
     , buildICmp, buildFCmp
     , buildGlobalString, buildGlobalStringPtr
+
+    -- , constNeg
+    -- , constNot
+    , constAdd
+    , constSub
+    , constMul
+    -- , constExactSDiv
+    , constFAdd
+    , constFMul
+    -- , constFNeg
+    , constFPCast
+    , constFSub
+    , constUDiv
+    , constSDiv
+    , constFDiv
+    , constURem
+    , constSRem
+    , constFRem
+    , constAnd
+    , constOr
+    , constXor
+    -- , constICmp
+    -- , constFCmp
+    , constShl
+    , constLShr
+    , constAShr
+    , constGEP
+    , constTrunc
+    , constSExt
+    , constZExt
+    , constFPTrunc
+    , constFPExt
+    , constUIToFP
+    , constSIToFP
+    , constFPToUI
+    , constFPToSI
+    , constPtrToInt
+    , constIntToPtr
+    , constBitCast
+    -- , constSelect
+    -- , constExtractElement
+    -- , constInsertElement
+    -- , constShuffleVector
+    -- , constRealOfString
+    -- , constNSWMul
+    -- , constNSWNeg
+    -- , constNSWSub
+    -- , constNUWAdd
+    -- , constNUWMul
+    -- , constNUWNeg
+    -- , constNUWSub
     )
     where
 
@@ -139,6 +189,7 @@ import qualified LLVM.Wrapper.BitWriter as W
 import qualified LLVM.Wrapper.Analysis as W
 import LLVM.Wrapper.Core ( MemoryBuffer, Context, BasicBlock, Type, Value, Builder
                          , CUInt, CULLong
+                         , TypeKind(..)
                          , Linkage(..)
                          , Attribute(..)
                          , CallingConvention(..)
@@ -219,6 +270,9 @@ parseBitcode buf = do ctx <- getContext
 
 sizeOf :: (Monad (m c s), MonadLLVM m) => STType c s -> m c s (STValue c s)
 sizeOf (STT ty) = wrap . fmap STV $ W.sizeOf ty
+
+typeKind :: (Monad (m c s), MonadLLVM m) => STType c s -> m c s TypeKind
+typeKind (STT t) = wrap $ W.getTypeKind t
 
 showType :: (Monad (m c s), MonadLLVM m) => STType c s -> m c s String
 showType (STT t) = wrap . W.dumpTypeToString $ t
@@ -605,13 +659,6 @@ buildZExtOrBitCast  = wrapCast W.buildZExtOrBitCast
 buildSExtOrBitCast  = wrapCast W.buildSExtOrBitCast
 buildFPCast         = wrapCast W.buildFPCast
 
-wrapConstCast :: (Value -> Type -> Value)
-              -> STValue c s  -> STType c s -> CodeGen c s (STValue c s)
-wrapConstCast f (STV v) (STT t) =
-    return . STV $ f v t
-
-constPtrToInt = wrapConstCast W.constPtrToInt
-
 wrapUn :: (Builder -> Value -> String -> IO Value)
        -> String -> STValue c s -> CodeGen c s (STValue c s)
 wrapUn f n (STV x) = do b <- CG ask; fmap STV . wrap $ f (cgBuilder b) x n
@@ -662,6 +709,36 @@ buildFCmp name pred (STV l) (STV r) = do
   b <- fmap cgBuilder (CG ask)
   wrap . fmap STV $ W.buildFCmp b pred l r name
 
+wrapConstBin :: (Value -> Value -> Value)
+             -> STValue c s -> STValue c s -> CodeGen c s (STValue c s)
+wrapConstBin f (STV l) (STV r) = return . STV $ f l r
+
+constAdd       = wrapConstBin W.constAdd
+constSub       = wrapConstBin W.constSub
+constMul       = wrapConstBin W.constMul
+-- constNSWAdd    = wrapConstBin W.constNSWAdd
+-- constNSWSub    = wrapConstBin W.constNSWSub
+-- constNSWMul    = wrapConstBin W.constNSWMul
+-- constNUWAdd    = wrapConstBin W.constNUWAdd
+-- constNUWSub    = wrapConstBin W.constNUWSub
+-- constNUWMul    = wrapConstBin W.constNUWMul
+constUDiv      = wrapConstBin W.constUDiv
+constSDiv      = wrapConstBin W.constSDiv
+--constExactSDiv = wrapConstBin W.constExactSDiv
+constURem      = wrapConstBin W.constURem
+constSRem      = wrapConstBin W.constSRem
+constFAdd      = wrapConstBin W.constFAdd
+constFSub      = wrapConstBin W.constFSub
+constFMul      = wrapConstBin W.constFMul
+constFDiv      = wrapConstBin W.constFDiv
+constFRem      = wrapConstBin W.constFRem
+constShl       = wrapConstBin W.constShl
+constLShr      = wrapConstBin W.constLShr
+constAShr      = wrapConstBin W.constAShr
+constAnd       = wrapConstBin W.constAnd
+constOr        = wrapConstBin W.constOr
+constXor       = wrapConstBin W.constXor
+
 buildGlobalString :: String -> String -> CodeGen c s (STValue c s)
 buildGlobalString name value = do
   b <- fmap cgBuilder (CG ask)
@@ -671,3 +748,26 @@ buildGlobalStringPtr :: String -> String -> CodeGen c s (STValue c s)
 buildGlobalStringPtr name value = do
   b <- fmap cgBuilder (CG ask)
   wrap . fmap STV $ W.buildGlobalStringPtr b value name
+
+wrapConstCast :: (Monad (m c s), MonadLLVM m) =>
+                 (Value -> Type -> Value)
+              -> STValue c s -> STType c s -> m c s (STValue c s)
+wrapConstCast f (STV v) (STT t) = liftLL $ return . STV $ f v t
+
+constTrunc          = wrapConstCast W.constTrunc
+constZExt           = wrapConstCast W.constZExt
+constSExt           = wrapConstCast W.constSExt
+constFPToUI         = wrapConstCast W.constFPToUI
+constFPToSI         = wrapConstCast W.constFPToSI
+constUIToFP         = wrapConstCast W.constUIToFP
+constSIToFP         = wrapConstCast W.constSIToFP
+constFPTrunc        = wrapConstCast W.constFPTrunc
+constFPExt          = wrapConstCast W.constFPExt
+constPtrToInt       = wrapConstCast W.constPtrToInt
+constIntToPtr       = wrapConstCast W.constIntToPtr
+constBitCast        = wrapConstCast W.constBitCast
+-- constPointerCast    = wrapConstCast W.constPointerCast
+-- constTruncOrBitCast = wrapConstCast W.constTruncOrBitCast
+-- constZExtOrBitCast  = wrapConstCast W.constZExtOrBitCast
+-- constSExtOrBitCast  = wrapConstCast W.constSExtOrBitCast
+constFPCast         = wrapConstCast W.constFPCast
