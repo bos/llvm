@@ -230,6 +230,18 @@ import LLVM.FFI.Core
     , constInt
     , constReal
 
+    , constInBoundsGEP
+    , constIntCast
+    , constIntOfString
+    , constIntOfStringAndSize
+    , constNSWAdd
+    , constPointerCast
+    , constPointerNull
+    , constRealOfStringAndSize
+    , constSExtOrBitCast
+    , constZExtOrBitCast
+    , constTruncOrBitCast
+
     , Linkage(..)
 
     , IntPredicate(..)
