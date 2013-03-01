@@ -201,10 +201,15 @@ import LLVM.Wrapper.Core ( MemoryBuffer, Context, BasicBlock, Type, Value, Build
                          )
 
 newtype Module = PM { unPM :: W.Module }
+    deriving Eq
 newtype STModule c s = STM { unSTM :: W.Module }
+    deriving Eq
 newtype STBasicBlock c s = STB { unSTB :: BasicBlock }
+    deriving Eq
 newtype STType c s = STT { unSTT :: Type }
+    deriving Eq
 newtype STValue c s = STV { unSTV :: Value }
+    deriving Eq
 
 writeBitcodeToFile :: Module -> FilePath -> IO ()
 writeBitcodeToFile (PM m) = W.writeBitcodeToFile m
