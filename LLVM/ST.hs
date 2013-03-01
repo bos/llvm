@@ -604,9 +604,9 @@ buildCase (STV value) defaultCode alts = do
                                      inputs)
            return $ STV phi
 
-buildIf :: STValue c s -> CodeGen c s (STValue c s) -> CodeGen c s (STValue c s)
+buildIf :: STType c s -> STValue c s -> CodeGen c s (STValue c s) -> CodeGen c s (STValue c s)
         -> CodeGen c s (STValue c s)
-buildIf (STV cond) whenTrue whenFalse = do
+buildIf (STT ty) (STV cond) whenTrue whenFalse = do
   b <- fmap cgBuilder (CG ask)
   func <- getFunction
   initialBlock <- getInsertBlock
@@ -621,21 +621,20 @@ buildIf (STV cond) whenTrue whenFalse = do
   falseResult <- whenFalse
   falseExit <- getInsertBlock
 
-  exitBlock <- appendBasicBlock "ifExit" func
-  positionAtEnd exitBlock
-  ty <- wrap $ W.typeOf (unSTV trueResult)
-  phi <- wrap $ W.buildPhi b ty "ifResult"
-  wrap $ W.addIncoming phi [ (unSTV trueResult, unSTB trueExit)
-                           , (unSTV falseResult, unSTB falseExit)]
-
   positionAtEnd initialBlock
   wrap $ W.buildCondBr b cond (unSTB trueBlock) (unSTB falseBlock)
 
+  exitBlock <- appendBasicBlock "ifExit" func
   positionAtEnd trueExit
   buildBr exitBlock
   positionAtEnd falseExit
   buildBr exitBlock
+
   positionAtEnd exitBlock
+  phi <- wrap $ W.buildPhi b ty "ifResult"
+  wrap $ W.addIncoming phi [ (unSTV trueResult, unSTB trueExit)
+                           , (unSTV falseResult, unSTB falseExit)]
+
   return $ STV phi
 
 buildUnreachable :: CodeGen c s (STValue c s)
