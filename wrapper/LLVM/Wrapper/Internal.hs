@@ -15,6 +15,7 @@ import Data.IORef
 import qualified LLVM.FFI.Core as FFI
 
 data Module = MkModule (ForeignPtr FFI.Module) (IORef Bool)
+              deriving Eq
 
 moduleFinalizer :: Ptr FFI.Module -> IORef Bool -> IO ()
 moduleFinalizer m ours = do
