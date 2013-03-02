@@ -15,8 +15,8 @@ module LLVM.ST
     , W.getGlobalContext
     , W.contextCreate
 
-    , ModuleGen
-    , runModuleGen
+    , ModuleGen, MonadMG
+    , runModuleGen, liftMG
 
     , STModule
     , Module
@@ -61,8 +61,8 @@ module LLVM.ST
     , pointerTypeInSpace, pointerType
     , structCreateNamed, structSetBody
 
-    , CodeGen
-    , liftMG
+    , CodeGen, MonadCG
+    , liftCG
     , positionAtEnd, positionBefore, positionAfter
     , getBlock, getFunction, getParams
     , getValueName, setValueName
@@ -355,11 +355,11 @@ constStruct values packed = do
   ctx <- getContext
   wrap . fmap STV $ W.constStructInContext ctx (map unSTV values) packed
 
-appendBasicBlock :: (Functor (m c s), Monad (m c s), MonadLLVM m) =>
+appendBasicBlock :: (Monad (m c s), MonadLLVM m) =>
                     String -> STValue c s -> m c s (STBasicBlock c s)
 appendBasicBlock name (STV func) = do
   ctx <- getContext
-  fmap STB . wrap $ W.appendBasicBlockInContext ctx func name
+  wrap . fmap STB $ W.appendBasicBlockInContext ctx func name
 
 getFunctionParams :: (Functor (m c s), Monad (m c s), MonadLLVM m) =>
                      STValue c s -> m c s [STValue c s]
@@ -380,6 +380,9 @@ typeOf (STV v) = wrap . fmap STT $ W.typeOf v
 data MGS = MGS { mgModule :: W.Module, mgCtx :: Context }
 
 newtype ModuleGen c s a = MG { unMG :: ReaderT MGS (ST s) a }
+
+class MonadLLVM m => MonadMG m where
+    liftMG :: ModuleGen c s a -> m c s a
 
 instance Functor (ModuleGen c s) where
     fmap f (MG g) = MG (fmap f g)
@@ -402,6 +405,9 @@ instance MonadLLVM ModuleGen where
                        MG (lift $ runReaderT s ctx)
     liftST = MG . lift
 
+instance MonadMG ModuleGen where
+    liftMG = id
+
 -- Internal
 unsafeMod :: ModuleGen c s W.Module
 unsafeMod = fmap mgModule $ MG ask
@@ -421,17 +427,17 @@ runModuleGen (STM mod) (MG mg) = do
   ctx <- getContext
   liftLL $ LL . lift . runReaderT mg $ MGS mod ctx
 
-findType :: String -> ModuleGen c s (Maybe (STType c s))
-findType name = unsafeMod >>= ((fmap . fmap) STT . wrap . flip W.getTypeByName name)
+findType :: MonadMG m => String -> m c s (Maybe (STType c s))
+findType name = liftMG $ unsafeMod >>= ((fmap . fmap) STT . wrap . flip W.getTypeByName name)
 
-findGlobal :: String -> ModuleGen c s (Maybe (STValue c s))
-findGlobal name = unsafeMod >>= ((fmap . fmap) STV . wrap . flip W.getNamedGlobal name)
+findGlobal :: MonadMG m => String -> m c s (Maybe (STValue c s))
+findGlobal name = liftMG $ unsafeMod >>= ((fmap . fmap) STV . wrap . flip W.getNamedGlobal name)
 
-findFunction :: String -> ModuleGen c s (Maybe (STValue c s))
-findFunction name = unsafeMod >>= ((fmap . fmap) STV . wrap . flip W.getNamedFunction name)
+findFunction :: MonadMG m => String -> m c s (Maybe (STValue c s))
+findFunction name = liftMG $ unsafeMod >>= ((fmap . fmap) STV . wrap . flip W.getNamedFunction name)
 
-addFunction :: String -> STType c s -> ModuleGen c s (STValue c s)
-addFunction name (STT ty) = unsafeMod >>= (\m -> fmap STV . wrap $ W.addFunction m name ty)
+addFunction :: MonadMG m => String -> STType c s -> m c s (STValue c s)
+addFunction name (STT ty) = liftMG $ unsafeMod >>= (\m -> fmap STV . wrap $ W.addFunction m name ty)
 
 getLinkage :: (Monad (m c s), MonadLLVM m) => STValue c s -> m c s Linkage
 getLinkage (STV v) = wrap (W.getLinkage v)
@@ -458,6 +464,9 @@ data CGS = CGS { cgBuilder :: Builder, cgMGS :: MGS }
 
 newtype CodeGen c s a = CG { unCG :: ReaderT CGS (ST s) a }
 
+class MonadMG m => MonadCG m where
+    liftCG :: CodeGen c s a -> m c s a
+
 instance Functor (CodeGen c s) where
     fmap f (CG g) = CG (fmap f g)
 
@@ -475,30 +484,36 @@ instance MonadLLVM CodeGen where
                        CG (lift $ runReaderT s ctx)
     liftST = CG . lift
 
--- TODO: Replace with MonadModuleGen (and implement MonadCodeGen while you're at it)
-liftMG :: ModuleGen c s a -> CodeGen c s a
-liftMG (MG mg) = do r <- CG ask
-                    CG (lift $ runReaderT mg (cgMGS r))
+instance MonadMG CodeGen where
+    liftMG (MG mg) =
+        do r <- CG ask
+           CG (lift $ runReaderT mg (cgMGS r))
+
+instance MonadCG CodeGen where
+    liftCG = id
 
 -- Declare, initialize, and define
-genFunction :: String -> STType c s -> CodeGen c s a -> ModuleGen c s a
+genFunction :: (Functor (m c s), Monad (m c s), MonadMG m) =>
+               String -> STType c s -> CodeGen c s a -> m c s a
 genFunction name ty cg = do
   f <- addFunction name ty
   bb <- appendBasicBlock "entry" f
-  mgs <- MG ask
+  mgs <- liftMG $ MG ask
   wrap (do b <- W.createBuilderInContext (mgCtx mgs)
            unsafeSTToIO (runReaderT (unCG (positionAtEnd bb >> cg)) (CGS b mgs)))
 
 -- Initialize and define
-defineFunction :: STValue c s -> CodeGen c s a -> ModuleGen c s a
+defineFunction :: (Functor (m c s), Monad (m c s), MonadMG m) =>
+                  STValue c s -> CodeGen c s a -> m c s a
 defineFunction func cg = do
   bb <- appendBasicBlock "entry" func
-  mgs <- MG ask
+  mgs <- liftMG $ MG ask
   wrap (do b <- W.createBuilderInContext (mgCtx mgs)
            unsafeSTToIO (runReaderT (unCG (positionAtEnd bb >> cg)) (CGS b mgs)))
 
 -- Just establish a context
-runCodeGen :: STValue c s -> CodeGen c s a -> ModuleGen c s a
+runCodeGen :: (Monad (m c s), MonadMG m) =>
+              STValue c s -> CodeGen c s a -> ModuleGen c s a
 runCodeGen (STV func) cg = do
   bbs <- wrap $ W.getBasicBlocks func
   let cg' = if null bbs then cg else (positionAtEnd (STB (last bbs)) >> cg)
@@ -509,69 +524,72 @@ runCodeGen (STV func) cg = do
 verifyFunction :: (Monad (m c s), MonadLLVM m) => STValue c s -> m c s Bool
 verifyFunction (STV f) = wrap (W.verifyFunction f)
 
-positionAtEnd :: STBasicBlock c s -> CodeGen c s ()
-positionAtEnd (STB block) = CG ask >>= wrap . flip W.positionAtEnd block . cgBuilder
+positionAtEnd :: MonadCG m => STBasicBlock c s -> m c s ()
+positionAtEnd (STB block) = liftCG $ CG ask >>= wrap . flip W.positionAtEnd block . cgBuilder
 
-positionBefore :: STValue c s -> CodeGen c s ()
-positionBefore (STV v) = CG ask >>= wrap . flip W.positionBefore v . cgBuilder
+positionBefore :: MonadCG m => STValue c s -> m c s ()
+positionBefore (STV v) = liftCG $ CG ask >>= wrap . flip W.positionBefore v . cgBuilder
 
-positionAfter :: STValue c s -> CodeGen c s ()
+positionAfter :: MonadCG m => STValue c s -> m c s ()
 positionAfter (STV v) =
-    CG ask >>= (\builder ->
+    liftCG $ CG ask >>=
+               (\builder ->
                     wrap $ do
                       block <- W.getInstructionParent v
                       W.positionBuilder builder block v) . cgBuilder
 
-getInsertBlock :: CodeGen c s (STBasicBlock c s)
+getInsertBlock :: (Monad (m c s), MonadCG m) => m c s (STBasicBlock c s)
 getInsertBlock = do
-  b <- fmap cgBuilder (CG ask)
+  b <- liftCG $ fmap cgBuilder (CG ask)
   wrap . fmap STB $ W.getInsertBlock b
 
-getBlock :: CodeGen c s (STBasicBlock c s)
-getBlock = CG ask >>= wrap . fmap STB . W.getInsertBlock . cgBuilder
+getBlock :: MonadCG m => m c s (STBasicBlock c s)
+getBlock = liftCG $ CG ask >>= wrap . fmap STB . W.getInsertBlock . cgBuilder
 
-getFunction :: CodeGen c s (STValue c s)
-getFunction = getBlock >>= (\(STB b) -> wrap . fmap STV $ W.getBasicBlockParent b)
+getFunction :: MonadCG m => m c s (STValue c s)
+getFunction = liftCG $ getBlock >>= (\(STB b) -> wrap . fmap STV $ W.getBasicBlockParent b)
 
-getParams :: CodeGen c s [STValue c s]
-getParams = getFunction >>= getFunctionParams
+getParams :: MonadCG m => m c s [STValue c s]
+getParams = liftCG $ getFunction >>= getFunctionParams
 
-buildInBoundsGEP :: String -> STValue c s -> [STValue c s] -> CodeGen c s (STValue c s)
+buildInBoundsGEP :: (Monad (m c s), MonadCG m) => String -> STValue c s -> [STValue c s] -> m c s (STValue c s)
 buildInBoundsGEP name (STV aggPtr) indices = do
-  b <- fmap cgBuilder (CG ask)
+  b <- liftCG $ fmap cgBuilder (CG ask)
   wrap . fmap STV $ W.buildInBoundsGEP b aggPtr (map unSTV indices) name
 
-constGEP :: STValue c s -> [STValue c s] -> CodeGen c s (STValue c s)
-constGEP (STV aggPtr) indices = do
+constGEP :: (Monad (m c s), MonadCG m) => STValue c s -> [STValue c s] -> m c s (STValue c s)
+constGEP (STV aggPtr) indices =
   wrap . fmap STV $ W.constGEP aggPtr (map unSTV indices)
 
-buildLoad :: String -> STValue c s -> CodeGen c s (STValue c s)
+buildLoad :: (Monad (m c s), MonadCG m) => String -> STValue c s -> m c s (STValue c s)
 buildLoad name (STV ptr) = do
-  b <- fmap cgBuilder (CG ask)
+  b <- liftCG $ fmap cgBuilder (CG ask)
   wrap . fmap STV $ W.buildLoad b ptr name
 
-buildStore :: STValue c s -> STValue c s -> CodeGen c s (STValue c s)
+buildStore :: (Monad (m c s), MonadCG m) => STValue c s -> STValue c s -> m c s (STValue c s)
 buildStore (STV value) (STV ptr) = do
-  b <- fmap cgBuilder (CG ask)
+  b <- liftCG $ fmap cgBuilder (CG ask)
   wrap . fmap STV $ W.buildStore b value ptr
 
-buildCall :: String -> STValue c s -> [STValue c s] -> CodeGen c s (STValue c s)
+buildCall :: (Monad (m c s), MonadCG m) =>
+             String -> STValue c s -> [STValue c s] -> m c s (STValue c s)
 buildCall name (STV func) args = do
-  b <- fmap cgBuilder (CG ask)
+  b <- liftCG $ fmap cgBuilder (CG ask)
   wrap . fmap STV $ W.buildCall b func (map unSTV args) name
 
-buildRet :: STValue c s -> CodeGen c s (STValue c s)
-buildRet (STV x) = do b <- CG ask; fmap STV . wrap $ W.buildRet (cgBuilder b) x
+buildRet :: (Monad (m c s), MonadCG m) => STValue c s -> m c s (STValue c s)
+buildRet (STV x) = do b <- liftCG $ CG ask; wrap . fmap STV $ W.buildRet (cgBuilder b) x
 
-buildBr :: STBasicBlock c s -> CodeGen c s (STValue c s)
+buildBr :: (Monad (m c s), MonadCG m) => STBasicBlock c s -> m c s (STValue c s)
 buildBr (STB block) = do
-  b <- fmap cgBuilder (CG ask)
+  b <- liftCG $ fmap cgBuilder (CG ask)
   wrap . fmap STV $ W.buildBr b block
 
-buildCase :: STValue c s -> CodeGen c s (STValue c s) -> [(STValue c s, CodeGen c s (STValue c s))]
-          -> CodeGen c s (STValue c s)
+buildCase :: (Functor (m c s), Monad (m c s), MonadCG m) =>
+             STValue c s -> m c s (STValue c s) -> [(STValue c s, m c s (STValue c s))]
+          -> m c s (STValue c s)
 buildCase (STV value) defaultCode alts = do
-  b <- fmap cgBuilder (CG ask)
+  b <- liftCG $ fmap cgBuilder (CG ask)
   func <- getFunction
   defBlock <- appendBasicBlock "caseDefault" func
   switch <- wrap . fmap STV $ W.buildSwitch b value (unSTB defBlock) (fromIntegral (length alts))
@@ -604,9 +622,10 @@ buildCase (STV value) defaultCode alts = do
                                      inputs)
            return $ STV phi
 
-buildIf :: STType c s -> STValue c s -> CodeGen c s (STValue c s) -> CodeGen c s (STValue c s)
+buildIf :: (Monad (m c s), MonadCG m) =>
+           STType c s -> STValue c s -> CodeGen c s (STValue c s) -> CodeGen c s (STValue c s)
         -> CodeGen c s (STValue c s)
-buildIf (STT ty) (STV cond) whenTrue whenFalse = do
+buildIf ty (STV cond) whenTrue whenFalse = do
   b <- fmap cgBuilder (CG ask)
   func <- getFunction
   initialBlock <- getInsertBlock
@@ -631,19 +650,31 @@ buildIf (STT ty) (STV cond) whenTrue whenFalse = do
   buildBr exitBlock
 
   positionAtEnd exitBlock
-  phi <- wrap $ W.buildPhi b ty "ifResult"
-  wrap $ W.addIncoming phi [ (unSTV trueResult, unSTB trueExit)
-                           , (unSTV falseResult, unSTB falseExit)]
+  phi <- buildPhi "ifResult" ty
+  addIncoming phi [ (trueResult, trueExit)
+                  , (falseResult, falseExit)]
 
-  return $ STV phi
+  return phi
 
-buildUnreachable :: CodeGen c s (STValue c s)
-buildUnreachable = do b <- CG ask; fmap STV . wrap $ W.buildUnreachable (cgBuilder b)
 
-wrapCast :: (Builder -> Value -> Type -> String -> IO Value)
-         -> String -> STValue c s -> STType c s -> CodeGen c s (STValue c s)
+buildPhi :: (Monad (m c s), MonadCG m) => String -> STType c s -> m c s (STValue c s)
+buildPhi name (STT ty) = do
+  b <- liftCG $ fmap cgBuilder (CG ask)
+  wrap . fmap STV $ W.buildPhi b ty name
+
+addIncoming :: (Monad (m c s), MonadCG m) =>
+               STValue c s -> [(STValue c s, STBasicBlock c s)] -> m c s ()
+addIncoming (STV phi) incoming =
+  wrap $ W.addIncoming phi (map (\(a, b) -> (unSTV a, unSTB b)) incoming)
+
+buildUnreachable :: (Monad (m c s), MonadCG m) => m c s (STValue c s)
+buildUnreachable = do b <- liftCG $ CG ask; wrap . fmap STV $ W.buildUnreachable (cgBuilder b)
+
+wrapCast :: (Monad (m c s), MonadCG m) =>
+            (Builder -> Value -> Type -> String -> IO Value)
+         -> String -> STValue c s -> STType c s -> m c s (STValue c s)
 wrapCast f n (STV v) (STT t) =
-    do b <- CG ask; fmap STV . wrap $ f (cgBuilder b) v t n
+    do b <- liftCG $ CG ask; wrap . fmap STV $ f (cgBuilder b) v t n
 
 buildTrunc          = wrapCast W.buildTrunc
 buildZExt           = wrapCast W.buildZExt
@@ -663,9 +694,10 @@ buildZExtOrBitCast  = wrapCast W.buildZExtOrBitCast
 buildSExtOrBitCast  = wrapCast W.buildSExtOrBitCast
 buildFPCast         = wrapCast W.buildFPCast
 
-wrapUn :: (Builder -> Value -> String -> IO Value)
-       -> String -> STValue c s -> CodeGen c s (STValue c s)
-wrapUn f n (STV x) = do b <- CG ask; fmap STV . wrap $ f (cgBuilder b) x n
+wrapUn :: (Monad (m c s), MonadCG m) =>
+          (Builder -> Value -> String -> IO Value)
+       -> String -> STValue c s -> m c s (STValue c s)
+wrapUn f n (STV x) = do b <- liftCG $ CG ask; wrap . fmap STV $ f (cgBuilder b) x n
 
 buildNeg    = wrapUn W.buildNeg
 buildFNeg   = wrapUn W.buildFNeg
@@ -673,9 +705,10 @@ buildNot    = wrapUn W.buildNot
 buildNSWNeg = wrapUn W.buildNSWNeg
 buildNUWNeg = wrapUn W.buildNUWNeg
 
-wrapBin :: (Builder -> Value -> Value -> String -> IO Value)
-        -> String -> STValue c s -> STValue c s -> CodeGen c s (STValue c s)
-wrapBin f n (STV l) (STV r) = do b <- CG ask; fmap STV . wrap $ f (cgBuilder b) l r n
+wrapBin :: (Monad (m c s), MonadCG m) =>
+           (Builder -> Value -> Value -> String -> IO Value)
+        -> String -> STValue c s -> STValue c s -> m c s (STValue c s)
+wrapBin f n (STV l) (STV r) = do b <- liftCG $ CG ask; wrap . fmap STV $ f (cgBuilder b) l r n
 
 buildAdd       = wrapBin W.buildAdd
 buildSub       = wrapBin W.buildSub
@@ -703,18 +736,21 @@ buildAnd       = wrapBin W.buildAnd
 buildOr        = wrapBin W.buildOr
 buildXor       = wrapBin W.buildXor
 
-buildICmp :: String -> IntPredicate -> STValue c s -> STValue c s -> CodeGen c s (STValue c s)
+buildICmp :: (Monad (m c s), MonadCG m) =>
+             String -> IntPredicate -> STValue c s -> STValue c s -> m c s (STValue c s)
 buildICmp name pred (STV l) (STV r) = do
-  b <- fmap cgBuilder (CG ask)
+  b <- liftCG $ fmap cgBuilder (CG ask)
   wrap . fmap STV $ W.buildICmp b pred l r name
 
-buildFCmp :: String -> FPPredicate -> STValue c s -> STValue c s -> CodeGen c s (STValue c s)
+buildFCmp :: (Monad (m c s), MonadCG m) =>
+             String -> FPPredicate -> STValue c s -> STValue c s -> m c s (STValue c s)
 buildFCmp name pred (STV l) (STV r) = do
-  b <- fmap cgBuilder (CG ask)
+  b <- liftCG $ fmap cgBuilder (CG ask)
   wrap . fmap STV $ W.buildFCmp b pred l r name
 
-wrapConstBin :: (Value -> Value -> Value)
-             -> STValue c s -> STValue c s -> CodeGen c s (STValue c s)
+wrapConstBin :: (Monad (m c s), MonadLLVM m) =>
+                (Value -> Value -> Value)
+             -> STValue c s -> STValue c s -> m c s (STValue c s)
 wrapConstBin f (STV l) (STV r) = return . STV $ f l r
 
 constAdd       = wrapConstBin W.constAdd
@@ -743,14 +779,14 @@ constAnd       = wrapConstBin W.constAnd
 constOr        = wrapConstBin W.constOr
 constXor       = wrapConstBin W.constXor
 
-buildGlobalString :: String -> String -> CodeGen c s (STValue c s)
+buildGlobalString :: (Monad (m c s), MonadCG m) => String -> String -> m c s (STValue c s)
 buildGlobalString name value = do
-  b <- fmap cgBuilder (CG ask)
+  b <- liftCG $ fmap cgBuilder (CG ask)
   wrap . fmap STV $ W.buildGlobalString b value name
 
-buildGlobalStringPtr :: String -> String -> CodeGen c s (STValue c s)
+buildGlobalStringPtr :: (Monad (m c s), MonadCG m) => String -> String -> m c s (STValue c s)
 buildGlobalStringPtr name value = do
-  b <- fmap cgBuilder (CG ask)
+  b <- liftCG $ fmap cgBuilder (CG ask)
   wrap . fmap STV $ W.buildGlobalStringPtr b value name
 
 wrapConstCast :: (Monad (m c s), MonadLLVM m) =>
