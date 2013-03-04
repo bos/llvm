@@ -4,12 +4,12 @@ module LLVM.ST
     , IntPredicate(..), FPPredicate(..)
 
     , LLVM, MonadLLVM
+    , getContext, liftLL, liftST
     , MemoryBuffer
     , createMemoryBufferWithContentsOfFile
     , createMemoryBufferWithSTDIN
     , createMemoryBufferWithMemoryRange
     , createMemoryBufferWithMemoryRangeCopy
-    , liftLL, liftST
     , run, run2, runLLVM
     , Context
     , W.getGlobalContext
