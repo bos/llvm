@@ -624,10 +624,10 @@ buildCase (STV value) defaultCode alts = do
            return $ STV phi
 
 buildIf :: (Monad (m c s), MonadCG m) =>
-           STType c s -> STValue c s -> CodeGen c s (STValue c s) -> CodeGen c s (STValue c s)
-        -> CodeGen c s (STValue c s)
+           STType c s -> STValue c s -> m c s (STValue c s) -> m c s (STValue c s)
+        -> m c s (STValue c s)
 buildIf ty (STV cond) whenTrue whenFalse = do
-  b <- fmap cgBuilder (CG ask)
+  b <- liftCG $ fmap cgBuilder (CG ask)
   func <- getFunction
   initialBlock <- getInsertBlock
 
