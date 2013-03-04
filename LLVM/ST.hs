@@ -88,6 +88,7 @@ module LLVM.ST
     , buildInBoundsGEP
     , buildLoad, buildStore
     , buildCall
+    , buildPhi, addIncoming
     , buildCase, buildIf
     , buildRet, buildUnreachable, buildBr
     , buildAdd
