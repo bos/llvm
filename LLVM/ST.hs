@@ -53,6 +53,7 @@ module LLVM.ST
 
     , STType
     , TypeKind(..)
+    , typeKind
     , showType
     , findType
     , sizeOf
