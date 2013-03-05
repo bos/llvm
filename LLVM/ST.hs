@@ -88,9 +88,11 @@ module LLVM.ST
     , buildInBoundsGEP
     , buildLoad, buildStore
     , buildCall
+    , buildBr, buildCondBr
+    , buildSwitch, addCase
     , buildPhi, addIncoming
     , buildCase, buildIf
-    , buildRet, buildUnreachable, buildBr
+    , buildRet, buildUnreachable
     , buildAdd
     , buildSub
     , buildMul
@@ -587,24 +589,40 @@ buildBr (STB block) = do
   b <- liftCG $ fmap cgBuilder (CG ask)
   wrap . fmap STV $ W.buildBr b block
 
+buildCondBr :: (Monad (m c s), MonadCG m) =>
+               STValue c s -> STBasicBlock c s -> STBasicBlock c s -> m c s (STValue c s)
+buildCondBr (STV cond) (STB trueBlock) (STB falseBlock) = do
+  b <- liftCG $ fmap cgBuilder (CG ask)
+  wrap . fmap STV $ W.buildCondBr b cond trueBlock falseBlock
+
+buildSwitch :: (Monad (m c s), MonadCG m) =>
+               STValue c s -> STBasicBlock c s -> CUInt -> m c s (STValue c s)
+buildSwitch (STV val) (STB defaultBlock) count = do
+  b <- liftCG $ fmap cgBuilder (CG ask)
+  wrap . fmap STV $ W.buildSwitch b val defaultBlock count
+
+addCase :: (Monad (m c s), MonadCG m) =>
+           STValue c s -> STValue c s -> STBasicBlock c b -> m c s ()
+addCase (STV switch) (STV val) (STB block) =
+    wrap $ W.addCase switch val block
+
 buildCase :: (Functor (m c s), Monad (m c s), MonadCG m) =>
              STValue c s -> m c s (STValue c s) -> [(STValue c s, m c s (STValue c s))]
           -> m c s (STValue c s)
-buildCase (STV value) defaultCode alts = do
-  b <- liftCG $ fmap cgBuilder (CG ask)
+buildCase value defaultCode alts = do
   func <- getFunction
   defBlock <- appendBasicBlock "caseDefault" func
-  switch <- wrap . fmap STV $ W.buildSwitch b value (unSTB defBlock) (fromIntegral (length alts))
+  switch <- buildSwitch value defBlock (fromIntegral (length alts))
   positionAtEnd defBlock
   defResult <- defaultCode
   defExit <- getInsertBlock
-  results <- mapM (\(val, cg) -> do
-                     inBlock <- appendBasicBlock "caseAlt" func
-                     wrap $ W.addCase (unSTV switch) (unSTV val) (unSTB inBlock)
-                     positionAtEnd inBlock
-                     result <- cg
-                     outBlock <- getInsertBlock
-                     return (result, inBlock, outBlock)) alts
+  results <- forM alts $ \(val, cg) ->
+             do inBlock <- appendBasicBlock "caseAlt" func
+                addCase switch val inBlock
+                positionAtEnd inBlock
+                result <- cg
+                outBlock <- getInsertBlock
+                return (result, inBlock, outBlock)
   end <- appendBasicBlock "caseExit" func
   positionAtEnd defBlock
   isUnreachable defResult >>= flip unless (void $ buildBr end)
@@ -615,20 +633,19 @@ buildCase (STV value) defaultCode alts = do
   case results of
     [] -> return defResult
     (result, _, _):_ ->
-        do ty <- wrap $ W.typeOf (unSTV result)
-           phi <- wrap $ W.buildPhi b ty "caseResult"
+        do ty <- typeOf result
+           phi <- buildPhi "caseResult" ty
            inputs <- filterM (\(r, _, _) -> fmap not $ isUnreachable r)
                      ((defResult, defBlock, defExit):results)
-           wrap $ W.addIncoming phi (map (\(STV result, _, STB outBlock) ->
-                                              (result, outBlock))
-                                     inputs)
-           return $ STV phi
+           addIncoming phi (map (\(result, _, outBlock) ->
+                                     (result, outBlock))
+                            inputs)
+           return phi
 
 buildIf :: (Monad (m c s), MonadCG m) =>
            STType c s -> STValue c s -> m c s (STValue c s) -> m c s (STValue c s)
         -> m c s (STValue c s)
-buildIf ty (STV cond) whenTrue whenFalse = do
-  b <- liftCG $ fmap cgBuilder (CG ask)
+buildIf ty cond whenTrue whenFalse = do
   func <- getFunction
   initialBlock <- getInsertBlock
 
@@ -643,7 +660,7 @@ buildIf ty (STV cond) whenTrue whenFalse = do
   falseExit <- getInsertBlock
 
   positionAtEnd initialBlock
-  wrap $ W.buildCondBr b cond (unSTB trueBlock) (unSTB falseBlock)
+  buildCondBr cond trueBlock falseBlock
 
   exitBlock <- appendBasicBlock "ifExit" func
   positionAtEnd trueExit
