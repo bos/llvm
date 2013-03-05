@@ -65,7 +65,7 @@ module LLVM.ST
     , CodeGen, MonadCG
     , liftCG
     , positionAtEnd, positionBefore, positionAfter
-    , getBlock, getFunction, getParams
+    , getInsertBlock, getFunction, getParams
     , getValueName, setValueName
 
     , buildTrunc
@@ -542,16 +542,11 @@ positionAfter (STV v) =
                       block <- W.getInstructionParent v
                       W.positionBuilder builder block v) . cgBuilder
 
-getInsertBlock :: (Monad (m c s), MonadCG m) => m c s (STBasicBlock c s)
-getInsertBlock = do
-  b <- liftCG $ fmap cgBuilder (CG ask)
-  wrap . fmap STB $ W.getInsertBlock b
-
-getBlock :: MonadCG m => m c s (STBasicBlock c s)
-getBlock = liftCG $ CG ask >>= wrap . fmap STB . W.getInsertBlock . cgBuilder
+getInsertBlock :: MonadCG m => m c s (STBasicBlock c s)
+getInsertBlock = liftCG $ CG ask >>= wrap . fmap STB . W.getInsertBlock . cgBuilder
 
 getFunction :: MonadCG m => m c s (STValue c s)
-getFunction = liftCG $ getBlock >>= (\(STB b) -> wrap . fmap STV $ W.getBasicBlockParent b)
+getFunction = liftCG $ getInsertBlock >>= (\(STB b) -> wrap . fmap STV $ W.getBasicBlockParent b)
 
 getParams :: MonadCG m => m c s [STValue c s]
 getParams = liftCG $ getFunction >>= getFunctionParams
