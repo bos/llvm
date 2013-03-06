@@ -1343,6 +1343,7 @@ type TypeHandleRef = Ptr TypeHandle
 
 data TypeKind
     = VoidTypeKind
+    | HalfTypeKind
     | FloatTypeKind
     | DoubleTypeKind
     | X86_FP80TypeKind
@@ -1354,8 +1355,9 @@ data TypeKind
     | StructTypeKind
     | ArrayTypeKind
     | PointerTypeKind
-    | OpaqueTypeKind
     | VectorTypeKind
+    | MetadataTypeKind
+    | X86_MMXTypeKind
     deriving (Eq, Ord, Enum, Bounded, Show, Read, Typeable)
 
 getTypeKind :: TypeRef -> IO TypeKind
