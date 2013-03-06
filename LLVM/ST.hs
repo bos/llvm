@@ -46,7 +46,8 @@ module LLVM.ST
     , getLinkage, setLinkage
     , getTailCall, setTailCall
     , verifyFunction
-    , getUndef, isUnreachable
+    , getUndef
+    , isConstant, isNull, isUndef, isUnreachable
     , constInt
     , constPtrNull
     , constString, constStruct
@@ -339,6 +340,15 @@ setValueName (STV v) = wrap . W.setValueName v
 
 isUnreachable :: (Monad (m c s), MonadLLVM m) => STValue c s -> m c s Bool
 isUnreachable (STV v) = wrap $ W.isUnreachable v
+
+isConstant :: (Monad (m c s), MonadLLVM m) => STValue c s -> m c s Bool
+isConstant (STV v) = wrap $ W.isConstant v
+
+isNull :: (Monad (m c s), MonadLLVM m) => STValue c s -> m c s Bool
+isNull (STV v) = wrap $ W.isNull v
+
+isUndef :: (Monad (m c s), MonadLLVM m) => STValue c s -> m c s Bool
+isUndef (STV v) = wrap $ W.isUndef v
 
 getUndef :: (Monad (m c s), MonadLLVM m) => STType c s -> m c s (STValue c s)
 getUndef = return . STV . W.getUndef . unSTT
