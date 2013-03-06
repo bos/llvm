@@ -230,6 +230,8 @@ import LLVM.FFI.Core
     , constInt
     , constReal
 
+    , isConstant, isNull, isUndef
+
     , constInBoundsGEP
     , constIntCast
     , constIntOfString
