@@ -87,6 +87,7 @@ module LLVM.ST
     , buildSExtOrBitCast
 
     , buildInBoundsGEP
+    , buildAlloca
     , buildLoad, buildStore
     , buildCall
     , buildBr, buildCondBr
@@ -219,6 +220,7 @@ newtype STValue c s = STV { unSTV :: Value }
 writeBitcodeToFile :: Module -> FilePath -> IO ()
 writeBitcodeToFile (PM m) = W.writeBitcodeToFile m
 
+-- Note: LLVM will sometimes call exit inside this. Probably not intended behavior.
 verifyModule :: Module -> Maybe String
 verifyModule (PM m) = unsafePerformIO (W.verifyModule m)
 
@@ -569,6 +571,11 @@ buildInBoundsGEP name (STV aggPtr) indices = do
 constGEP :: (Monad (m c s), MonadCG m) => STValue c s -> [STValue c s] -> m c s (STValue c s)
 constGEP (STV aggPtr) indices =
   wrap . fmap STV $ W.constGEP aggPtr (map unSTV indices)
+
+buildAlloca :: (Monad (m c s), MonadCG m) => String -> STType c s -> m c s (STValue c s)
+buildAlloca name (STT ty) = do
+  b <- liftCG $ fmap cgBuilder (CG ask)
+  wrap . fmap STV $ W.buildAlloca b ty name
 
 buildLoad :: (Monad (m c s), MonadCG m) => String -> STValue c s -> m c s (STValue c s)
 buildLoad name (STV ptr) = do
