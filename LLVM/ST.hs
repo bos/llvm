@@ -65,7 +65,9 @@ module LLVM.ST
 
     , CodeGen, MonadCG
     , liftCG
-    , positionAtEnd, positionBefore, positionAfter
+    , position, positionAtEnd, positionBefore, positionAfter
+    , getEntryBasicBlock, getNextBasicBlock
+    , getFirstInstruction, getNextInstruction, getPreviousInstruction, getLastInstruction
     , getInsertBlock, getFunction, getParams
     , getValueName, setValueName
 
@@ -250,7 +252,7 @@ instance MonadLLVM LLVM where
     liftLL = id
     liftST = LL . lift
 
-wrap :: (Monad (m c s), MonadLLVM m) => IO a -> m c s a
+wrap :: MonadLLVM m => IO a -> m c s a
 wrap = liftLL . LL . lift . unsafeIOToST
 
 run :: Context -> (forall c s. LLVM c s (STModule c s)) -> Module
@@ -540,6 +542,11 @@ runCodeGen (STV func) cg = do
 verifyFunction :: (Monad (m c s), MonadLLVM m) => STValue c s -> m c s Bool
 verifyFunction (STV f) = wrap (W.verifyFunction f)
 
+position :: MonadCG m => STBasicBlock c s -> STValue c s -> m c s ()
+position (STB block) (STV instr) = liftCG $ do
+                                     b <- fmap cgBuilder $ CG ask
+                                     wrap $ W.positionBuilder b block instr
+
 positionAtEnd :: MonadCG m => STBasicBlock c s -> m c s ()
 positionAtEnd (STB block) = liftCG $ CG ask >>= wrap . flip W.positionAtEnd block . cgBuilder
 
@@ -554,8 +561,26 @@ positionAfter (STV v) =
                       block <- W.getInstructionParent v
                       W.positionBuilder builder block v) . cgBuilder
 
+getFirstInstruction :: MonadLLVM m => STBasicBlock c s -> m c s (STValue c s)
+getFirstInstruction (STB b) = wrap . fmap STV . W.getFirstInstruction $ b
+
+getLastInstruction :: MonadLLVM m => STBasicBlock c s -> m c s (STValue c s)
+getLastInstruction (STB b) = wrap . fmap STV . W.getLastInstruction $ b
+
+getNextInstruction :: MonadLLVM m => STValue c s -> m c s (STValue c s)
+getNextInstruction (STV v) = wrap . fmap STV . W.getNextInstruction $ v
+
+getPreviousInstruction :: MonadLLVM m => STValue c s -> m c s (STValue c s)
+getPreviousInstruction (STV v) = wrap . fmap STV . W.getPreviousInstruction $ v
+
 getInsertBlock :: MonadCG m => m c s (STBasicBlock c s)
 getInsertBlock = liftCG $ CG ask >>= wrap . fmap STB . W.getInsertBlock . cgBuilder
+
+getEntryBasicBlock :: MonadLLVM m => STValue c s -> m c s (STBasicBlock c s)
+getEntryBasicBlock (STV f) = liftLL $ wrap . fmap STB . W.getEntryBasicBlock $ f
+
+getNextBasicBlock :: MonadLLVM m => STBasicBlock c s -> m c s (Maybe (STBasicBlock c s))
+getNextBasicBlock (STB b) = liftLL $ wrap . (fmap . fmap) STB . W.getNextBasicBlock $ b
 
 getFunction :: MonadCG m => m c s (STValue c s)
 getFunction = liftCG $ getInsertBlock >>= (\(STB b) -> wrap . fmap STV $ W.getBasicBlockParent b)
