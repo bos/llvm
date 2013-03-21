@@ -430,8 +430,8 @@ instance MonadMG ModuleGen where
 unsafeMod :: ModuleGen c s W.Module
 unsafeMod = fmap mgModule $ MG ask
 
-getModule :: ModuleGen c s (STModule c s)
-getModule = ask
+getModule :: MonadMG m => m c s (STModule c s)
+getModule = liftMG ask
 
 genModule :: (Monad (m c s), MonadLLVM m) => String -> ModuleGen c s a -> m c s a
 genModule name (MG mg) = do
