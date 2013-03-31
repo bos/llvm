@@ -114,8 +114,14 @@ module LLVM.FFI.Core
     , constAllOnes
     , getUndef
     , isConstant
+    , isConstantExpr
+    , isCast
+    , isStaticGEP
+    , isZeroInitialized
+    , isCString
     , isNull
     , isUndef
+    , getAsCString
 
     -- ** Global variables, functions, and aliases (globals)
     , Linkage(..)

@@ -1,7 +1,7 @@
 {-# LANGUAGE MultiParamTypeClasses, FunctionalDependencies, FlexibleInstances, UndecidableInstances, TypeSynonymInstances, ScopedTypeVariables, OverlappingInstances, FlexibleContexts, TypeOperators, DeriveDataTypeable, ForeignFunctionInterface #-}
 module LLVM.Core.Instructions(
     -- * ADT representation of IR
-    BinOpDesc(..), InstrDesc(..), ArgDesc(..), getInstrDesc,
+    BinOpDesc(..), InstrDesc(..), ArgDesc(..), getInstrDesc, isValConvOp, getValConvArg,
     -- * Terminator instructions
     ret,
     condBr,
@@ -225,6 +225,7 @@ getValConvArg (IDFPExt _ _ (AV a)) = a
 getValConvArg (IDPtrToInt _ _ (AV a)) = a
 getValConvArg (IDIntToPtr _ _ (AV a)) = a
 getValConvArg (IDBitcast _ _ (AV a)) = a
+getValConvArg _ = ""
 
 -- TODO: fix for non-int constants
 getArgDesc :: (String, FFI.ValueRef) -> IO ArgDesc
@@ -260,7 +261,7 @@ getArgDesc (vname, v) = do
                         _ -> return $ AV vname
 
 evalStaticGEPOffset :: Int -> [(String, FFI.ValueRef)] -> IO Int
-evalStaticGEPOffset i ((oname, o):os) = do
+evalStaticGEPOffset i ((_, o):os) = do
           t <- FFI.typeOf o >>= typeDesc2
           case t of
                 TDInt _ _ ->
