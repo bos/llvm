@@ -28,7 +28,7 @@ AC_ARG_WITH(llvm_bindir,
   llvm_bindir="$withval",
   llvm_bindir="$llvm_prefix/bin")dnl
 
-AC_PATH_PROGS(llvm_config, [llvm-config-2.9],
+AC_PATH_PROGS(llvm_config, [llvm-config],
   [AC_MSG_ERROR(could not find llvm-config in $llvm_bindir)],
   ["$llvm_bindir:$PATH"])
   
@@ -85,7 +85,7 @@ LDFLAGS="$llvm_ldflags $LDFLAGS $TARGET_LDFLAGS"
 
 llvm_extra_ghci_libs=""
 
-AC_SEARCH_LIBS([LLVMModuleCreateWithName],[LLVM-2.7 LLVM-2.8 LLVM-2.9 LLVM-3.0]) 
+AC_SEARCH_LIBS([LLVMModuleCreateWithName],[LLVM-2.7 LLVM-2.8 LLVM-2.9 LLVM-3.0 LLVM-3.2]) 
 if test "$ac_cv_search_LLVMModuleCreateWithName" = "no"; then
    llvm_all_libs="`$llvm_config --libs all`"
 else
@@ -125,7 +125,7 @@ dnl   AC_CHECK_LIB(LLVMCore, LLVMModuleCreateWithName, [],
 dnl     [AC_MSG_ERROR(could not find LLVM C bindings)])
 dnl fi
 
-llvm_num_version="`echo $llvm_version | tr . 0`"
+llvm_num_version="`echo $llvm_version | tr . 0 | tr -d svn`"
 AC_DEFINE_UNQUOTED([HS_LLVM_VERSION], [$llvm_num_version],
   [Define to the version of LLVM, e.g. 209 for 2.9.])
 

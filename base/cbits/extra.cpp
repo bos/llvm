@@ -364,7 +364,7 @@ void LLVMSetDoesNotThrow(LLVMValueRef fn, int DoesNotThrow)
 	llvm::Function *fnp = llvm::unwrap<llvm::Function>(fn);
 	assert(fnp);
 
-	return fnp->setDoesNotThrow((bool)DoesNotThrow);
+	return fnp->setDoesNotThrow();
 }
 
 LLVMValueRef LLVMGetIntrinsic(LLVMModuleRef module, int id,
@@ -405,7 +405,7 @@ LLVMModuleRef LLVMGetModuleFromAssembly(const char *asmtext, unsigned txtlen,
 											  llvm::getGlobalContext()))) {
 		std::string s;
 		llvm::raw_string_ostream buf(s);
-		error.Print("llvm-py", buf);
+		error.print("llvm-py", buf, true);
 		*out = strdup(buf.str().c_str());
 		return NULL;
 	}
@@ -529,14 +529,14 @@ LLVMBool LLVMIsZeroInitialized(LLVMValueRef Ty) {
 }
 
 LLVMBool LLVMIsCString(LLVMValueRef Val) {
-  if (llvm::ConstantArray *C = llvm::dyn_cast<llvm::ConstantArray>(llvm::unwrap(Val)))
+  if (llvm::ConstantDataSequential *C = llvm::dyn_cast<llvm::ConstantDataSequential>(llvm::unwrap(Val)))
 	return C->isCString();
   return false;
 }
 
 const char *LLVMGetAsCString(LLVMValueRef Val) {
-  if (llvm::ConstantArray *C = llvm::dyn_cast<llvm::ConstantArray>(llvm::unwrap(Val)))
-	return (C->getAsString()).c_str();
+  if (llvm::ConstantDataSequential *C = llvm::dyn_cast<llvm::ConstantDataSequential>(llvm::unwrap(Val)))
+    return (C->getAsString()).str().c_str();
   return NULL;
 }
 
@@ -576,7 +576,7 @@ define_pass( InstCount )
 define_pass( InstructionNamer )
 define_pass( LazyValueInfo )
 define_pass( LCSSA )
-define_pass( LoopDependenceAnalysis )
+//define_pass( LoopDependenceAnalysis )
 define_pass( LoopExtractor )
 define_pass( LoopSimplify )
 define_pass( LoopStrengthReduce )
@@ -600,5 +600,5 @@ define_pass( StripNonDebugSymbols )
 define_pass( UnifyFunctionExitNodes )
 
 /* we support only internalize(true) */
-llvm::ModulePass *createInternalize2Pass() { return llvm::createInternalizePass(true); }
+llvm::ModulePass *createInternalize2Pass() { return llvm::createInternalizePass(); }
 define_pass( Internalize2 )
