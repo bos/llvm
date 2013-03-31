@@ -1,5 +1,5 @@
 name:          llvm-base
-version:       3.0.0.0
+version:       3.0.1.0
 license:       BSD3
 license-file:  LICENSE
 synopsis:      FFI bindings to the LLVM compiler toolkit.

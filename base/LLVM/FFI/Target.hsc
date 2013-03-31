@@ -39,6 +39,7 @@ foreign import ccall unsafe "LLVMElementAtOffset" elementAtOffset
 	:: TargetDataRef -> TypeRef -> CULLong -> CUInt
 foreign import ccall unsafe "LLVMIntPtrType" intPtrType
 	:: TargetDataRef -> TypeRef
+-- Removed in LLVM_3.0 ?
 -- foreign import ccall unsafe "LLVMInvalidateStructLayout" invalidateStructLayout
 --     :: TargetDataRef -> TypeRef -> IO ()
 foreign import ccall unsafe "LLVMOffsetOfElement" offsetOfElement

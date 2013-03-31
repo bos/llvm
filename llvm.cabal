@@ -1,5 +1,5 @@
 name:          llvm
-version:       3.0.0.0
+version:       3.0.1.0
 license:       BSD3
 license-file:  LICENSE
 synopsis:      Bindings to the LLVM compiler toolkit.
@@ -42,7 +42,7 @@ library
     base >= 3 && < 5,
     bytestring >= 0.9,
     directory,
-    llvm-base == 3.0.*,
+    llvm-base >= 3.0.0.1 && < 4,
     mtl,
     process,
     type-level,

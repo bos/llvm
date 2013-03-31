@@ -89,6 +89,11 @@
 
 //using namespace llvm;
 
+unsigned LLVMInitNativeTarget()
+{
+    return LLVMInitializeNativeTarget();
+}
+
 char *LLVMDumpModuleToString(LLVMModuleRef module)
 {
 	std::string s;
@@ -552,6 +557,7 @@ void LLVMAdd ## P ## Pass (LLVMPassManagerRef passmgr) { \
 define_pass( AAEval )
 define_pass( AliasAnalysisCounter )
 define_pass( AlwaysInliner )
+// Name conflicts with those in LLVM proper, have a safer prefix?
 // define_pass( BasicAliasAnalysis )
 define_pass( BlockPlacement )
 define_pass( BreakCriticalEdges )

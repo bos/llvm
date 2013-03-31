@@ -1,4 +1,4 @@
-{-# LANGUAGE ForeignFunctionInterface, EmptyDataDecls, DeriveDataTypeable #-}
+{-# LANGUAGE ForeignFunctionInterface, EmptyDataDecls, DeriveDataTypeable, CPP #-}
 
 -- |
 -- Module:      LLVM.FFI.Core
@@ -12,477 +12,492 @@
 -- This module provides direct access to the LLVM C bindings.
 
 module LLVM.FFI.Core
-	(
-	  -- * Modules
-	  Module
-	, ModuleRef
-	, moduleCreateWithName
-	, disposeModule
-	, ptrDisposeModule
+    (
+      -- * Modules
+      Module
+    , ModuleRef
+    , moduleCreateWithName
+    , disposeModule
+    , ptrDisposeModule
 
-	, getDataLayout
-	, setDataLayout
+    , getDataLayout
+    , setDataLayout
 
-	, getTarget
-	, setTarget
+    , getTarget
+    , setTarget
 
-	-- * Module providers
-	, ModuleProvider
-	, ModuleProviderRef
-	, createModuleProviderForExistingModule
-	, ptrDisposeModuleProvider
+    -- * Module providers
+    , ModuleProvider
+    , ModuleProviderRef
+    , createModuleProviderForExistingModule
+    , ptrDisposeModuleProvider
 
-	-- * Types
-	, Type
-	, TypeRef
-	-- , addTypeName
-	-- , deleteTypeName
+    -- * Types
+    , Type
+    , TypeRef
+#if HS_LLVM_VERSION < 300
+    , addTypeName
+    , deleteTypeName
+#endif
+    , getTypeKind
+    , TypeKind(..)
 
-	, getTypeKind
-	, TypeKind(..)
+    -- ** Integer types
+    , int1Type
+    , int8Type
+    , int16Type
+    , int32Type
+    , int64Type
+    , integerType
+    , getIntTypeWidth
 
-	-- ** Integer types
-	, int1Type
-	, int8Type
-	, int16Type
-	, int32Type
-	, int64Type
-	, integerType
-	, getIntTypeWidth
+    -- ** Real types
+    , floatType
+    , doubleType
+    , x86FP80Type
+    , fp128Type
+    , ppcFP128Type
 
-	-- ** Real types
-	, floatType
-	, doubleType
-	, x86FP80Type
-	, fp128Type
-	, ppcFP128Type
+    -- ** Function types
+    , functionType
+    , isFunctionVarArg
+    , getReturnType
+    , countParamTypes
+    , getParamTypes
 
-	-- ** Function types
-	, functionType
-	, isFunctionVarArg
-	, getReturnType
-	, countParamTypes
-	, getParamTypes
+    -- ** Other types
+    , voidType
+    , labelType
+#if HS_LLVM_VERSION < 300
+    , opaqueType
+#endif
 
-	-- ** Other types
-	, voidType
-	, labelType
---	, opaqueType
+    -- ** Array, pointer, and vector types
+    , arrayType
+    , pointerType
+    , vectorType
+    , getElementType
+    , getArrayLength
+    , getPointerAddressSpace
+    , getVectorSize
 
-	-- ** Array, pointer, and vector types
-	, arrayType
-	, pointerType
-	, vectorType
-	, getElementType
-	, getArrayLength
-	, getPointerAddressSpace
-	, getVectorSize
+    -- ** Struct types
+    , structType
+    , countStructElementTypes
+    , getStructElementTypes
+    , isPackedStruct
+#if HS_LLVM_VERSION >= 300
+    , structCreateNamed
+    , getStructName
+    , structSetBody
+#endif
 
-	-- ** Struct types
-	, structType
-	, countStructElementTypes
-	, getStructElementTypes
-	, isPackedStruct
+    -- * Type handles
+#if HS_LLVM_VERSION < 300
+    , TypeHandleRef
+    , createTypeHandle
+    , refineType
+    , resolveTypeHandle
+    , disposeTypeHandle
+#endif
 
-	-- * Type handles
-	, TypeHandleRef
---	, createTypeHandle
---	, refineType
-	-- , resolveTypeHandle
-	-- , disposeTypeHandle
+    -- * Values
+    , Value
+    , ValueRef
+    , typeOf
+    , getValueName
+    , setValueName
+    , dumpValue
 
-	-- * Values
-	, Value
-	, ValueRef
-	, typeOf
-	, getValueName
-	, setValueName
-	, dumpValue
+    -- ** Constants
+    , constNull
+    , constAllOnes
+    , getUndef
+    , isConstant
+    , isNull
+    , isUndef
 
-	-- ** Constants
-	, constNull
-	, constAllOnes
-	, getUndef
-	, isConstant
-	, isConstantExpr
-	, isCast
-	, isStaticGEP
-	, isZeroInitialized
-	, isCString
-	, getAsCString
-	, isNull
-	, isUndef
+    -- ** Global variables, functions, and aliases (globals)
+    , Linkage(..)
+    , fromLinkage
+    , toLinkage
+    , getLinkage
+    , setLinkage
 
-	-- ** Global variables, functions, and aliases (globals)
-	, Linkage(..)
-	, fromLinkage
-	, toLinkage
-	, getLinkage
-	, setLinkage
+    , Visibility(..)
+    , fromVisibility
+    , toVisibility
+    , getVisibility
+    , setVisibility
 
-	, Visibility(..)
-	, fromVisibility
-	, toVisibility
-	, getVisibility
-	, setVisibility
+    , isDeclaration
+    , getSection
+    , setSection
+    , getAlignment
+    , setAlignment
+      
+    -- ** Global variables
+    , addGlobal
+    , getNamedGlobal
+    , deleteGlobal
+    , getInitializer
+    , setInitializer
+    , isThreadLocal
+    , setThreadLocal
+    , isGlobalConstant
+    , setGlobalConstant
+    , getFirstGlobal
+    , getNextGlobal
+    , getPreviousGlobal
+    , getLastGlobal
+    , getGlobalParent
 
-	, isDeclaration
-	, getSection
-	, setSection
-	, getAlignment
-	, setAlignment
+    -- ** Functions
+    , addFunction
+    , getNamedFunction
+    , deleteFunction
+    , countParams
+    , getParams
+    , getParam
+    , getIntrinsicID
+    , getGC
+    , setGC
+    , getFirstFunction
+    , getNextFunction
+    , getPreviousFunction
+    , getLastFunction
+    , getFirstParam
+    , getNextParam
+    , getPreviousParam
+    , getLastParam
+    , getParamParent
+    , isTailCall
+    , setTailCall
 
-	-- ** Global variables
-	, addGlobal
-	, getNamedGlobal
-	, deleteGlobal
-	, getInitializer
-	, setInitializer
-	, isThreadLocal
-	, setThreadLocal
-	, isGlobalConstant
-	, setGlobalConstant
-	, getFirstGlobal
-	, getNextGlobal
-	, getPreviousGlobal
-	, getLastGlobal
-	, getGlobalParent
+    -- ** Phi nodes
+    , addIncoming
+    , countIncoming
+    , getIncomingValue
+    , getIncomingBlock
 
-	-- ** Functions
-	, addFunction
-	, getNamedFunction
-	, deleteFunction
-	, countParams
-	, getParams
-	, getParam
-	, getIntrinsicID
-	, getGC
-	, setGC
-	, getFirstFunction
-	, getNextFunction
-	, getPreviousFunction
-	, getLastFunction
-	, getFirstParam
-	, getNextParam
-	, getPreviousParam
-	, getLastParam
-	, getParamParent
-	, isTailCall
-	, setTailCall
+    -- ** Calling conventions
+    , CallingConvention(..)
+    , fromCallingConvention
+    , toCallingConvention
+    , getFunctionCallConv
+    , setFunctionCallConv
+    , getInstructionCallConv
+    , setInstructionCallConv
 
-	-- ** Phi nodes
-	, addIncoming
-	, countIncoming
-	, getIncomingValue
-	, getIncomingBlock
+    -- * Constants
 
-	-- ** Calling conventions
-	, CallingConvention(..)
-	, fromCallingConvention
-	, toCallingConvention
-	, getFunctionCallConv
-	, setFunctionCallConv
-	, getInstructionCallConv
-	, setInstructionCallConv
+    -- ** Scalar constants
+    , constInt
+    , constReal
 
-	-- * Constants
+    -- ** Composite constants
+    , constArray
+    , constString
+    , constStruct
+    , constVector
 
-	-- ** Scalar constants
-	, constInt
-	, constReal
+    -- ** Constant expressions
+    , sizeOf
+    , constNeg
+    , constNot
+    , constAdd
+    , constSub
+    , constMul
+    , constExactSDiv
+    , constFAdd
+    , constFMul
+    , constFNeg
+    , constFPCast
+    , constFSub
+    , constUDiv
+    , constSDiv
+    , constFDiv
+    , constURem
+    , constSRem
+    , constFRem
+    , constAnd
+    , constOr
+    , constXor
+    , constICmp
+    , constFCmp
+    , constShl
+    , constLShr
+    , constAShr
+    , constGEP
+    , constTrunc
+    , constSExt
+    , constZExt
+    , constFPTrunc
+    , constFPExt
+    , constUIToFP
+    , constSIToFP
+    , constFPToUI
+    , constFPToSI
+    , constPtrToInt
+    , constIntToPtr
+    , constBitCast
+    , constSelect
+    , constExtractElement
+    , constInsertElement
+    , constShuffleVector
+    , constRealOfString
+    , constNSWMul
+    , constNSWNeg
+    , constNSWSub
+    , constNUWAdd
+    , constNUWMul
+    , constNUWNeg
+    , constNUWSub
 
-	-- ** Composite constants
-	, constArray
-	, constString
-	, constStruct
-	, constVector
+    -- * Basic blocks
+    , BasicBlock
+    , BasicBlockRef
+    , basicBlockAsValue
+    , valueIsBasicBlock
+    , valueAsBasicBlock
+    , countBasicBlocks
+    , getBasicBlocks
+    , getEntryBasicBlock
+    , appendBasicBlock
+    , insertBasicBlock
+    , deleteBasicBlock
+    , getFirstBasicBlock
+    , getNextBasicBlock
+    , getPreviousBasicBlock
+    , getLastBasicBlock
+    , getInsertBlock
+    , getBasicBlockParent
 
-	-- ** Constant expressions
-	, sizeOf
-	, constNeg
-	, constNot
-	, constAdd
-	, constSub
-	, constMul
-	, constExactSDiv
-	, constFAdd
-	, constFMul
-	, constFNeg
-	, constFPCast
-	, constFSub
-	, constUDiv
-	, constSDiv
-	, constFDiv
-	, constURem
-	, constSRem
-	, constFRem
-	, constAnd
-	, constOr
-	, constXor
-	, constICmp
-	, constFCmp
-	, constShl
-	, constLShr
-	, constAShr
-	, constGEP
-	, constTrunc
-	, constSExt
-	, constZExt
-	, constFPTrunc
-	, constFPExt
-	, constUIToFP
-	, constSIToFP
-	, constFPToUI
-	, constFPToSI
-	, constPtrToInt
-	, constIntToPtr
-	, constBitCast
-	, constSelect
-	, constExtractElement
-	, constInsertElement
-	, constShuffleVector
-	, constRealOfString
-	, constNSWMul
-	, constNSWNeg
-	, constNSWSub
-	, constNUWAdd
-	, constNUWMul
-	, constNUWNeg
-	, constNUWSub
+    -- * Instruction field accessors
+    , instGetOpcode, cmpInstGetPredicate
 
-	-- * Basic blocks
-	, BasicBlock
-	, BasicBlockRef
-	, basicBlockAsValue
-	, valueIsBasicBlock
-	, valueAsBasicBlock
-	, countBasicBlocks
-	, getBasicBlocks
-	, getEntryBasicBlock
-	, appendBasicBlock
-	, insertBasicBlock
-	, deleteBasicBlock
-	, getFirstBasicBlock
-	, getNextBasicBlock
-	, getPreviousBasicBlock
-	, getLastBasicBlock
-	, getInsertBlock
-	, getBasicBlockParent
+    -- * Instruction building
+    , Builder
+    , BuilderRef
+    , createBuilder
+    , ptrDisposeBuilder
+    , positionBuilder
+    , positionBefore
+    , positionAtEnd
+    , getFirstInstruction
+    , getNextInstruction
+    , getPreviousInstruction
+    , getLastInstruction
+    , getInstructionParent
 
-	-- * Instruction field accessors
-	, instGetOpcode, cmpInstGetPredicate
+    -- ** Terminators
+    , buildRetVoid
+    , buildRet
+    , buildBr
+    , buildIndirectBr
+    , buildCondBr
+    , buildSwitch
+    , buildInvoke
+#if HS_LLVM_VERSION < 300
+    , buildUnwind
+#endif
+    , buildUnreachable
 
-	-- * Instruction building
-	, Builder
-	, BuilderRef
-	, createBuilder
-	, ptrDisposeBuilder
-	, positionBuilder
-	, positionBefore
-	, positionAtEnd
-	, getFirstInstruction
-	, getNextInstruction
-	, getPreviousInstruction
-	, getLastInstruction
-	, getInstructionParent
+#if HS_LLVM_VERSION >= 300
+    -- ** Landing pad
+    , buildLandingPad
+    , addClause
+    , setCleanup
+#endif
 
-	-- ** Terminators
-	, buildRetVoid
-	, buildRet
-	, buildBr
-	, buildIndirectBr
-	, buildCondBr
-	, buildSwitch
-	, buildInvoke
---	, buildUnwind
-	, buildUnreachable
+    -- ** Arithmetic
+    , buildAdd
+    , buildSub
+    , buildMul
+    , buildFAdd
+    , buildFMul
+    , buildFPCast
+    , buildFSub
+    , buildUDiv
+    , buildSDiv
+    , buildExactSDiv
+    , buildFDiv
+    , buildURem
+    , buildSRem
+    , buildFRem
+    , buildShl
+    , buildLShr
+    , buildAShr
+    , buildAnd
+    , buildOr
+    , buildXor
+    , buildNeg
+    , buildFNeg
+    , buildNot
+    , buildNSWMul
+    , buildNSWNeg
+    , buildNSWSub
+    , buildNUWAdd
+    , buildNUWMul
+    , buildNUWNeg
+    , buildNUWSub
 
-	-- ** Arithmetic
-	, buildAdd
-	, buildSub
-	, buildMul
-	, buildFAdd
-	, buildFMul
-	, buildFPCast
-	, buildFSub
-	, buildUDiv
-	, buildSDiv
-	, buildExactSDiv
-	, buildFDiv
-	, buildURem
-	, buildSRem
-	, buildFRem
-	, buildShl
-	, buildLShr
-	, buildAShr
-	, buildAnd
-	, buildOr
-	, buildXor
-	, buildNeg
-	, buildFNeg
-	, buildNot
-	, buildNSWMul
-	, buildNSWNeg
-	, buildNSWSub
-	, buildNUWAdd
-	, buildNUWMul
-	, buildNUWNeg
-	, buildNUWSub
+    -- ** Memory
+    , buildMalloc
+    , buildArrayMalloc
+    , buildAlloca
+    , buildArrayAlloca
+    , buildFree
+    , buildLoad
+    , buildStore
+    , buildGEP
 
-	-- ** Memory
-	, buildMalloc
-	, buildArrayMalloc
-	, buildAlloca
-	, buildArrayAlloca
-	, buildFree
-	, buildLoad
-	, buildStore
-	, buildGEP
+    -- ** Casts
+    , buildTrunc
+    , buildZExt
+    , buildSExt
+    , buildFPToUI
+    , buildFPToSI
+    , buildUIToFP
+    , buildSIToFP
+    , buildFPTrunc
+    , buildFPExt
+    , buildPtrToInt
+    , buildIntToPtr
+    , buildBitCast
+    , buildPointerCast
+    , buildTruncOrBitCast
+    , buildZExtOrBitCast
+    , buildSExtOrBitCast
 
-	-- ** Casts
-	, buildTrunc
-	, buildZExt
-	, buildSExt
-	, buildFPToUI
-	, buildFPToSI
-	, buildUIToFP
-	, buildSIToFP
-	, buildFPTrunc
-	, buildFPExt
-	, buildPtrToInt
-	, buildIntToPtr
-	, buildBitCast
-	, buildPointerCast
-	, buildTruncOrBitCast
-	, buildZExtOrBitCast
-	, buildSExtOrBitCast
+    , buildPtrDiff
 
-	, buildPtrDiff
+    -- * Misc
+    , buildAggregateRet
+    , buildGlobalString
+    , buildGlobalStringPtr
+    , buildInBoundsGEP
+    , buildIsNotNull
+    , buildIsNull
+    , buildNSWAdd
+    , buildStructGEP
 
-	-- * Misc
-	, buildAggregateRet
-	, buildGlobalString
-	, buildGlobalStringPtr
-	, buildInBoundsGEP
-	, buildIsNotNull
-	, buildIsNull
-	, buildNSWAdd
-	, buildStructGEP
+    -- ** Comparisons
+    , buildICmp
+    , buildFCmp
 
-	-- ** Comparisons
-	, buildICmp
-	, buildFCmp
+    -- ** Miscellaneous instructions
+    , buildPhi
+    , buildCall
+    , buildSelect
+    , buildVAArg
+    , buildExtractElement
+    , buildInsertElement
+    , buildShuffleVector
 
-	-- ** Miscellaneous instructions
-	, buildPhi
-	, buildCall
-	, buildSelect
-	, buildVAArg
-	, buildExtractElement
-	, buildInsertElement
-	, buildShuffleVector
+    -- ** Other helpers
+    , addCase
 
-	-- ** Other helpers
-	, addCase
+    -- * Memory buffers
+    , MemoryBuffer
+    , MemoryBufferRef
+    , createMemoryBufferWithContentsOfFile
+    , createMemoryBufferWithSTDIN
+    , disposeMemoryBuffer
 
-	-- * Memory buffers
-	, MemoryBuffer
-	, MemoryBufferRef
-	, createMemoryBufferWithContentsOfFile
-	, createMemoryBufferWithSTDIN
-	, disposeMemoryBuffer
+    -- * Error handling
+    , disposeMessage
 
-	-- * Error handling
-	, disposeMessage
+    -- * Parameter passing
+    , addAttribute
+    , setInstrParamAlignment
+    , setParamAlignment
+    , Attribute(..)
+    , fromAttribute
+    , toAttribute
+    , addInstrAttribute
+    , removeFunctionAttr
+    , removeAttribute
+    , removeInstrAttribute
+    , addFunctionAttr
 
-	-- * Parameter passing
-	, addAttribute
-	, setInstrParamAlignment
-	, setParamAlignment
-	, Attribute(..)
-	, fromAttribute
-	, toAttribute
-	, addInstrAttribute
-	, removeFunctionAttr
-	, removeAttribute
-	, removeInstrAttribute
-	, addFunctionAttr
+    -- * Pass manager
+    , PassManager
+    , PassManagerRef
+    , createFunctionPassManager
+    , createPassManager
+    , disposePassManager
+    , ptrDisposePassManager
+    , finalizeFunctionPassManager
+    , initializeFunctionPassManager
+    , runFunctionPassManager
+    , runPassManager
 
-	-- * Pass manager
-	, PassManager
-	, PassManagerRef
-	, createFunctionPassManager
-	, createPassManager
-	, disposePassManager
-	, ptrDisposePassManager
-	, finalizeFunctionPassManager
-	, initializeFunctionPassManager
-	, runFunctionPassManager
-	, runPassManager
+    -- * Context functions
+    , Context
+    , ContextRef
 
-	-- * Context functions
-	, Context
-	, ContextRef
-
-	-- * Debug
-	, dumpModule
+    -- * Debug
+    , dumpModule
 
 
-	-- * Misc
-	, alignOf
-	, constInBoundsGEP
-	, constIntCast
-	, constIntOfString
-	, constIntOfStringAndSize
-	, constNSWAdd
-	, constPointerCast
-	, constPointerNull
-	, constRealOfStringAndSize
-	, constSExtOrBitCast
+    -- * Misc
+    , alignOf
+    , constInBoundsGEP
+    , constIntCast
+    , constIntOfString
+    , constIntOfStringAndSize
+    , constNSWAdd
+    , constPointerCast
+    , constPointerNull
+    , constRealOfStringAndSize
+    , constSExtOrBitCast
 
-	, getTypeByName
-	, insertIntoBuilderWithName
+    , getTypeByName
+    , insertIntoBuilderWithName
 
-	-- * Context functions
-	, moduleCreateWithNameInContext
-	, appendBasicBlockInContext
-	, insertBasicBlockInContext
-	, createBuilderInContext
+    -- * Context functions
+    , moduleCreateWithNameInContext
+    , appendBasicBlockInContext
+    , insertBasicBlockInContext
+    , createBuilderInContext
 
-	, contextDispose
+    , contextDispose
 
-	, constStringInContext
-	, constStructInContext
-	, constTruncOrBitCast
-	, constZExtOrBitCast
+    , constStringInContext
+    , constStructInContext
+    , constTruncOrBitCast
+    , constZExtOrBitCast
 
-	, doubleTypeInContext
-	, fP128TypeInContext
-	, floatTypeInContext
-	, int16TypeInContext
-	, int1TypeInContext
-	, int32TypeInContext
-	, int64TypeInContext
-	, int8TypeInContext
-	, intTypeInContext
-	, labelTypeInContext
---    , opaqueTypeInContext
-	, pPCFP128TypeInContext
-	, structTypeInContext
-	, voidTypeInContext
-	, x86FP80TypeInContext
-	, getTypeContext
+    , doubleTypeInContext
+    , fP128TypeInContext
+    , floatTypeInContext
+    , int16TypeInContext
+    , int1TypeInContext
+    , int32TypeInContext
+    , int64TypeInContext
+    , int8TypeInContext
+    , intTypeInContext
+    , labelTypeInContext
+#if HS_LLVM_VERSION < 300
+    , opaqueTypeInContext
+#endif
+    , pPCFP128TypeInContext
+    , structTypeInContext
+    , voidTypeInContext
+    , x86FP80TypeInContext
+    , getTypeContext
 
-	, addAlias
-	, addDestination
-	, addGlobalInAddressSpace
-	, blockAddress
-	, clearInsertionPosition
-	, constExtractValue
-	, constInlineAsm
-	, constInsertValue
-	, constIntGetSExtValue
-	, constIntGetZExtValue
+    , addAlias
+    , addDestination
+    , addGlobalInAddressSpace
+    , blockAddress
+    , clearInsertionPosition
+    , constExtractValue
+    , constInlineAsm
+    , constInsertValue
+    , constIntGetSExtValue
+    , constIntGetZExtValue
 
 --    , constUnion
 	, contextCreate
@@ -644,11 +659,13 @@ foreign import ccall unsafe "LLVMVectorType" vectorType
 	-> CUInt                    -- ^ element count
 	-> TypeRef
 
--- foreign import ccall unsafe "LLVMAddTypeName" addTypeName
---	:: ModuleRef -> CString -> TypeRef -> IO CInt
+#if HS_LLVM_VERSION < 300
+foreign import ccall unsafe "LLVMAddTypeName" addTypeName
+    :: ModuleRef -> CString -> TypeRef -> IO CInt
 
--- foreign import ccall unsafe "LLVMDeleteTypeName" deleteTypeName
---	:: ModuleRef -> CString -> IO ()
+foreign import ccall unsafe "LLVMDeleteTypeName" deleteTypeName
+    :: ModuleRef -> CString -> IO ()
+#endif
 
 -- | Get the type of a sequential type's elements.
 foreign import ccall unsafe "LLVMGetElementType" getElementType
@@ -1106,12 +1123,26 @@ foreign import ccall unsafe "LLVMBuildCondBr" buildCondBr
 foreign import ccall unsafe "LLVMBuildSwitch" buildSwitch
 	:: BuilderRef -> ValueRef -> BasicBlockRef -> CUInt -> IO ValueRef
 foreign import ccall unsafe "LLVMBuildInvoke" buildInvoke
-	:: BuilderRef -> ValueRef -> Ptr ValueRef -> CUInt
-	-> BasicBlockRef -> BasicBlockRef -> CString -> IO ValueRef
--- foreign import ccall unsafe "LLVMBuildUnwind" buildUnwind
---	:: BuilderRef -> IO ValueRef
+        :: BuilderRef -> ValueRef -> Ptr ValueRef -> CUInt
+    -> BasicBlockRef -> BasicBlockRef -> CString -> IO ValueRef
+
+#if HS_LLVM_VERSION < 300
+foreign import ccall unsafe "LLVMBuildUnwind" buildUnwind
+    :: BuilderRef -> IO ValueRef
+#endif
+
 foreign import ccall unsafe "LLVMBuildUnreachable" buildUnreachable
 	:: BuilderRef -> IO ValueRef
+
+#if HS_LLVM_VERSION >= 300
+-- New landing pad instructions for LLVM 3.0
+foreign import ccall unsafe "LLVMBuildLandingPad" buildLandingPad
+    :: BuilderRef -> TypeRef -> ValueRef -> CUInt -> CString -> IO ValueRef
+foreign import ccall unsafe "LLVMAddClause" addClause
+    :: ValueRef -> ValueRef -> IO ()
+foreign import ccall unsafe "LLVMSetCleanup" setCleanup
+    :: ValueRef -> CUInt -> IO ()
+#endif
 
 foreign import ccall unsafe "LLVMBuildAdd" buildAdd
 	:: BuilderRef -> ValueRef -> ValueRef -> CString -> IO ValueRef
@@ -1245,9 +1276,11 @@ data MemoryBuffer
 	deriving (Typeable)
 type MemoryBufferRef = Ptr MemoryBuffer
 
+#if HS_LLVM_VERSION < 300
 data TypeHandle
 	deriving (Typeable)
 type TypeHandleRef = Ptr TypeHandle
+#endif
 
 data TypeKind
 	= VoidTypeKind
@@ -1272,15 +1305,11 @@ getTypeKind = fmap (toEnum . fromIntegral) . getTypeKindCUInt
 foreign import ccall unsafe "LLVMCreateMemoryBufferWithContentsOfFile" createMemoryBufferWithContentsOfFile
 	:: CString -> Ptr MemoryBufferRef -> Ptr CString -> IO CInt
 foreign import ccall unsafe "LLVMCreateMemoryBufferWithSTDIN" createMemoryBufferWithSTDIN
-	:: Ptr MemoryBufferRef -> Ptr CString -> IO CInt
--- foreign import ccall unsafe "LLVMCreateTypeHandle" createTypeHandle
---	:: TypeRef -> IO TypeHandleRef
+        :: Ptr MemoryBufferRef -> Ptr CString -> IO CInt
 foreign import ccall unsafe "LLVMDisposeMemoryBuffer" disposeMemoryBuffer
 	:: MemoryBufferRef -> IO ()
 foreign import ccall unsafe "LLVMDisposeMessage" disposeMessage
-	:: CString -> IO ()
--- foreign import ccall unsafe "LLVMDisposeTypeHandle" disposeTypeHandle
---	:: TypeHandleRef -> IO ()
+        :: CString -> IO ()
 foreign import ccall unsafe "LLVMGetArrayLength" getArrayLength
 	:: TypeRef -> IO CUInt
 foreign import ccall unsafe "LLVMGetIntTypeWidth" getIntTypeWidth
@@ -1292,15 +1321,29 @@ foreign import ccall unsafe "LLVMGetTarget" getTarget
 foreign import ccall unsafe "LLVMGetTypeKind" getTypeKindCUInt
 	:: TypeRef -> IO CUInt
 foreign import ccall unsafe "LLVMGetVectorSize" getVectorSize
-	:: TypeRef -> IO CUInt
--- foreign import ccall unsafe "LLVMRefineType" refineType
---	:: TypeRef -> TypeRef -> IO ()
--- foreign import ccall unsafe "LLVMResolveTypeHandle" resolveTypeHandle
---	:: TypeHandleRef -> IO TypeRef
+        :: TypeRef -> IO CUInt
 foreign import ccall unsafe "LLVMSetTarget" setTarget
 	:: ModuleRef -> CString -> IO ()
 foreign import ccall unsafe "LLVMSizeOf" sizeOf
 	:: TypeRef -> IO ValueRef
+
+#if HS_LLVM_VERSION < 300
+foreign import ccall unsafe "LLVMCreateTypeHandle" createTypeHandle
+    :: TypeRef -> IO TypeHandleRef
+foreign import ccall unsafe "LLVMDisposeTypeHandle" disposeTypeHandle
+    :: TypeHandleRef -> IO ()
+foreign import ccall unsafe "LLVMRefineType" refineType
+    :: TypeRef -> TypeRef -> IO ()
+foreign import ccall unsafe "LLVMResolveTypeHandle" resolveTypeHandle
+    :: TypeHandleRef -> IO TypeRef
+#else
+foreign import ccall unsafe "LLVMStructCreateNamed" structCreateNamed
+    :: ContextRef -> CString -> IO TypeRef
+foreign import ccall unsafe "LLVMGetStructName" getStructName
+    :: TypeRef -> IO CString
+foreign import ccall unsafe "LLVMStructSetBody" structSetBody
+    :: TypeRef -> Ptr TypeRef -> CUInt -> CUInt -> IO ()
+#endif
 
 data Attribute
 	= ZExtAttribute
@@ -1447,9 +1490,7 @@ foreign import ccall unsafe "LLVMGetPreviousParam" getPreviousParam
 foreign import ccall unsafe "LLVMInitializeFunctionPassManager" initializeFunctionPassManager
 	:: PassManagerRef -> IO CInt
 foreign import ccall unsafe "LLVMLabelType" labelType
-	:: TypeRef
--- foreign import ccall unsafe "LLVMOpaqueType" opaqueType
---	:: TypeRef
+        :: TypeRef
 foreign import ccall unsafe "LLVMPositionBuilder" positionBuilder
 	:: BuilderRef -> BasicBlockRef -> ValueRef -> IO ()
 foreign import ccall unsafe "LLVMRunFunctionPassManager" runFunctionPassManager
@@ -1460,6 +1501,13 @@ foreign import ccall unsafe "LLVMSetInstrParamAlignment" setInstrParamAlignment
 	:: ValueRef -> CUInt -> CUInt -> IO ()
 foreign import ccall unsafe "LLVMSetParamAlignment" setParamAlignment
 	:: ValueRef -> CUInt -> IO ()
+
+#if HS_LLVM_VERSION < 300
+foreign import ccall unsafe "LLVMOpaqueType" opaqueType
+    :: TypeRef
+foreign import ccall unsafe "LLVMOpaqueTypeInContext" opaqueTypeInContext
+    :: ContextRef -> IO TypeRef
+#endif
 
 
 data Context
@@ -1593,7 +1641,7 @@ foreign import ccall unsafe "LLVMIntTypeInContext" intTypeInContext
 foreign import ccall unsafe "LLVMLabelTypeInContext" labelTypeInContext
 	:: ContextRef -> IO TypeRef
 foreign import ccall unsafe "LLVMModuleCreateWithNameInContext" moduleCreateWithNameInContext
-	:: CString -> ContextRef -> IO ModuleRef
+        :: CString -> ContextRef -> IO ModuleRef
 foreign import ccall unsafe "LLVMPPCFP128TypeInContext" pPCFP128TypeInContext
 	:: ContextRef -> IO TypeRef
 foreign import ccall unsafe "LLVMRemoveFunctionAttr" removeFunctionAttr

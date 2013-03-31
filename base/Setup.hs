@@ -5,6 +5,7 @@ import System.Environment
 import System.FilePath
 import System.Info
 import Control.Monad
+import Data.Char ( isSpace )
 import Data.List
 import Data.Maybe
 import Distribution.Simple
@@ -90,8 +91,8 @@ register' pkg@PackageDescription { library       = Just lib  }
                            verbosity pkg lib lbi clbi inplace distPref
 
     let ghciLibraries    = case lookup "x-extra-ghci-libraries" (customFieldsBI (libBuildInfo lib)) of
-                             Nothing -> []
-                             Just s  -> [s]
+                             Just s | not (all isSpace s) -> [s]
+                             _                            -> []
         installedPkgInfo = installedPkgInfoRaw {
                                 extraGHCiLibraries = ghciLibraries }
 

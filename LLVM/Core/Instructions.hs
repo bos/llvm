@@ -1,61 +1,63 @@
 {-# LANGUAGE MultiParamTypeClasses, FunctionalDependencies, FlexibleInstances, UndecidableInstances, TypeSynonymInstances, ScopedTypeVariables, OverlappingInstances, FlexibleContexts, TypeOperators, DeriveDataTypeable, ForeignFunctionInterface #-}
 module LLVM.Core.Instructions(
-        -- * ADT representation of IR
-        BinOpDesc(..), InstrDesc(..), ArgDesc(..), getInstrDesc, isValConvOp, getValConvArg,
-        -- * Terminator instructions
-        ret,
-        condBr,
-        br,
-        switch,
-        invoke, invokeWithConv,
-        unreachable,
-        -- * Arithmetic binary operations
-        -- | Arithmetic operations with the normal semantics.
-        -- The u instractions are unsigned, the s instructions are signed.
-        add, sub, mul, neg,
-        iadd, isub, imul, ineg,
-        fadd, fsub, fmul, fneg,
-        idiv, irem,
-        udiv, sdiv, fdiv, urem, srem, frem,
-        -- * Logical binary operations
-        -- |Logical instructions with the normal semantics.
-        shl, lshr, ashr, and, or, xor, inv,
-        -- * Vector operations
-        extractelement,
-        insertelement,
-        shufflevector,
-        -- * Aggregate operation
-        extractvalue,
-        insertvalue,
-        -- * Memory access
-        malloc, arrayMalloc,
-        alloca, arrayAlloca,
-        free,
-        load,
-        store,
-        getElementPtr, getElementPtr0,
-        -- * Conversions
-        trunc, zext, sext,
-        fptrunc, fpext,
-        fptoui, fptosi, fptoint,
-        uitofp, sitofp, inttofp,
-        ptrtoint, inttoptr,
-        bitcast, bitcastUnify,
-        -- * Comparison
-        CmpPredicate(..), IntPredicate(..), FPPredicate(..),
-        CmpRet,
-        cmp, pcmp, icmp, fcmp,
-        select,
-        -- * Other
-        phi, addPhiInputs,
-        call, callWithConv,
+    -- * ADT representation of IR
+    BinOpDesc(..), InstrDesc(..), ArgDesc(..), getInstrDesc,
+    -- * Terminator instructions
+    ret,
+    condBr,
+    br,
+    switch,
+    invoke, invokeWithConv,
+    -- Removed in LLVM_3.0
+    -- unwind,
+    unreachable,
+    -- * Arithmetic binary operations
+    -- | Arithmetic operations with the normal semantics.
+    -- The u instractions are unsigned, the s instructions are signed.
+    add, sub, mul, neg,
+    iadd, isub, imul, ineg,
+    fadd, fsub, fmul, fneg,
+    idiv, irem,
+    udiv, sdiv, fdiv, urem, srem, frem,
+    -- * Logical binary operations
+    -- |Logical instructions with the normal semantics.
+    shl, lshr, ashr, and, or, xor, inv,
+    -- * Vector operations
+    extractelement,
+    insertelement,
+    shufflevector,
+    -- * Aggregate operation
+    extractvalue,
+    insertvalue,
+    -- * Memory access
+    malloc, arrayMalloc,
+    alloca, arrayAlloca,
+    free,
+    load,
+    store,
+    getElementPtr, getElementPtr0,
+    -- * Conversions
+    trunc, zext, sext,
+    fptrunc, fpext,
+    fptoui, fptosi, fptoint,
+    uitofp, sitofp, inttofp,
+    ptrtoint, inttoptr,
+    bitcast, bitcastUnify,
+    -- * Comparison
+    CmpPredicate(..), IntPredicate(..), FPPredicate(..),
+    CmpRet,
+    cmp, pcmp, icmp, fcmp,
+    select,
+    -- * Other
+    phi, addPhiInputs,
+    call, callWithConv,
 
-        -- * Classes and types
-        Terminate,
-        Ret, CallArgs, ABinOp, CmpOp, FunctionArgs, FunctionRet, IsConst,
-        AllocArg,
-        GetElementPtr, IsIndexArg, GetValue
-        ) where
+    -- * Classes and types
+    Terminate,
+    Ret, CallArgs, ABinOp, CmpOp, FunctionArgs, FunctionRet, IsConst,
+    AllocArg,
+    GetElementPtr, IsIndexArg, GetValue
+    ) where
 import Prelude hiding (and, or)
 import Data.Typeable
 import Control.Monad(liftM)
@@ -335,6 +337,14 @@ switch (Value val) (BasicBlock dflt) arms = do
         return terminate
 
 --------------------------------------
+
+-- Removed in LLVM_3.0
+-- |Unwind the call stack until a function call performed with 'invoke' is reached.
+-- I.e., throw a non-local exception.
+-- unwind :: CodeGenFunction r Terminate
+-- unwind = do
+--     withCurrentBuilder_ FFI.buildUnwind
+--     return terminate
 
 -- |Inform the code generator that this code can never be reached.
 unreachable :: CodeGenFunction r Terminate

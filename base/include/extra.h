@@ -46,6 +46,11 @@ extern "C" {
  *    indicated in the comments. Where it is not indicated, DO NOT call dispose.
  */
 
+
+/* Wraps the LLVMInitializeTarget macro from Target.h */
+unsigned LLVMInitNativeTarget(void);
+
+
 /* Wraps llvm::Module::print(). Dispose the returned string after use, via
  * LLVMDisposeMessage(). */
 char *LLVMDumpModuleToString(LLVMModuleRef module);
