@@ -85,7 +85,7 @@ LDFLAGS="$llvm_ldflags $LDFLAGS $TARGET_LDFLAGS"
 
 llvm_extra_ghci_libs=""
 
-AC_SEARCH_LIBS([LLVMModuleCreateWithName],[LLVM-2.7 LLVM-2.8 LLVM-2.9 LLVM-3.0]) 
+AC_SEARCH_LIBS([LLVMModuleCreateWithName],[LLVM-2.7 LLVM-2.8 LLVM-2.9 LLVM-3.0 LLVM-3.2]) 
 if test "$ac_cv_search_LLVMModuleCreateWithName" = "no"; then
    llvm_all_libs="`$llvm_config --libs all`"
 else
@@ -117,15 +117,15 @@ AC_CHECK_HEADERS([llvm/Support/DynamicLibrary.h], [], [],
 save_LIBS="$LIBS"
 LIBS="-lLLVMSupport -lpthread -ldl $LIBS"
 
-AC_CHECK_LIB(LLVMCore, LLVMModuleCreateWithName, [], [])
-if test "$ac_cv_lib_LLVMCore_LLVMModuleCreateWithName" = "no"; then
-  unset ac_cv_lib_LLVMCore_LLVMModuleCreateWithName
-  LIBS="-lLLVMSupport $save_LIBS"
-  AC_CHECK_LIB(LLVMCore, LLVMModuleCreateWithName, [],
-    [AC_MSG_ERROR(could not find LLVM C bindings)])
-fi
+dnl AC_CHECK_LIB(LLVMCore, LLVMModuleCreateWithName, [], [])
+dnl if test "$ac_cv_lib_LLVMCore_LLVMModuleCreateWithName" = "no"; then
+dnl   unset ac_cv_lib_LLVMCore_LLVMModuleCreateWithName
+dnl   LIBS="-lLLVMSupport $save_LIBS"
+dnl   AC_CHECK_LIB(LLVMCore, LLVMModuleCreateWithName, [],
+dnl     [AC_MSG_ERROR(could not find LLVM C bindings)])
+dnl fi
 
-llvm_num_version="`echo $llvm_version | tr . 0`"
+llvm_num_version="`echo $llvm_version | tr . 0 | tr -d svn`"
 AC_DEFINE_UNQUOTED([HS_LLVM_VERSION], [$llvm_num_version],
   [Define to the version of LLVM, e.g. 209 for 2.9.])
 

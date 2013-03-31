@@ -11,7 +11,7 @@
  *    this list of conditions and the following disclaimer in the documentation
  *    and/or other materials provided with the distribution.
  *
- *  * Neither the name of this software, nor the names of its 
+ *  * Neither the name of this software, nor the names of its
  *    contributors may be used to endorse or promote products derived from
  *    this software without specific prior written permission.
  *
@@ -96,75 +96,75 @@ unsigned LLVMInitNativeTarget()
 
 char *LLVMDumpModuleToString(LLVMModuleRef module)
 {
-    std::string s;
-    llvm::raw_string_ostream buf(s);
-    llvm::Module *p = llvm::unwrap(module);
-    assert(p);
-    p->print(buf, NULL);
-    return strdup(buf.str().c_str());
+	std::string s;
+	llvm::raw_string_ostream buf(s);
+	llvm::Module *p = llvm::unwrap(module);
+	assert(p);
+	p->print(buf, NULL);
+	return strdup(buf.str().c_str());
 }
 
 char *LLVMDumpTypeToString(LLVMTypeRef type)
 {
-    std::string s;
-    llvm::raw_string_ostream buf(s);
-    llvm::Type *p = llvm::unwrap(type);
-    assert(p);
-    p->print(buf);
-    return strdup(buf.str().c_str());
+	std::string s;
+	llvm::raw_string_ostream buf(s);
+	llvm::Type *p = llvm::unwrap(type);
+	assert(p);
+	p->print(buf);
+	return strdup(buf.str().c_str());
 }
 
 char *LLVMDumpValueToString(LLVMValueRef value)
 {
-    std::string s;
-    llvm::raw_string_ostream buf(s);
-    llvm::Value *p = llvm::unwrap(value);
-    assert(p);
-    p->print(buf);
-    return strdup(buf.str().c_str());
+	std::string s;
+	llvm::raw_string_ostream buf(s);
+	llvm::Value *p = llvm::unwrap(value);
+	assert(p);
+	p->print(buf);
+	return strdup(buf.str().c_str());
 }
 
 unsigned LLVMModuleGetPointerSize(LLVMModuleRef module)
 {
-    llvm::Module *modulep = llvm::unwrap(module);
-    assert(modulep);
+	llvm::Module *modulep = llvm::unwrap(module);
+	assert(modulep);
 
-    llvm::Module::PointerSize p = modulep->getPointerSize();
-    if (p == llvm::Module::Pointer32)
-        return 32;
-    else if (p == llvm::Module::Pointer64)
-        return 64;
-    return 0;
+	llvm::Module::PointerSize p = modulep->getPointerSize();
+	if (p == llvm::Module::Pointer32)
+		return 32;
+	else if (p == llvm::Module::Pointer64)
+		return 64;
+	return 0;
 }
 
 LLVMValueRef LLVMModuleGetOrInsertFunction(LLVMModuleRef module,
-    const char *name, LLVMTypeRef function_type)
+	const char *name, LLVMTypeRef function_type)
 {
-    assert(name);
+	assert(name);
 
-    llvm::Module *modulep = llvm::unwrap(module);
-    assert(modulep);
+	llvm::Module *modulep = llvm::unwrap(module);
+	assert(modulep);
 
-    llvm::FunctionType *ftp = llvm::unwrap<llvm::FunctionType>(function_type);
-    assert(ftp);
+	llvm::FunctionType *ftp = llvm::unwrap<llvm::FunctionType>(function_type);
+	assert(ftp);
 
-    llvm::Constant *f = modulep->getOrInsertFunction(name, ftp);
-    return wrap(f);
+	llvm::Constant *f = modulep->getOrInsertFunction(name, ftp);
+	return wrap(f);
 }
 
 int LLVMHasInitializer(LLVMValueRef global_var)
 {
-    llvm::GlobalVariable *gvp = llvm::unwrap<llvm::GlobalVariable>(global_var);
-    assert(gvp);
+	llvm::GlobalVariable *gvp = llvm::unwrap<llvm::GlobalVariable>(global_var);
+	assert(gvp);
 
-    return gvp->hasInitializer();
+	return gvp->hasInitializer();
 }
 
 #define inst_checkfn(ourfn, llvmfn)                 \
 unsigned ourfn (LLVMValueRef v) {                   \
-    llvm::Instruction *ip = llvm::unwrap<llvm::Instruction>(v); \
-    assert(ip);                                     \
-    return ip-> llvmfn () ? 1 : 0;                  \
+	llvm::Instruction *ip = llvm::unwrap<llvm::Instruction>(v); \
+	assert(ip);                                     \
+	return ip-> llvmfn () ? 1 : 0;                  \
 }
 
 inst_checkfn(LLVMInstIsTerminator,      isTerminator)
@@ -178,32 +178,50 @@ inst_checkfn(LLVMInstIsCommutative,     isCommutative)
 
 unsigned LLVMInstIsVolatile(LLVMValueRef v)
 {
-    using namespace llvm;
-    Instruction *ip = unwrap<Instruction>(v);
-    assert(ip);
-    return ((isa<LoadInst>(*ip)  && cast<LoadInst>(*ip).isVolatile()) ||
-            (isa<StoreInst>(*ip) && cast<StoreInst>(*ip).isVolatile()) );
+	using namespace llvm;
+	Instruction *ip = unwrap<Instruction>(v);
+	assert(ip);
+	return ((isa<LoadInst>(*ip)  && cast<LoadInst>(*ip).isVolatile()) ||
+			(isa<StoreInst>(*ip) && cast<StoreInst>(*ip).isVolatile()) );
 }
+
+LLVMBool LLVMIsConstantExpr(LLVMValueRef Ty) {
+  using namespace llvm;
+  return isa<ConstantExpr>(unwrap(Ty));
+}
+
+LLVMBool LLVMIsCast(LLVMValueRef Ty) {
+  llvm::ConstantExpr *cep = llvm::unwrap<llvm::ConstantExpr>(Ty);
+  assert(cep);
+  return cep->isCast();
+}
+
+LLVMBool LLVMIsStaticGEP(LLVMValueRef Ty) {
+  llvm::ConstantExpr *cep = llvm::unwrap<llvm::ConstantExpr>(Ty);
+  assert(cep);
+  return cep->isGEPWithNoNotionalOverIndexing();
+}
+
 
 const char *LLVMInstGetOpcodeName(LLVMValueRef inst)
 {
-    llvm::Instruction *instp = llvm::unwrap<llvm::Instruction>(inst);
-    assert(instp);
-    return instp->getOpcodeName();
+	llvm::Instruction *instp = llvm::unwrap<llvm::Instruction>(inst);
+	assert(instp);
+	return instp->getOpcodeName();
 }
 
 unsigned LLVMInstGetOpcode(LLVMValueRef inst)
 {
-    llvm::Instruction *instp = llvm::unwrap<llvm::Instruction>(inst);
-    assert(instp);
-    return instp->getOpcode();
+	llvm::Instruction *instp = llvm::unwrap<llvm::Instruction>(inst);
+	assert(instp);
+	return instp->getOpcode();
 }
 
 unsigned LLVMCmpInstGetPredicate(LLVMValueRef cmpinst)
 {
-    llvm::CmpInst *instp = llvm::unwrap<llvm::CmpInst>(cmpinst);
-    assert(instp);
-    return instp->getPredicate();
+	llvm::CmpInst *instp = llvm::unwrap<llvm::CmpInst>(cmpinst);
+	assert(instp);
+	return instp->getPredicate();
 }
 
 /* llvm::unwrap a set of `n' wrapped objects starting at `values',
@@ -211,299 +229,317 @@ unsigned LLVMCmpInstGetPredicate(LLVMValueRef cmpinst)
 template <typename W, typename UW>
 void unwrap_vec(W *values, unsigned n, std::vector<UW *>& out)
 {
-    out.clear();
+	out.clear();
 
-    while (n--) {
-        UW *p = llvm::unwrap(*values);
-        assert(p);
-        out.push_back(p);
-        ++values;
-    }
+	while (n--) {
+		UW *p = llvm::unwrap(*values);
+		assert(p);
+		out.push_back(p);
+		++values;
+	}
 }
 
 /* Same as llvm::unwrap_vec, but use a vector of const pointers. */
 template <typename W, typename UW>
 void unwrap_cvec(W *values, unsigned n, std::vector<const UW *>& out)
 {
-    out.clear();
+	out.clear();
 
-    while (n--) {
-        UW *p = llvm::unwrap(*values);
-        assert(p);
-        out.push_back(p);
-        ++values;
-    }
+	while (n--) {
+		UW *p = llvm::unwrap(*values);
+		assert(p);
+		out.push_back(p);
+		++values;
+	}
 }
 
-LLVMValueRef LLVMBuildRetMultiple(LLVMBuilderRef builder, 
-    LLVMValueRef *values, unsigned n_values)
+LLVMValueRef LLVMBuildRetMultiple(LLVMBuilderRef builder,
+	LLVMValueRef *values, unsigned n_values)
 {
-    assert(values);
+	assert(values);
 
-    std::vector<llvm::Value *> values_vec;
-    unwrap_vec(values, n_values, values_vec);
+	std::vector<llvm::Value *> values_vec;
+	unwrap_vec(values, n_values, values_vec);
 
-    llvm::IRBuilder<> *builderp = llvm::unwrap(builder);
-    assert(builderp);
+	llvm::IRBuilder<> *builderp = llvm::unwrap(builder);
+	assert(builderp);
 
-    return llvm::wrap(builderp->CreateAggregateRet(&values_vec[0], values_vec.size()));
+	return llvm::wrap(builderp->CreateAggregateRet(&values_vec[0], values_vec.size()));
 }
 
-LLVMValueRef LLVMBuildGetResult(LLVMBuilderRef builder, 
-    LLVMValueRef value, unsigned index, const char *name)
+LLVMValueRef LLVMBuildGetResult(LLVMBuilderRef builder,
+	LLVMValueRef value, unsigned index, const char *name)
 {
-    assert(name);
+	assert(name);
 
-    llvm::IRBuilder<> *builderp = llvm::unwrap(builder);
-    assert(builderp);
+	llvm::IRBuilder<> *builderp = llvm::unwrap(builder);
+	assert(builderp);
 
-    return llvm::wrap(builderp->CreateExtractValue(llvm::unwrap(value), index, name));
+	return llvm::wrap(builderp->CreateExtractValue(llvm::unwrap(value), index, name));
 }
 
 unsigned LLVMValueGetID(LLVMValueRef value)
 {
-    llvm::Value *valuep = llvm::unwrap(value);
-    assert(valuep);
+	llvm::Value *valuep = llvm::unwrap(value);
+	assert(valuep);
 
-    return valuep->getValueID();
+	return valuep->getValueID();
 }
 
 
 unsigned LLVMValueGetNumUses(LLVMValueRef value)
 {
-    llvm::Value *valuep = llvm::unwrap(value);
-    assert(valuep);
+	llvm::Value *valuep = llvm::unwrap(value);
+	assert(valuep);
 
-    return valuep->getNumUses();
+	return valuep->getNumUses();
 }
 
 
 unsigned LLVMValueGetUses(LLVMValueRef value, LLVMValueRef **refs)
 {
-    llvm::Value *valuep = llvm::unwrap(value);
-    assert(valuep);
+	llvm::Value *valuep = llvm::unwrap(value);
+	assert(valuep);
 
-    unsigned n = valuep->getNumUses();
-    if (n == 0)
-        return 0;
+	unsigned n = valuep->getNumUses();
+	if (n == 0)
+		return 0;
 
-    assert(refs);
-    LLVMValueRef *out = (LLVMValueRef *)malloc(sizeof(LLVMValueRef) * n);
-    if (!out)
-        return 0;
-    *refs = out;
+	assert(refs);
+	LLVMValueRef *out = (LLVMValueRef *)malloc(sizeof(LLVMValueRef) * n);
+	if (!out)
+		return 0;
+	*refs = out;
 
-    memset(out, 0, sizeof(LLVMValueRef) * n);
-    llvm::Value::use_iterator it = valuep->use_begin();
-    while (it != valuep->use_end()) {
-        *out++ = llvm::wrap(*it);
-        ++it;
-    }
+	memset(out, 0, sizeof(LLVMValueRef) * n);
+	llvm::Value::use_iterator it = valuep->use_begin();
+	while (it != valuep->use_end()) {
+		*out++ = llvm::wrap(*it);
+		++it;
+	}
 
-    return n;
+	return n;
 }
 
 unsigned LLVMValueIsUsedInBasicBlock(LLVMValueRef value, LLVMBasicBlockRef bb)
 {
-    llvm::Value *valuep = llvm::unwrap(value);
-    assert(valuep);
-    llvm::BasicBlock *bbp = llvm::unwrap(bb);
-    assert(bbp);
-    return valuep->isUsedInBasicBlock(bbp);
+	llvm::Value *valuep = llvm::unwrap(value);
+	assert(valuep);
+	llvm::BasicBlock *bbp = llvm::unwrap(bb);
+	assert(bbp);
+	return valuep->isUsedInBasicBlock(bbp);
 }
 
 void LLVMDisposeValueRefArray(LLVMValueRef *refs)
 {
-    assert(refs);
-    free(refs);
+	assert(refs);
+	free(refs);
 }
 
 unsigned LLVMUserGetNumOperands(LLVMValueRef user)
 {
-    llvm::User *userp = llvm::unwrap<llvm::User>(user);
-    assert(userp);
-    return userp->getNumOperands();
+	llvm::User *userp = llvm::unwrap<llvm::User>(user);
+	assert(userp);
+	return userp->getNumOperands();
 }
 
 LLVMValueRef LLVMUserGetOperand(LLVMValueRef user, unsigned idx)
 {
-    llvm::User *userp = llvm::unwrap<llvm::User>(user);
-    assert(userp);
-    llvm::Value *operand = userp->getOperand(idx);
-    return llvm::wrap(operand);
+	llvm::User *userp = llvm::unwrap<llvm::User>(user);
+	assert(userp);
+	llvm::Value *operand = userp->getOperand(idx);
+	return llvm::wrap(operand);
 }
 
 unsigned LLVMGetDoesNotThrow(LLVMValueRef fn)
 {
-    llvm::Function *fnp = llvm::unwrap<llvm::Function>(fn);
-    assert(fnp);
+	llvm::Function *fnp = llvm::unwrap<llvm::Function>(fn);
+	assert(fnp);
 
-    return fnp->doesNotThrow();
+	return fnp->doesNotThrow();
 }
 
 void LLVMSetDoesNotThrow(LLVMValueRef fn, int DoesNotThrow)
 {
-    llvm::Function *fnp = llvm::unwrap<llvm::Function>(fn);
-    assert(fnp);
+	llvm::Function *fnp = llvm::unwrap<llvm::Function>(fn);
+	assert(fnp);
 
-    return fnp->setDoesNotThrow((bool)DoesNotThrow);
+	return fnp->setDoesNotThrow();
 }
 
 LLVMValueRef LLVMGetIntrinsic(LLVMModuleRef module, int id,
-    LLVMTypeRef *types, unsigned n_types)
+	LLVMTypeRef *types, unsigned n_types)
 {
-    assert(types);
+	assert(types);
 
 #if HS_LLVM_VERSION >= 300
-    std::vector<llvm::Type*> types_vec;
-    unwrap_vec(types, n_types, types_vec);
+	std::vector<llvm::Type*> types_vec;
+	unwrap_vec(types, n_types, types_vec);
 #else
-    std::vector<const llvm::Type*> types_vec;
-    unwrap_cvec(types, n_types, types_vec);
+	std::vector<const llvm::Type*> types_vec;
+	unwrap_cvec(types, n_types, types_vec);
 #endif
 
-    llvm::Module *modulep = llvm::unwrap(module);
-    assert(modulep);
+	llvm::Module *modulep = llvm::unwrap(module);
+	assert(modulep);
 
 #if HS_LLVM_VERSION >= 300
-    llvm::Function *intfunc = llvm::Intrinsic::getDeclaration(modulep, 
-        llvm::Intrinsic::ID(id), types_vec);
+	llvm::Function *intfunc = llvm::Intrinsic::getDeclaration(modulep,
+		llvm::Intrinsic::ID(id), types_vec);
 #else
-    llvm::Function *intfunc = llvm::Intrinsic::getDeclaration(modulep, 
-        llvm::Intrinsic::ID(id), &types_vec[0], types_vec.size());
+	llvm::Function *intfunc = llvm::Intrinsic::getDeclaration(modulep,
+		llvm::Intrinsic::ID(id), &types_vec[0], types_vec.size());
 #endif
-    return wrap(intfunc);
+	return wrap(intfunc);
 }
 
 LLVMModuleRef LLVMGetModuleFromAssembly(const char *asmtext, unsigned txtlen,
-    char **out)
+	char **out)
 {
-    assert(asmtext);
-    assert(out);
+	assert(asmtext);
+	assert(out);
 
-    llvm::Module *modulep;
-    llvm::SMDiagnostic error;
-    if (!(modulep = llvm::ParseAssemblyString(asmtext, NULL, error,
-                                              llvm::getGlobalContext()))) {
-        std::string s;
-        llvm::raw_string_ostream buf(s);
-        error.Print("llvm-py", buf);
-        *out = strdup(buf.str().c_str());
-        return NULL;
-    }
+	llvm::Module *modulep;
+	llvm::SMDiagnostic error;
+	if (!(modulep = llvm::ParseAssemblyString(asmtext, NULL, error,
+											  llvm::getGlobalContext()))) {
+		std::string s;
+		llvm::raw_string_ostream buf(s);
+		error.print("llvm-py", buf, true);
+		*out = strdup(buf.str().c_str());
+		return NULL;
+	}
 
-    return wrap(modulep);
+	return wrap(modulep);
 }
 
 LLVMModuleRef LLVMGetModuleFromBitcode(const char *bitcode, unsigned bclen,
-    char **out)
+	char **out)
 {
-    assert(bitcode);
-    assert(out);
+	assert(bitcode);
+	assert(out);
 
-    llvm::StringRef as_str(bitcode, bclen);
+	llvm::StringRef as_str(bitcode, bclen);
 
-    llvm::MemoryBuffer *mbp;
-    if (!(mbp = llvm::MemoryBuffer::getMemBufferCopy(as_str)))
-        return NULL;
+	llvm::MemoryBuffer *mbp;
+	if (!(mbp = llvm::MemoryBuffer::getMemBufferCopy(as_str)))
+		return NULL;
 
-    std::string msg;
-    llvm::Module *modulep;
-    if (!(modulep = llvm::ParseBitcodeFile(mbp, llvm::getGlobalContext(),
-                                           &msg)))
-        *out = strdup(msg.c_str());
+	std::string msg;
+	llvm::Module *modulep;
+	if (!(modulep = llvm::ParseBitcodeFile(mbp, llvm::getGlobalContext(),
+										   &msg)))
+		*out = strdup(msg.c_str());
 
-    delete mbp;
-    return wrap(modulep);
+	delete mbp;
+	return wrap(modulep);
 }
 
 unsigned LLVMLinkModules(LLVMModuleRef dest, LLVMModuleRef src, unsigned mode,
 			 char **out)
 {
-    llvm::Module *sourcep = llvm::unwrap(src);
-    assert(sourcep);
-    llvm::Module *destinationp = llvm::unwrap(dest);
-    assert(destinationp);
+	llvm::Module *sourcep = llvm::unwrap(src);
+	assert(sourcep);
+	llvm::Module *destinationp = llvm::unwrap(dest);
+	assert(destinationp);
 
-    std::string msg;
-    bool err;
+	std::string msg;
+	bool err;
 
-#if HS_LLVM_VERSION >= 300    
-    err = llvm::Linker::LinkModules(destinationp, sourcep, mode, &msg);
+#if HS_LLVM_VERSION >= 300
+	err = llvm::Linker::LinkModules(destinationp, sourcep, mode, &msg);
 #else
-    err = llvm::Linker::LinkModules(destinationp, sourcep, &msg);
+	err = llvm::Linker::LinkModules(destinationp, sourcep, &msg);
 #endif
 
-    if (err) {
-        *out = strdup(msg.c_str());
-        return 0;
-    }
+	if (err) {
+		*out = strdup(msg.c_str());
+		return 0;
+	}
 
-    return 1;
+	return 1;
 }
 
 unsigned char *LLVMGetBitcodeFromModule(LLVMModuleRef module, unsigned *lenp)
 {
-    assert(lenp);
+	assert(lenp);
 
-    llvm::Module *modulep = llvm::unwrap(module);
-    assert(modulep);
+	llvm::Module *modulep = llvm::unwrap(module);
+	assert(modulep);
 
-    /* get bc into a string */
-    std::string s;
-    llvm::raw_string_ostream buf(s);
-    llvm::WriteBitcodeToFile(modulep, buf);
-    const std::string& bc = buf.str();
+	/* get bc into a string */
+	std::string s;
+	llvm::raw_string_ostream buf(s);
+	llvm::WriteBitcodeToFile(modulep, buf);
+	const std::string& bc = buf.str();
 
-    /* and then into a malloc()-ed block */
-    size_t bclen = bc.size();
-    unsigned char *bytes = (unsigned char *)malloc(bclen);
-    if (!bytes)
-        return NULL;
-    memcpy(bytes, bc.data(), bclen);
+	/* and then into a malloc()-ed block */
+	size_t bclen = bc.size();
+	unsigned char *bytes = (unsigned char *)malloc(bclen);
+	if (!bytes)
+		return NULL;
+	memcpy(bytes, bc.data(), bclen);
 
-    /* return */
-    *lenp = bclen;
-    return bytes;
+	/* return */
+	*lenp = bclen;
+	return bytes;
 }
 
 /* Return 0 on failure (with errmsg filled in), 1 on success. */
 unsigned LLVMLoadLibraryPermanently(const char* filename, char **errmsg)
 {
-    assert(filename);
-    assert(errmsg);
+	assert(filename);
+	assert(errmsg);
 
-    /* Note: the LLVM API returns true on failure. Don't ask why. */
-    std::string msg;
-    if (llvm::sys::DynamicLibrary::LoadLibraryPermanently(filename, &msg)) {
-        *errmsg = strdup(msg.c_str());
-        return 0;
-    }
+	/* Note: the LLVM API returns true on failure. Don't ask why. */
+	std::string msg;
+	if (llvm::sys::DynamicLibrary::LoadLibraryPermanently(filename, &msg)) {
+		*errmsg = strdup(msg.c_str());
+		return 0;
+	}
 
-    return 1;
+	return 1;
 }
 
 void *LLVMGetPointerToFunction(LLVMExecutionEngineRef ee, LLVMValueRef fn)
 {
-    llvm::ExecutionEngine *eep = llvm::unwrap(ee);
-    assert(eep);
+	llvm::ExecutionEngine *eep = llvm::unwrap(ee);
+	assert(eep);
 
-    llvm::Function *fnp = llvm::unwrap<llvm::Function>(fn);
-    assert(fnp);
+	llvm::Function *fnp = llvm::unwrap<llvm::Function>(fn);
+	assert(fnp);
 
-    return eep->getPointerToFunction(fnp);
+	return eep->getPointerToFunction(fnp);
 }
 
 int LLVMInlineFunction(LLVMValueRef call)
 {
-    llvm::Value *callp = llvm::unwrap(call);
-    assert(callp);
+	llvm::Value *callp = llvm::unwrap(call);
+	assert(callp);
 
-    llvm::CallSite cs = llvm::CallSite(callp);
+	llvm::CallSite cs = llvm::CallSite(callp);
 
-    llvm::InlineFunctionInfo unused;
-    return llvm::InlineFunction(cs, unused);
+	llvm::InlineFunctionInfo unused;
+	return llvm::InlineFunction(cs, unused);
 }
+
+
+LLVMBool LLVMIsZeroInitialized(LLVMValueRef Ty) {
+  return llvm::isa<llvm::ConstantAggregateZero>(llvm::unwrap(Ty));
+}
+
+LLVMBool LLVMIsCString(LLVMValueRef Val) {
+  if (llvm::ConstantDataSequential *C = llvm::dyn_cast<llvm::ConstantDataSequential>(llvm::unwrap(Val)))
+	return C->isCString();
+  return false;
+}
+
+const char *LLVMGetAsCString(LLVMValueRef Val) {
+  if (llvm::ConstantDataSequential *C = llvm::dyn_cast<llvm::ConstantDataSequential>(llvm::unwrap(Val)))
+    return (C->getAsString()).str().c_str();
+  return NULL;
+}
+
 
 
 /* Passes. A few passes (listed below) are used directly from LLVM-C,
@@ -512,10 +548,10 @@ int LLVMInlineFunction(LLVMValueRef call)
 
 #define define_pass(P)                                   \
 void LLVMAdd ## P ## Pass (LLVMPassManagerRef passmgr) { \
-    using namespace llvm;                                \
-    llvm::PassManagerBase *pmp = llvm::unwrap(passmgr);  \
-    assert(pmp);                                         \
-    pmp->add( create ## P ## Pass ());                   \
+	using namespace llvm;                                \
+	llvm::PassManagerBase *pmp = llvm::unwrap(passmgr);  \
+	assert(pmp);                                         \
+	pmp->add( create ## P ## Pass ());                   \
 }
 
 define_pass( AAEval )
@@ -540,7 +576,7 @@ define_pass( InstCount )
 define_pass( InstructionNamer )
 define_pass( LazyValueInfo )
 define_pass( LCSSA )
-define_pass( LoopDependenceAnalysis )
+//define_pass( LoopDependenceAnalysis )
 define_pass( LoopExtractor )
 define_pass( LoopSimplify )
 define_pass( LoopStrengthReduce )
@@ -564,6 +600,5 @@ define_pass( StripNonDebugSymbols )
 define_pass( UnifyFunctionExitNodes )
 
 /* we support only internalize(true) */
-llvm::ModulePass *createInternalize2Pass() { return llvm::createInternalizePass(true); }
+llvm::ModulePass *createInternalize2Pass() { return llvm::createInternalizePass(); }
 define_pass( Internalize2 )
-

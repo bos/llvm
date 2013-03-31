@@ -34,7 +34,7 @@ module LLVM.Core(
     ModuleProvider, createModuleProviderForExistingModule,
     PassManager, createPassManager, createFunctionPassManager,
     writeBitcodeToFile, readBitcodeFromFile,
-    getModuleValues, getFunctions, getGlobalVariables, ModuleValue, castModuleValue,
+    getModuleValues, getFunctions, getGlobalVariables, getGlobalDesc, GlobalDesc(..), Field(..), ModuleValue, castModuleValue,
     -- * Instructions
     module LLVM.Core.Instructions,
     -- * Types classification
@@ -70,9 +70,9 @@ module LLVM.Core(
     getInstructions, getOperands, hasUsers, getUsers, getUses, getUser, isChildOf, getDep,
     -- * Misc
     addAttributes, Attribute(..),
-    castVarArgs,
+    castVarArgs, isCast,
     -- * Debugging
-    dumpValue, dumpType, getValueName, annotateValueList
+    dumpValue, dumpType, getValueName, getValueNameU, annotateValueList, showTypeOf
     ) where
 import qualified LLVM.FFI.Core as FFI
 import LLVM.Core.Util hiding (Function, BasicBlock, createModule, constString, constStringNul, constVector, constArray, constStruct, getModuleValues, valueHasType)

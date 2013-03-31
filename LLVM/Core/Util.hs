@@ -2,7 +2,7 @@
 module LLVM.Core.Util(
     -- * Module handling
     Module(..), withModule, createModule, destroyModule, writeBitcodeToFile, readBitcodeFromFile,
-    getModuleValues, getFunctions, getGlobalVariables, valueHasType,
+    getModuleValues, getFunctions, getGlobalVariables, getGlobalDesc, GlobalDesc(..), Field(..), valueHasType,
     -- * Module provider handling
     ModuleProvider(..), withModuleProvider, createModuleProviderForExistingModule,
     -- * Pass manager handling
@@ -32,6 +32,7 @@ module LLVM.Core.Util(
     withEmptyCString,
     functionType, buildEmptyPhi, addPhiIns,
     showTypeOf, getValueNameU, getObjList, annotateValueList, isConstant,
+    isConstantExpr, isCast, isStaticGEP, isZeroInitialized, isNull,
     -- * Transformation passes
     addCFGSimplificationPass, addConstantPropagationPass, addDemoteMemoryToRegisterPass,
     addGVNPass, addInstructionCombiningPass, addPromoteMemoryToRegisterPass, addReassociatePass,
@@ -62,7 +63,7 @@ functionType :: Bool -> Type -> [Type] -> Type
 functionType varargs retType paramTypes = unsafePerformIO $
     withArrayLen paramTypes $ \ len ptr ->
         return $ FFI.functionType retType ptr (fromIntegral len)
-	       	 		  (fromBool varargs)
+                                  (fromBool varargs)
 
 -- unsafePerformIO just to wrap the non-effecting withArrayLen call
 structType :: [Type] -> Bool -> Type
@@ -124,7 +125,7 @@ readBitcodeFromFile name =
          else do
             buf <- peek bufPtr
             prc <- FFI.parseBitcode buf modPtr errStr
-	    if prc /= 0 then do
+            if prc /= 0 then do
                 msg <- peek errStr >>= peekCString
                 ioError $ userError $ "readBitcodeFromFile: parse return code " ++ show prc ++ ", " ++ msg
              else do
@@ -146,6 +147,45 @@ getFunctions mdl = getObjList withModule FFI.getFirstFunction FFI.getNextFunctio
 getGlobalVariables :: Module -> IO [(String, Value)]
 getGlobalVariables mdl = getObjList withModule FFI.getFirstGlobal FFI.getNextGlobal mdl >>= annotateValueList
 
+type Name = String
+data GlobalDesc = Constant Name Field | Collection Name [GlobalDesc]
+               | Zeroes Name Int | Ascii Name String
+data Field = Byte Int | Half Int | Word Int | Undef
+
+getGlobalDesc :: String -> Value -> IO GlobalDesc
+getGlobalDesc gname v = do
+  t <- FFI.typeOf v
+  tk <- FFI.getTypeKind t
+  case tk of
+    FFI.ArrayTypeKind -> do
+            isZ <- isZeroInitialized v
+            isS <- isCString v
+            n <- FFI.getArrayLength t
+            if isZ
+             then return $ Zeroes gname $ fromIntegral n
+             else if isS
+                   then do
+                     s <- getAsCString v
+                     return $ Ascii gname s
+                   else do
+                     e <- getOperands v
+                     e' <- mapM ((getGlobalDesc "") . snd) e
+                     return $ Collection gname e'
+    FFI.StructTypeKind -> do
+                     e <- getOperands v
+                     e' <- mapM ((getGlobalDesc "") . snd) e
+                     return $ Collection gname e'
+    FFI.IntegerTypeKind -> do
+            w <- FFI.getIntTypeWidth t
+            vv <- FFI.constIntGetSExtValue v
+            return $ Constant gname $ case w of
+                       8 -> Byte $ fromIntegral vv
+                       16 -> Half $ fromIntegral vv
+                       32 -> Word $ fromIntegral vv
+                       _ -> Undef
+    _ -> return $ Constant gname Undef
+--  return $ Constant gname $ Word 0
+
 -- This is safe because we just ask for the type of a value.
 valueHasType :: Value -> Type -> Bool
 valueHasType v t = unsafePerformIO $ do
@@ -160,27 +200,27 @@ showType' p = do
     pk <- FFI.getTypeKind p
     case pk of
         FFI.VoidTypeKind -> return "()"
-	FFI.FloatTypeKind -> return "Float"
-	FFI.DoubleTypeKind -> return "Double"
-	FFI.X86_FP80TypeKind -> return "X86_FP80"
-	FFI.FP128TypeKind -> return "FP128"
-	FFI.PPC_FP128TypeKind -> return "PPC_FP128"
-	FFI.LabelTypeKind -> return "Label"
-	FFI.IntegerTypeKind -> do w <- FFI.getIntTypeWidth p; return $ "(IntN " ++ show w ++ ")"
-	FFI.FunctionTypeKind -> do
+        FFI.FloatTypeKind -> return "Float"
+        FFI.DoubleTypeKind -> return "Double"
+        FFI.X86_FP80TypeKind -> return "X86_FP80"
+        FFI.FP128TypeKind -> return "FP128"
+        FFI.PPC_FP128TypeKind -> return "PPC_FP128"
+        FFI.LabelTypeKind -> return "Label"
+        FFI.IntegerTypeKind -> do w <- FFI.getIntTypeWidth p; return $ "(IntN " ++ show w ++ ")"
+        FFI.FunctionTypeKind -> do
             r <- FFI.getReturnType p
-	    c <- FFI.countParamTypes p
-	    let n = fromIntegral c
-	    as <- allocaArray n $ \ args -> do
-		     FFI.getParamTypes p args
-		     peekArray n args
-	    ts <- mapM showType' (as ++ [r])
-	    return $ "(" ++ intercalate " -> " ts ++ ")"
-	FFI.StructTypeKind -> return "(Struct ...)"
-	FFI.ArrayTypeKind -> do n <- FFI.getArrayLength p; t <- FFI.getElementType p >>= showType'; return $ "(Array " ++ show n ++ " " ++ t ++ ")"
-	FFI.PointerTypeKind -> do t <- FFI.getElementType p >>= showType'; return $ "(Ptr " ++ t ++ ")"
-	FFI.OpaqueTypeKind -> return "Opaque"
-	FFI.VectorTypeKind -> do n <- FFI.getVectorSize p; t <- FFI.getElementType p >>= showType'; return $ "(Vector " ++ show n ++ " " ++ t ++ ")"
+            c <- FFI.countParamTypes p
+            let n = fromIntegral c
+            as <- allocaArray n $ \ args -> do
+                     FFI.getParamTypes p args
+                     peekArray n args
+            ts <- mapM showType' (as ++ [r])
+            return $ "(" ++ intercalate " -> " ts ++ ")"
+        FFI.StructTypeKind -> return "(Struct ...)"
+        FFI.ArrayTypeKind -> do n <- FFI.getArrayLength p; t <- FFI.getElementType p >>= showType'; return $ "(Array " ++ show n ++ " " ++ t ++ ")"
+        FFI.PointerTypeKind -> do t <- FFI.getElementType p >>= showType'; return $ "(Ptr " ++ t ++ ")"
+        FFI.OpaqueTypeKind -> return "Opaque"
+        FFI.VectorTypeKind -> do n <- FFI.getVectorSize p; t <- FFI.getElementType p >>= showType'; return $ "(Vector " ++ show n ++ " " ++ t ++ ")"
 
 --------------------------------------
 -- Handle module providers
@@ -441,13 +481,16 @@ getValueNameU a = do
     -- sometimes void values need explicit names too
     cs <- FFI.getValueName a
     str <- peekCString cs
-    if str == "" then return (show a) else return str
+    if str == "" then (if (head . show $ a) `elem` ""
+                         then return ("v" ++ show a)
+                         else return $ show a)
+      else return str
 
 getObjList :: (t1 -> (t2 -> IO [Ptr a]) -> t) -> (t2 -> IO (Ptr a))
            -> (Ptr a -> IO (Ptr a)) -> t1 -> t
 getObjList withF firstF nextF obj = do
     withF obj $ \ objPtr -> do
-      ofst <- firstF objPtr 
+      ofst <- firstF objPtr
       let oloop p = if p == nullPtr then return [] else do
               n <- nextF p
               ps <- oloop n
@@ -464,9 +507,50 @@ isConstant v = do
   isC <- FFI.isConstant v
   if isC == 0 then return False else return True
 
+isConstantExpr :: Value -> IO Bool
+isConstantExpr v = do
+  isCE <- FFI.isConstantExpr v
+  if isCE == 0 then return False else return True
+
+isCast :: Value -> IO Bool
+isCast v = do
+  isCE <- FFI.isConstantExpr v
+  if isCE == 0 then return False else do
+                                  i <- FFI.isCast v
+                                  if i == 0 then return False else return True
+
+isStaticGEP :: Value -> IO Bool
+isStaticGEP v = do
+  isCE <- FFI.isConstantExpr v
+  if isCE == 0 then return False else do
+                                  i <- FFI.isStaticGEP v
+                                  if i == 0 then return False else return True
+
 isIntrinsic :: Value -> IO Bool
 isIntrinsic v = do
   if FFI.getIntrinsicID v == 0 then return True else return False
+
+isZeroInitialized :: Value -> IO Bool
+isZeroInitialized v = do
+  isZ <- FFI.isZeroInitialized v
+  if isZ == 0 then return False else return True
+
+isNull :: Value -> IO Bool
+isNull v = do
+  isN <- FFI.isNull v
+  if isN == 0 then return False else return True
+
+isCString :: Value -> IO Bool
+isCString v = do
+  isS <- FFI.isCString v
+  if isS == 0 then return False else return True
+
+getAsCString :: Value -> IO String
+getAsCString a = do
+    -- sometimes void values need explicit names too
+    cs <- FFI.getAsCString a
+    str <- peekCString cs
+    if str == "" then return (show a) else return str
 
 --------------------------------------
 
@@ -493,6 +577,6 @@ isChildOf bb v = do
 
 getDep :: Use -> IO (String, String)
 getDep u = do
-  producer <- FFI.getUsedValue u >>= getValueNameU
-  consumer <- FFI.getUser u >>= getValueNameU
-  return (producer, consumer)
+  def <- FFI.getUsedValue u >>= getValueNameU
+  use <- FFI.getUser u >>= getValueNameU
+  return (def, use)
