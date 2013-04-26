@@ -114,12 +114,6 @@ LLVMValueRef LLVMBuildVFCmp(LLVMBuilderRef builder, LLVMRealPredicate predicate,
 LLVMValueRef LLVMGetIntrinsic(LLVMModuleRef builder, int id,
     LLVMTypeRef *types, unsigned n_types);
 
-/* Wraps llvm::Function::doesNotThrow(). */
-unsigned LLVMGetDoesNotThrow(LLVMValueRef fn);
-
-/* Wraps llvm::Function::setDoesNotThrow(). */
-void LLVMSetDoesNotThrow(LLVMValueRef fn, int DoesNotThrow);
-
 /* Wraps llvm::Module::getPointerSize(). */
 unsigned LLVMModuleGetPointerSize(LLVMModuleRef module);
 
@@ -167,11 +161,13 @@ LLVMModuleRef LLVMGetModuleFromAssembly(const char *asmtxt, unsigned txten,
 LLVMModuleRef LLVMGetModuleFromBitcode(const char *bc, unsigned bclen,
     char **out);
 
+#if HS_LLVM_VERSION < 302
 /* Wraps llvm::Linker::LinkModules().  Returns 0 on failure (with errmsg
  * filled in) and 1 on success.  Dispose error message after use with
  * LLVMDisposeMessage(). */
 unsigned LLVMLinkModules(LLVMModuleRef dest, LLVMModuleRef src,
 			 unsigned mode, char **errmsg);
+#endif
 
 /* Returns pointer to a heap-allocated block of `*len' bytes containing bit code
  * for the given module. NULL on error. */
@@ -244,6 +240,24 @@ declare_pass( TailDuplication )
 declare_pass( UnifyFunctionExitNodes )
 
 declare_pass( Internalize2 )
+
+#if HS_LLVM_VERSION < 302
+LLVMBool LLVMPrintModuleToFile(LLVMModuleRef M, const char *Filename, char **ErrorMessage);
+#endif
+
+#if HS_LLVM_VERSION < 303
+LLVMMemoryBufferRef LLVMCreateMemoryBufferWithMemoryRange(
+  const char *InputData,
+  size_t InputDataLength,
+  const char *BufferName,
+  LLVMBool RequiresNullTerminator);
+
+LLVMMemoryBufferRef LLVMCreateMemoryBufferWithMemoryRangeCopy(
+  const char *InputData,
+  size_t InputDataLength,
+  const char *BufferName);
+#endif
+
 
 #ifdef __cplusplus
 } /* extern "C" */

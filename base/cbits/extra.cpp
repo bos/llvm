@@ -46,19 +46,27 @@
 #define __STDC_CONSTANT_MACROS
 
 // LLVM includes
+#if HS_LLVM_VERSION < 303
 #include "llvm/LLVMContext.h"
-#include "llvm/Bitcode/ReaderWriter.h"
-#include "llvm/Support/MemoryBuffer.h"
-#include "llvm/Support/Casting.h"
 #include "llvm/Constants.h"
 #include "llvm/DerivedTypes.h"
 #include "llvm/GlobalVariable.h"
+#include "llvm/IntrinsicInst.h"
+#else
+#include "llvm/IR/LLVMContext.h"
+#include "llvm/IR/Constants.h"
+#include "llvm/IR/DerivedTypes.h"
+#include "llvm/IR/GlobalVariable.h"
+#include "llvm/IR/IntrinsicInst.h"
+#endif
+#include "llvm/Bitcode/ReaderWriter.h"
+#include "llvm/Support/MemoryBuffer.h"
+#include "llvm/Support/Casting.h"
 #if HS_LLVM_VERSION < 300
 #include "llvm/TypeSymbolTable.h"
 #endif
 #include "llvm/Support/MemoryBuffer.h"
 #include "llvm/Support/CallSite.h"
-#include "llvm/IntrinsicInst.h"
 #include "llvm/Analysis/Verifier.h"
 #include "llvm/Assembly/Parser.h"
 #ifdef HAVE_LLVM_SUPPORT_DYNAMICLIBRARY_H
@@ -192,12 +200,14 @@ const char *LLVMInstGetOpcodeName(LLVMValueRef inst)
     return instp->getOpcodeName();
 }
 
+#if HS_LLVM_VERSION < 301
 unsigned LLVMInstGetOpcode(LLVMValueRef inst)
 {
     llvm::Instruction *instp = llvm::unwrap<llvm::Instruction>(inst);
     assert(instp);
     return instp->getOpcode();
 }
+#endif
 
 unsigned LLVMCmpInstGetPredicate(LLVMValueRef cmpinst)
 {
@@ -333,22 +343,6 @@ LLVMValueRef LLVMUserGetOperand(LLVMValueRef user, unsigned idx)
     return llvm::wrap(operand);
 }
 
-unsigned LLVMGetDoesNotThrow(LLVMValueRef fn)
-{
-    llvm::Function *fnp = llvm::unwrap<llvm::Function>(fn);
-    assert(fnp);
-
-    return fnp->doesNotThrow();
-}
-
-void LLVMSetDoesNotThrow(LLVMValueRef fn, int DoesNotThrow)
-{
-    llvm::Function *fnp = llvm::unwrap<llvm::Function>(fn);
-    assert(fnp);
-
-    return fnp->setDoesNotThrow((bool)DoesNotThrow);
-}
-
 LLVMValueRef LLVMGetIntrinsic(LLVMModuleRef module, int id,
     LLVMTypeRef *types, unsigned n_types)
 {
@@ -387,7 +381,11 @@ LLVMModuleRef LLVMGetModuleFromAssembly(const char *asmtext, unsigned txtlen,
                                               llvm::getGlobalContext()))) {
         std::string s;
         llvm::raw_string_ostream buf(s);
+#if HS_LLVM_VERSION >= 301
+        error.print("llvm-py", buf);
+#else
         error.Print("llvm-py", buf);
+#endif
         *out = strdup(buf.str().c_str());
         return NULL;
     }
@@ -417,6 +415,7 @@ LLVMModuleRef LLVMGetModuleFromBitcode(const char *bitcode, unsigned bclen,
     return wrap(modulep);
 }
 
+#if HS_LLVM_VERSION < 302
 unsigned LLVMLinkModules(LLVMModuleRef dest, LLVMModuleRef src, unsigned mode,
 			 char **out)
 {
@@ -441,6 +440,7 @@ unsigned LLVMLinkModules(LLVMModuleRef dest, LLVMModuleRef src, unsigned mode,
 
     return 1;
 }
+#endif
 
 unsigned char *LLVMGetBitcodeFromModule(LLVMModuleRef module, unsigned *lenp)
 {
@@ -540,7 +540,9 @@ define_pass( InstCount )
 define_pass( InstructionNamer )
 define_pass( LazyValueInfo )
 define_pass( LCSSA )
+#if HS_LLVM_VERSION < 302
 define_pass( LoopDependenceAnalysis )
+#endif
 define_pass( LoopExtractor )
 define_pass( LoopSimplify )
 define_pass( LoopStrengthReduce )
@@ -562,8 +564,49 @@ define_pass( ScalarEvolutionAliasAnalysis )
 define_pass( SingleLoopExtractor )
 define_pass( StripNonDebugSymbols )
 define_pass( UnifyFunctionExitNodes )
+define_pass( Internalize )
 
-/* we support only internalize(true) */
-llvm::ModulePass *createInternalize2Pass() { return llvm::createInternalizePass(true); }
-define_pass( Internalize2 )
+#if HS_LLVM_VERSION < 302
+LLVMBool LLVMPrintModuleToFile(LLVMModuleRef M, const char *Filename,
+                               char **ErrorMessage) {
+  std::string error;
+  llvm::raw_fd_ostream dest(Filename, error);
+  if (!error.empty()) {
+    *ErrorMessage = strdup(error.c_str());
+    return true;
+  }
 
+  llvm::unwrap(M)->print(dest, NULL);
+
+  if (!error.empty()) {
+    *ErrorMessage = strdup(error.c_str());
+    return true;
+  }
+  dest.flush();
+  return false;
+}
+#endif
+
+#if HS_LLVM_VERSION < 303
+LLVMMemoryBufferRef LLVMCreateMemoryBufferWithMemoryRange(
+  const char *InputData,
+  size_t InputDataLength,
+  const char *BufferName,
+  LLVMBool RequiresNullTerminator) {
+
+  return wrap(llvm::MemoryBuffer::getMemBuffer(
+                llvm::StringRef(InputData, InputDataLength),
+                llvm::StringRef(BufferName),
+                RequiresNullTerminator));
+}
+
+LLVMMemoryBufferRef LLVMCreateMemoryBufferWithMemoryRangeCopy(
+  const char *InputData,
+  size_t InputDataLength,
+  const char *BufferName) {
+
+  return wrap(llvm::MemoryBuffer::getMemBufferCopy(
+                llvm::StringRef(InputData, InputDataLength),
+                llvm::StringRef(BufferName)));
+}
+#endif
