@@ -69,6 +69,14 @@ import Foreign.C(CInt, CUInt)
 import Data.TypeLevel((:<:), (:>:), (:==:), (:*),
           D0, D1, D2, D3, D4, D5, D6, D7, D8, D9, d1, toNum, Succ)
 import qualified LLVM.FFI.Core as FFI
+import LLVM.FFI.Core
+    ( IntPredicate(..)
+    , toIntPredicate
+    , fromIntPredicate
+    , FPPredicate(..)
+    , toFPPredicate
+    , fromFPPredicate
+    )
 import LLVM.Core.Data
 import LLVM.Core.Type
 import LLVM.Core.CodeGenMonad
@@ -687,51 +695,6 @@ fpFromCmpPredicate p =
       CmpGE -> FPOGE
       CmpLT -> FPOLT
       CmpLE -> FPOLE
-
-
-data IntPredicate =
-    IntEQ                       -- ^ equal
-  | IntNE                       -- ^ not equal
-  | IntUGT                      -- ^ unsigned greater than
-  | IntUGE                      -- ^ unsigned greater or equal
-  | IntULT                      -- ^ unsigned less than
-  | IntULE                      -- ^ unsigned less or equal
-  | IntSGT                      -- ^ signed greater than
-  | IntSGE                      -- ^ signed greater or equal
-  | IntSLT                      -- ^ signed less than
-  | IntSLE                      -- ^ signed less or equal
-    deriving (Eq, Ord, Enum, Show, Typeable)
-
-fromIntPredicate :: IntPredicate -> CInt
-fromIntPredicate p = fromIntegral (fromEnum p + 32)
-
-toIntPredicate :: Int -> IntPredicate
-toIntPredicate p = toEnum $ fromIntegral p - 32
-
-data FPPredicate =
-    FPFalse           -- ^ Always false (always folded)
-  | FPOEQ             -- ^ True if ordered and equal
-  | FPOGT             -- ^ True if ordered and greater than
-  | FPOGE             -- ^ True if ordered and greater than or equal
-  | FPOLT             -- ^ True if ordered and less than
-  | FPOLE             -- ^ True if ordered and less than or equal
-  | FPONE             -- ^ True if ordered and operands are unequal
-  | FPORD             -- ^ True if ordered (no nans)
-  | FPUNO             -- ^ True if unordered: isnan(X) | isnan(Y)
-  | FPUEQ             -- ^ True if unordered or equal
-  | FPUGT             -- ^ True if unordered or greater than
-  | FPUGE             -- ^ True if unordered, greater than, or equal
-  | FPULT             -- ^ True if unordered or less than
-  | FPULE             -- ^ True if unordered, less than, or equal
-  | FPUNE             -- ^ True if unordered or not equal
-  | FPT               -- ^ Always true (always folded)
-    deriving (Eq, Ord, Enum, Show, Typeable)
-
-fromFPPredicate :: FPPredicate -> CInt
-fromFPPredicate p = fromIntegral (fromEnum p)
-
-toFPPredicate :: Int -> FPPredicate
-toFPPredicate p = toEnum $ fromIntegral p
 
 -- |Acceptable operands to comparison instructions.
 class CmpOp a b c d | a b -> c where

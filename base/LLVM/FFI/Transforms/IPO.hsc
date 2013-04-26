@@ -32,3 +32,7 @@ foreign import ccall unsafe "LLVMAddStripDeadPrototypesPass" addStripDeadPrototy
     :: PassManagerRef -> IO ()
 foreign import ccall unsafe "LLVMAddStripSymbolsPass" addStripSymbolsPass
     :: PassManagerRef -> IO ()
+foreign import ccall unsafe "LLVMAddAlwaysInlinerPass" addAlwaysInlinerPass
+    :: PassManagerRef -> IO ()
+foreign import ccall unsafe "LLVMAddInternalizePass" addInternalizePass
+    :: PassManagerRef -> IO ()

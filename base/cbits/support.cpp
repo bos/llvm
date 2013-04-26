@@ -6,7 +6,11 @@
 #include "llvm-c/Core.h"
 #include "llvm/PassManager.h"
 #if HS_LLVM_VERSION >= 300
-# include "llvm/DefaultPasses.h"
+# if HS_LLVM_VERSION < 303
+#  include "llvm/DefaultPasses.h"
+# else
+#  include "llvm/CodeGen/Passes.h"
+# endif
 # include "llvm/Transforms/IPO/PassManagerBuilder.h"
 # include "llvm/Transforms/IPO.h"
 #else

@@ -274,12 +274,13 @@ module LLVM.FFI.Core
     , getBasicBlockParent
 
     -- * Instruction field accessors
-    , instGetOpcode, cmpInstGetPredicate
+    , instGetOpcode, getInstructionOpcode, cmpInstGetPredicate
 
     -- * Instruction building
     , Builder
     , BuilderRef
     , createBuilder
+    , disposeBuilder
     , ptrDisposeBuilder
     , positionBuilder
     , positionBefore
@@ -383,6 +384,12 @@ module LLVM.FFI.Core
     , buildStructGEP
 
     -- ** Comparisons
+    , IntPredicate(..)
+    , toIntPredicate
+    , fromIntPredicate
+    , FPPredicate(..)
+    , toFPPredicate
+    , fromFPPredicate
     , buildICmp
     , buildFCmp
 
@@ -403,7 +410,10 @@ module LLVM.FFI.Core
     , MemoryBufferRef
     , createMemoryBufferWithContentsOfFile
     , createMemoryBufferWithSTDIN
+    , createMemoryBufferWithMemoryRange
+    , createMemoryBufferWithMemoryRangeCopy
     , disposeMemoryBuffer
+    , ptrDisposeMemoryBuffer
 
     -- * Error handling
     , disposeMessage
@@ -439,6 +449,10 @@ module LLVM.FFI.Core
 
     -- * Debug
     , dumpModule
+    , printModuleToFile
+    , dumpModuleToString
+    , dumpValueToString
+    , dumpTypeToString
 
 
     -- * Misc
@@ -463,6 +477,7 @@ module LLVM.FFI.Core
     , createBuilderInContext
 
     , contextDispose
+    , ptrContextDispose
 
     , constStringInContext
     , constStructInContext
@@ -515,14 +530,21 @@ module LLVM.FFI.Core
 --    , getUnionElementTypes
     , hasMetadata
     , insertIntoBuilder
-    , mDNode
-    , mDNodeInContext
-    , mDString
-    , mDStringInContext
+    , mdNode
+    , mdNodeInContext
+    , mdString
+    , mdStringInContext
     , replaceAllUsesWith
     , setCurrentDebugLocation
     , setInstDebugLocation
+    , debugVersion
     , setMetadata
+    , MetadataKind(..)
+    , fromMetadataKind
+    , toMetadataKind
+    , getNamedMetadataNumOperands
+    , getNamedMetadataOperands
+    , addNamedMetadataOperand
 --    , unionType
 --    , unionTypeInContext
 
@@ -548,7 +570,7 @@ module LLVM.FFI.Core
 import Data.Typeable(Typeable)
 import Foreign.C.String (CString)
 #if __GLASGOW_HASKELL__ >= 704
-import Foreign.C.Types (CDouble(..), CInt(..), CUInt(..), CLLong(..), CULLong(..))
+import Foreign.C.Types (CDouble(..), CInt(..), CUInt(..), CLLong(..), CULLong(..), CSize(..))
 #else
 import Foreign.C.Types (CDouble, CInt, CUInt, CLLong, CULLong)
 #endif
@@ -624,12 +646,12 @@ foreign import ccall unsafe "LLVMFunctionType" functionType
         :: TypeRef              -- ^ return type
         -> Ptr TypeRef          -- ^ array of argument types
         -> CUInt                -- ^ number of elements in array
-        -> CInt                 -- ^ non-zero if function is varargs
+        -> Bool                 -- ^ non-zero if function is varargs
         -> TypeRef
 
 -- | Indicate whether a function takes varargs.
 foreign import ccall unsafe "LLVMIsFunctionVarArg" isFunctionVarArg
-        :: TypeRef -> IO CInt
+        :: TypeRef -> IO Bool
 
 -- | Give a function's return type.
 foreign import ccall unsafe "LLVMGetReturnType" getReturnType
@@ -661,7 +683,7 @@ foreign import ccall unsafe "LLVMVectorType" vectorType
 
 #if HS_LLVM_VERSION < 300
 foreign import ccall unsafe "LLVMAddTypeName" addTypeName
-    :: ModuleRef -> CString -> TypeRef -> IO CInt
+    :: ModuleRef -> CString -> TypeRef -> IO Bool
 
 foreign import ccall unsafe "LLVMDeleteTypeName" deleteTypeName
     :: ModuleRef -> CString -> IO ()
@@ -692,16 +714,16 @@ foreign import ccall unsafe "LLVMGetInitializer" getInitializer
     :: ValueRef -> IO ValueRef
 
 foreign import ccall unsafe "LLVMIsThreadLocal" isThreadLocal
-    :: ValueRef -> IO CInt
+    :: ValueRef -> IO Bool
 
 foreign import ccall unsafe "LLVMSetThreadLocal" setThreadLocal
-    :: ValueRef -> CInt -> IO ()
+    :: ValueRef -> Bool -> IO ()
 
 foreign import ccall unsafe "LLVMIsGlobalConstant" isGlobalConstant
-    :: ValueRef -> IO CInt
+    :: ValueRef -> IO Bool
 
 foreign import ccall unsafe "LLVMSetGlobalConstant" setGlobalConstant
-    :: ValueRef -> CInt -> IO ()
+    :: ValueRef -> Bool -> IO ()
 
 foreign import ccall unsafe "LLVMTypeOf" typeOf
     :: ValueRef -> IO TypeRef
@@ -725,16 +747,16 @@ foreign import ccall unsafe "LLVMConstNull" constNull
     :: TypeRef -> ValueRef
 
 foreign import ccall unsafe "LLVMIsConstant" isConstant
-    :: ValueRef -> IO CInt
+    :: ValueRef -> IO Bool
 
 foreign import ccall unsafe "LLVMGetUndef" getUndef
     :: TypeRef -> ValueRef
 
 foreign import ccall unsafe "LLVMIsNull" isNull
-    :: ValueRef -> IO CInt
+    :: ValueRef -> IO Bool
 
 foreign import ccall unsafe "LLVMIsUndef" isUndef
-    :: ValueRef -> IO CInt
+    :: ValueRef -> IO Bool
 
 foreign import ccall unsafe "LLVMGetNamedFunction" getNamedFunction
     :: ModuleRef                -- ^ module
@@ -811,7 +833,7 @@ foreign import ccall unsafe "LLVMSetGC" setGC
     :: ValueRef -> CString -> IO ()
 
 foreign import ccall unsafe "LLVMIsDeclaration" isDeclaration
-    :: ValueRef -> IO CInt
+    :: ValueRef -> IO Bool
 
 -- |An enumeration for the kinds of linkage for global values.
 data Linkage
@@ -911,16 +933,16 @@ foreign import ccall unsafe "LLVMSetAlignment" setAlignment
 
 
 foreign import ccall unsafe "LLVMConstInt" constInt
-    :: TypeRef -> CULLong -> CInt -> ValueRef
+    :: TypeRef -> CULLong -> Bool -> ValueRef
 
 foreign import ccall unsafe "LLVMConstReal" constReal
     :: TypeRef -> CDouble -> ValueRef
 
 foreign import ccall unsafe "LLVMConstString" constString
-    :: CString -> CUInt -> CInt -> ValueRef
+    :: CString -> CUInt -> Bool -> ValueRef
 
 foreign import ccall unsafe "LLVMConstStruct" constStruct
-    :: Ptr ValueRef -> CUInt -> CInt -> ValueRef
+    :: Ptr ValueRef -> CUInt -> Bool -> ValueRef
 
 foreign import ccall unsafe "LLVMConstVector" constVector
     :: Ptr ValueRef -> CUInt -> ValueRef
@@ -1072,8 +1094,17 @@ foreign import ccall unsafe "LLVMInsertBasicBlock" insertBasicBlock
 foreign import ccall unsafe "LLVMDeleteBasicBlock" deleteBasicBlock
     :: BasicBlockRef -> IO ()
 
+#if HS_LLVM_VERSION < 301
 foreign import ccall unsafe "LLVMInstGetOpcode" instGetOpcode
     :: ValueRef -> IO Int
+getInstructionOpcode :: ValueRef -> IO Int
+getInstructionOpcode = instGetOpcode
+#else
+foreign import ccall unsafe "LLVMGetInstructionOpcode" getInstructionOpcode
+    :: ValueRef -> IO Int
+instGetOpcode :: ValueRef -> IO Int
+instGetOpcode = getInstructionOpcode
+#endif
 
 foreign import ccall unsafe "LLVMCmpInstGetPredicate" cmpInstGetPredicate
     :: ValueRef -> IO Int
@@ -1084,6 +1115,9 @@ type BuilderRef = Ptr Builder
 
 foreign import ccall unsafe "LLVMCreateBuilder" createBuilder
     :: IO BuilderRef
+
+foreign import ccall unsafe "LLVMDisposeBuilder" disposeBuilder
+    :: BuilderRef -> IO ()
 
 foreign import ccall unsafe "&LLVMDisposeBuilder" ptrDisposeBuilder
     :: FunPtr (BuilderRef -> IO ())
@@ -1206,6 +1240,50 @@ foreign import ccall unsafe "LLVMBuildBitCast" buildBitCast
     :: BuilderRef -> ValueRef -> TypeRef -> CString -> IO ValueRef
 
 -- Comparisons
+data IntPredicate =
+    IntEQ                       -- ^ equal
+  | IntNE                       -- ^ not equal
+  | IntUGT                      -- ^ unsigned greater than
+  | IntUGE                      -- ^ unsigned greater or equal
+  | IntULT                      -- ^ unsigned less than
+  | IntULE                      -- ^ unsigned less or equal
+  | IntSGT                      -- ^ signed greater than
+  | IntSGE                      -- ^ signed greater or equal
+  | IntSLT                      -- ^ signed less than
+  | IntSLE                      -- ^ signed less or equal
+    deriving (Eq, Ord, Enum, Show, Typeable)
+
+fromIntPredicate :: IntPredicate -> CInt
+fromIntPredicate p = fromIntegral (fromEnum p + 32)
+
+toIntPredicate :: Int -> IntPredicate
+toIntPredicate p = toEnum $ fromIntegral p - 32
+
+data FPPredicate =
+    FPFalse           -- ^ Always false (always folded)
+  | FPOEQ             -- ^ True if ordered and equal
+  | FPOGT             -- ^ True if ordered and greater than
+  | FPOGE             -- ^ True if ordered and greater than or equal
+  | FPOLT             -- ^ True if ordered and less than
+  | FPOLE             -- ^ True if ordered and less than or equal
+  | FPONE             -- ^ True if ordered and operands are unequal
+  | FPORD             -- ^ True if ordered (no nans)
+  | FPUNO             -- ^ True if unordered: isnan(X) | isnan(Y)
+  | FPUEQ             -- ^ True if unordered or equal
+  | FPUGT             -- ^ True if unordered or greater than
+  | FPUGE             -- ^ True if unordered, greater than, or equal
+  | FPULT             -- ^ True if unordered or less than
+  | FPULE             -- ^ True if unordered, less than, or equal
+  | FPUNE             -- ^ True if unordered or not equal
+  | FPT               -- ^ Always true (always folded)
+    deriving (Eq, Ord, Enum, Show, Typeable)
+
+fromFPPredicate :: FPPredicate -> CInt
+fromFPPredicate p = fromIntegral (fromEnum p)
+
+toFPPredicate :: Int -> FPPredicate
+toFPPredicate p = toEnum $ fromIntegral p
+
 foreign import ccall unsafe "LLVMBuildICmp" buildICmp
     :: BuilderRef -> CInt -> ValueRef -> ValueRef -> CString -> IO ValueRef
 foreign import ccall unsafe "LLVMBuildFCmp" buildFCmp
@@ -1245,13 +1323,13 @@ foreign import ccall unsafe "LLVMSetInstructionCallConv" setInstructionCallConv
     :: ValueRef -> CUInt -> IO ()
 
 foreign import ccall unsafe "LLVMStructType" structType
-    :: Ptr TypeRef -> CUInt -> CInt -> TypeRef
+    :: Ptr TypeRef -> CUInt -> Bool -> TypeRef
 foreign import ccall unsafe "LLVMCountStructElementTypes"
     countStructElementTypes :: TypeRef -> CUInt
 foreign import ccall unsafe "LLVMGetStructElementTypes" getStructElementTypes
     :: TypeRef -> Ptr TypeRef -> IO ()
 foreign import ccall unsafe "LLVMIsPackedStruct" isPackedStruct
-    :: TypeRef -> CInt
+    :: TypeRef -> Bool
 
 data MemoryBuffer
     deriving (Typeable)
@@ -1265,6 +1343,7 @@ type TypeHandleRef = Ptr TypeHandle
 
 data TypeKind
     = VoidTypeKind
+    | HalfTypeKind
     | FloatTypeKind
     | DoubleTypeKind
     | X86_FP80TypeKind
@@ -1276,19 +1355,26 @@ data TypeKind
     | StructTypeKind
     | ArrayTypeKind
     | PointerTypeKind
-    | OpaqueTypeKind
     | VectorTypeKind
+    | MetadataTypeKind
+    | X86_MMXTypeKind
     deriving (Eq, Ord, Enum, Bounded, Show, Read, Typeable)
 
 getTypeKind :: TypeRef -> IO TypeKind
 getTypeKind = fmap (toEnum . fromIntegral) . getTypeKindCUInt
 
 foreign import ccall unsafe "LLVMCreateMemoryBufferWithContentsOfFile" createMemoryBufferWithContentsOfFile
-    :: CString -> Ptr MemoryBufferRef -> Ptr CString -> IO CInt
+    :: CString -> Ptr MemoryBufferRef -> Ptr CString -> IO Bool
 foreign import ccall unsafe "LLVMCreateMemoryBufferWithSTDIN" createMemoryBufferWithSTDIN
-    :: Ptr MemoryBufferRef -> Ptr CString -> IO CInt
+    :: Ptr MemoryBufferRef -> Ptr CString -> IO Bool
+foreign import ccall unsafe "LLVMCreateMemoryBufferWithMemoryRange" createMemoryBufferWithMemoryRange
+    :: Ptr a -> CSize -> CString -> Bool -> IO MemoryBufferRef
+foreign import ccall unsafe "LLVMCreateMemoryBufferWithMemoryRangeCopy" createMemoryBufferWithMemoryRangeCopy
+    :: Ptr a -> CSize -> CString -> IO MemoryBufferRef
 foreign import ccall unsafe "LLVMDisposeMemoryBuffer" disposeMemoryBuffer
     :: MemoryBufferRef -> IO ()
+foreign import ccall unsafe "&LLVMDisposeMemoryBuffer" ptrDisposeMemoryBuffer
+    :: FunPtr (MemoryBufferRef -> IO ())
 foreign import ccall unsafe "LLVMDisposeMessage" disposeMessage
     :: CString -> IO ()
 foreign import ccall unsafe "LLVMGetArrayLength" getArrayLength
@@ -1323,7 +1409,7 @@ foreign import ccall unsafe "LLVMStructCreateNamed" structCreateNamed
 foreign import ccall unsafe "LLVMGetStructName" getStructName
     :: TypeRef -> IO CString
 foreign import ccall unsafe "LLVMStructSetBody" structSetBody
-    :: TypeRef -> Ptr TypeRef -> CUInt -> CUInt -> IO ()
+    :: TypeRef -> Ptr TypeRef -> CUInt -> Bool -> IO ()
 #endif
 
 data Attribute
@@ -1416,8 +1502,16 @@ foreign import ccall unsafe "&LLVMDisposePassManager" ptrDisposePassManager
     :: FunPtr (PassManagerRef -> IO ())
 foreign import ccall unsafe "LLVMDumpModule" dumpModule
     :: ModuleRef -> IO ()
+foreign import ccall unsafe "LLVMDumpModuleToString" dumpModuleToString
+    :: ModuleRef -> IO CString
+foreign import ccall unsafe "LLVMDumpTypeToString" dumpTypeToString
+    :: TypeRef -> IO CString
+foreign import ccall unsafe "LLVMDumpValueToString" dumpValueToString
+    :: ValueRef -> IO CString
+foreign import ccall unsafe "LLVMPrintModuleToFile" printModuleToFile
+    :: ModuleRef -> CString -> (Ptr CString) -> IO Bool
 foreign import ccall unsafe "LLVMFinalizeFunctionPassManager" finalizeFunctionPassManager
-    :: PassManagerRef -> IO CInt
+    :: PassManagerRef -> IO Bool
 foreign import ccall unsafe "LLVMGetBasicBlockParent" getBasicBlockParent
     :: BasicBlockRef -> IO ValueRef
 foreign import ccall unsafe "LLVMGetFirstBasicBlock" getFirstBasicBlock
@@ -1469,15 +1563,15 @@ foreign import ccall unsafe "LLVMGetPreviousInstruction" getPreviousInstruction
 foreign import ccall unsafe "LLVMGetPreviousParam" getPreviousParam
     :: ValueRef -> IO ValueRef
 foreign import ccall unsafe "LLVMInitializeFunctionPassManager" initializeFunctionPassManager
-    :: PassManagerRef -> IO CInt
+    :: PassManagerRef -> IO Bool
 foreign import ccall unsafe "LLVMLabelType" labelType
     :: TypeRef
 foreign import ccall unsafe "LLVMPositionBuilder" positionBuilder
     :: BuilderRef -> BasicBlockRef -> ValueRef -> IO ()
 foreign import ccall unsafe "LLVMRunFunctionPassManager" runFunctionPassManager
-    :: PassManagerRef -> ValueRef -> IO CInt
+    :: PassManagerRef -> ValueRef -> IO Bool
 foreign import ccall unsafe "LLVMRunPassManager" runPassManager
-    :: PassManagerRef -> ModuleRef -> IO CInt
+    :: PassManagerRef -> ModuleRef -> IO Bool
 foreign import ccall unsafe "LLVMSetInstrParamAlignment" setInstrParamAlignment
     :: ValueRef -> CUInt -> CUInt -> IO ()
 foreign import ccall unsafe "LLVMSetParamAlignment" setParamAlignment
@@ -1500,13 +1594,13 @@ foreign import ccall unsafe "LLVMAddAttribute" addAttribute
 foreign import ccall unsafe "LLVMAddInstrAttribute" addInstrAttribute
     :: ValueRef -> CUInt -> CAttribute -> IO ()
 foreign import ccall unsafe "LLVMIsTailCall" isTailCall
-    :: ValueRef -> IO CInt
+    :: ValueRef -> IO Bool
 foreign import ccall unsafe "LLVMRemoveAttribute" removeAttribute
     :: ValueRef -> CAttribute -> IO ()
 foreign import ccall unsafe "LLVMRemoveInstrAttribute" removeInstrAttribute
     :: ValueRef -> CUInt -> CAttribute -> IO ()
 foreign import ccall unsafe "LLVMSetTailCall" setTailCall
-    :: ValueRef -> CInt -> IO ()
+    :: ValueRef -> Bool -> IO ()
 foreign import ccall unsafe "LLVMAddFunctionAttr" addFunctionAttr
     :: ValueRef -> CAttribute -> IO ()
 foreign import ccall unsafe "LLVMAlignOf" alignOf
@@ -1582,15 +1676,17 @@ foreign import ccall unsafe "LLVMConstRealOfStringAndSize" constRealOfStringAndS
 foreign import ccall unsafe "LLVMConstSExtOrBitCast" constSExtOrBitCast
     :: ValueRef -> TypeRef -> IO ValueRef
 foreign import ccall unsafe "LLVMConstStringInContext" constStringInContext
-    :: ContextRef -> CString -> CUInt -> CInt -> IO ValueRef
+    :: ContextRef -> CString -> CUInt -> Bool -> IO ValueRef
 foreign import ccall unsafe "LLVMConstStructInContext" constStructInContext
-    :: ContextRef -> (Ptr ValueRef) -> CUInt -> CInt -> IO ValueRef
+    :: ContextRef -> (Ptr ValueRef) -> CUInt -> Bool -> IO ValueRef
 foreign import ccall unsafe "LLVMConstTruncOrBitCast" constTruncOrBitCast
     :: ValueRef -> TypeRef -> IO ValueRef
 foreign import ccall unsafe "LLVMConstZExtOrBitCast" constZExtOrBitCast
     :: ValueRef -> TypeRef -> IO ValueRef
 foreign import ccall unsafe "LLVMContextDispose" contextDispose
     :: ContextRef -> IO ()
+foreign import ccall unsafe "&LLVMContextDispose" ptrContextDispose
+    :: FunPtr (ContextRef -> IO ())
 foreign import ccall unsafe "LLVMCreateBuilderInContext" createBuilderInContext
     :: ContextRef -> IO BuilderRef
 foreign import ccall unsafe "LLVMDoubleTypeInContext" doubleTypeInContext
@@ -1601,6 +1697,12 @@ foreign import ccall unsafe "LLVMFloatTypeInContext" floatTypeInContext
     :: ContextRef -> IO TypeRef
 foreign import ccall unsafe "LLVMGetTypeByName" getTypeByName
     :: ModuleRef -> CString -> IO TypeRef
+foreign import ccall unsafe "LLVMGetNamedMetadataNumOperands" getNamedMetadataNumOperands
+    :: ModuleRef -> CString -> IO CUInt
+foreign import ccall unsafe "LLVMGetNamedMetadataOperands" getNamedMetadataOperands
+    :: ModuleRef -> CString -> (Ptr ValueRef) -> IO ()
+foreign import ccall unsafe "LLVMAddNamedMetadataOperand" addNamedMetadataOperand
+    :: ModuleRef -> CString -> ValueRef -> IO ()
 foreign import ccall unsafe "LLVMGetTypeContext" getTypeContext
     :: TypeRef -> IO ContextRef
 foreign import ccall unsafe "LLVMInsertBasicBlockInContext" insertBasicBlockInContext
@@ -1628,7 +1730,7 @@ foreign import ccall unsafe "LLVMPPCFP128TypeInContext" pPCFP128TypeInContext
 foreign import ccall unsafe "LLVMRemoveFunctionAttr" removeFunctionAttr
     :: ValueRef -> CAttribute -> IO ()
 foreign import ccall unsafe "LLVMStructTypeInContext" structTypeInContext
-    :: ContextRef -> (Ptr TypeRef) -> CUInt -> CInt -> IO TypeRef
+    :: ContextRef -> (Ptr TypeRef) -> CUInt -> Bool -> IO TypeRef
 foreign import ccall unsafe "LLVMVoidTypeInContext" voidTypeInContext
     :: ContextRef -> IO TypeRef
 foreign import ccall unsafe "LLVMX86FP80TypeInContext" x86FP80TypeInContext
@@ -1736,7 +1838,7 @@ foreign import ccall unsafe "LLVMGetUnionElementTypes" getUnionElementTypes
     :: TypeRef -> (Ptr TypeRef) -> IO ()
 -}
 foreign import ccall unsafe "LLVMValueIsUsedInBasicBlock" isUsedInBasicBlock
-    :: BasicBlockRef -> ValueRef -> IO CInt
+    :: BasicBlockRef -> ValueRef -> IO Bool
 foreign import ccall unsafe "LLVMValueGetNumUses" getNumUses
     :: ValueRef -> IO CUInt
 foreign import ccall unsafe "LLVMGetUsedValue" getUsedValue
@@ -1744,17 +1846,17 @@ foreign import ccall unsafe "LLVMGetUsedValue" getUsedValue
 foreign import ccall unsafe "LLVMGetUser" getUser
     :: UseRef -> IO ValueRef
 foreign import ccall unsafe "LLVMHasMetadata" hasMetadata
-    :: ValueRef -> IO CInt
+    :: ValueRef -> IO Bool
 foreign import ccall unsafe "LLVMInsertIntoBuilder" insertIntoBuilder
     :: BuilderRef -> ValueRef -> IO ()
-foreign import ccall unsafe "LLVMMDNode" mDNode
+foreign import ccall unsafe "LLVMMDNode" mdNode
     :: (Ptr ValueRef) -> CUInt -> IO ValueRef
-foreign import ccall unsafe "LLVMMDNodeInContext" mDNodeInContext
+foreign import ccall unsafe "LLVMMDNodeInContext" mdNodeInContext
     :: ContextRef -> (Ptr ValueRef) -> CUInt -> IO ValueRef
-foreign import ccall unsafe "LLVMMDString" mDString
-    :: CString -> CUInt -> IO ValueRef
-foreign import ccall unsafe "LLVMMDStringInContext" mDStringInContext
-    :: ContextRef -> CString -> CUInt -> IO ValueRef
+foreign import ccall unsafe "LLVMMDString" mdString
+    :: CString -> CUInt -> ValueRef
+foreign import ccall unsafe "LLVMMDStringInContext" mdStringInContext
+    :: ContextRef -> CString -> CUInt -> ValueRef
 foreign import ccall unsafe "LLVMReplaceAllUsesWith" replaceAllUsesWith
     :: ValueRef -> ValueRef -> IO ()
 foreign import ccall unsafe "LLVMSetCurrentDebugLocation" setCurrentDebugLocation
@@ -1763,6 +1865,19 @@ foreign import ccall unsafe "LLVMSetInstDebugLocation" setInstDebugLocation
     :: BuilderRef -> ValueRef -> IO ()
 foreign import ccall unsafe "LLVMSetMetadata" setMetadata
     :: ValueRef -> CUInt -> ValueRef -> IO ()
+
+data MetadataKind = Dbg | TBAA | Prof | FPMath | Range | TBAAStruct
+    deriving (Show, Eq, Enum)
+
+toMetadataKind :: CUInt -> MetadataKind
+toMetadataKind c = toEnum $ fromIntegral c
+
+fromMetadataKind :: MetadataKind -> CUInt
+fromMetadataKind k = fromIntegral $ fromEnum k
+
+debugVersion :: (Integral a) => a
+debugVersion = 786432 -- 12 << 16
+
 {-
 foreign import ccall unsafe "LLVMUnionType" unionType
     :: (Ptr TypeRef) -> CUInt -> IO TypeRef
