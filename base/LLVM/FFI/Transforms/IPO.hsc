@@ -10,8 +10,6 @@ foreign import ccall unsafe "LLVMAddConstantMergePass" addConstantMergePass
     :: PassManagerRef -> IO ()
 foreign import ccall unsafe "LLVMAddDeadArgEliminationPass" addDeadArgEliminationPass
     :: PassManagerRef -> IO ()
-foreign import ccall unsafe "LLVMAddDeadTypeEliminationPass" addDeadTypeEliminationPass
-    :: PassManagerRef -> IO ()
 foreign import ccall unsafe "LLVMAddFunctionAttrsPass" addFunctionAttrsPass
     :: PassManagerRef -> IO ()
 foreign import ccall unsafe "LLVMAddFunctionInliningPass" addFunctionInliningPass
@@ -25,8 +23,6 @@ foreign import ccall unsafe "LLVMAddIPConstantPropagationPass" addIPConstantProp
 foreign import ccall unsafe "LLVMAddPruneEHPass" addPruneEHPass
     :: PassManagerRef -> IO ()
 foreign import ccall unsafe "LLVMAddIPSCCPPass" addIPSCCPPass
-    :: PassManagerRef -> IO ()
-foreign import ccall unsafe "LLVMAddRaiseAllocationsPass" addRaiseAllocationsPass
     :: PassManagerRef -> IO ()
 foreign import ccall unsafe "LLVMAddStripDeadPrototypesPass" addStripDeadPrototypesPass
     :: PassManagerRef -> IO ()
