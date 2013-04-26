@@ -88,6 +88,7 @@ module LLVM.Wrapper.Core
     , appendBasicBlock
     , appendBasicBlockInContext
     , getBasicBlocks
+    , getNextBasicBlock
 
     -- * Instruction building
     , Builder
@@ -309,7 +310,6 @@ import LLVM.FFI.Core
     , createModuleProviderForExistingModule
 
     , getEntryBasicBlock
-    , getNextBasicBlock
     , getPreviousBasicBlock
     , getBasicBlockParent
 
@@ -514,6 +514,9 @@ getBasicBlocks v
          allocaArray count $ \ptr -> do
              FFI.getBasicBlocks v ptr
              peekArray count ptr
+
+getNextBasicBlock :: BasicBlock -> IO (Maybe BasicBlock)
+getNextBasicBlock pred = fmap nullableToMaybe $ FFI.getNextBasicBlock pred
 
 getGC :: Value -> IO String
 getGC f = FFI.getGC f >>= peekCString
