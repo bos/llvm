@@ -61,7 +61,12 @@ module LLVM.Wrapper.Core
 
     -- ** Pass Manager
     , PassManager
+    , createPassManager
+    , runPassManager
     , createFunctionPassManagerForModule
+    , initializeFunctionPassManager
+    , runFunctionPassManager
+    , finalizeFunctionPassManager
 
     -- ** Functions
     , addFunction
@@ -304,9 +309,6 @@ import LLVM.FFI.Core
     , setTailCall
     , deleteFunction
 
-    , initializeFunctionPassManager
-    , runFunctionPassManager
-
     , createModuleProviderForExistingModule
 
     , getEntryBasicBlock
@@ -337,7 +339,6 @@ type Value        = FFI.ValueRef
 type Builder      = ForeignPtr FFI.Builder
 type BasicBlock   = FFI.BasicBlockRef
 type Context      = ForeignPtr FFI.Context
-type PassManager  = FFI.PassManagerRef
 type MemoryBuffer = ForeignPtr FFI.MemoryBuffer
 
 contextCreate :: IO Context
@@ -428,7 +429,30 @@ buildGlobalStringPtr b string name
     = withForeignPtr b $ \b' ->
       withCString name (\n -> withCString string (\s -> FFI.buildGlobalStringPtr b' s n))
 
-createFunctionPassManagerForModule (MkModule m _) = withForeignPtr m FFI.createFunctionPassManagerForModule
+createPassManager :: IO PassManager
+createPassManager = initPassManager =<< FFI.createPassManager
+
+runPassManager :: PassManager -> Module -> IO Bool
+runPassManager (MkPassManager p) (MkModule m _) =
+    withForeignPtr m $ \mptr ->
+    withForeignPtr p $ \pptr ->
+        FFI.runPassManager pptr mptr
+
+createFunctionPassManagerForModule :: Module -> IO PassManager
+createFunctionPassManagerForModule (MkModule m _) =
+    initPassManager =<< withForeignPtr m FFI.createFunctionPassManagerForModule
+
+initializeFunctionPassManager :: PassManager -> IO Bool
+initializeFunctionPassManager (MkPassManager p) =
+    withForeignPtr p FFI.initializeFunctionPassManager
+
+runFunctionPassManager :: PassManager -> Value -> IO Bool
+runFunctionPassManager (MkPassManager p) f =
+    withForeignPtr p (`FFI.runFunctionPassManager` f)
+
+finalizeFunctionPassManager :: PassManager -> IO Bool
+finalizeFunctionPassManager (MkPassManager p) =
+    withForeignPtr p FFI.finalizeFunctionPassManager
 
 addFunction :: Module -> String -> Type -> IO Value
 addFunction (MkModule m _) name ty = withForeignPtr m (\mPtr -> withCString name (\n -> FFI.addFunction mPtr n ty))
@@ -558,8 +582,7 @@ createBuilder = FFI.createBuilder >>= newForeignPtr FFI.ptrDisposeBuilder
 
 createBuilderInContext :: Context -> IO Builder
 createBuilderInContext ctx =
-    withForeignPtr ctx $ \ctx' ->
-    FFI.createBuilderInContext ctx' >>= newForeignPtr FFI.ptrDisposeBuilder
+    withForeignPtr ctx $ FFI.createBuilderInContext >=> newForeignPtr FFI.ptrDisposeBuilder
 
 getCurrentDebugLocation b = withForeignPtr b FFI.getCurrentDebugLocation
 setCurrentDebugLocation b v = withForeignPtr b $ \b' -> FFI.setCurrentDebugLocation b' v
@@ -699,7 +722,7 @@ addFunctionAttr :: Value -> Attribute -> IO ()
 addFunctionAttr v a = FFI.addFunctionAttr v $ FFI.fromAttribute a
 
 setMetadata :: Value -> MetadataKind -> Value -> IO ()
-setMetadata instruction kind node = FFI.setMetadata instruction (FFI.fromMetadataKind kind) node
+setMetadata instruction kind = FFI.setMetadata instruction (FFI.fromMetadataKind kind)
 
 getMetadata :: Value -> MetadataKind -> IO Value
 getMetadata instruction kind = FFI.getMetadata instruction (FFI.fromMetadataKind kind)
