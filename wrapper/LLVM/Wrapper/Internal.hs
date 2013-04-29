@@ -9,12 +9,16 @@ import Control.Monad
 import Data.IORef
 
 import qualified LLVM.FFI.Core as FFI
+import qualified LLVM.FFI.Transforms.PassManagerBuilder as FFI
 
 data Module = MkModule (ForeignPtr FFI.Module) (IORef Bool)
               deriving Eq
 
 data PassManager = MkPassManager (ForeignPtr FFI.PassManager)
                  deriving Eq
+
+data PassManagerBuilder = MkPassManagerBuilder (ForeignPtr FFI.PassManagerBuilder)
+                        deriving Eq
 
 moduleFinalizer :: Ptr FFI.Module -> IORef Bool -> IO ()
 moduleFinalizer m ours = do
@@ -29,3 +33,6 @@ initModule ptr = do
 
 initPassManager :: Ptr FFI.PassManager -> IO PassManager
 initPassManager ptr = fmap MkPassManager (newForeignPtr FFI.ptrDisposePassManager ptr)
+
+initPassManagerBuilder :: Ptr FFI.PassManagerBuilder -> IO PassManagerBuilder
+initPassManagerBuilder ptr = fmap MkPassManagerBuilder (newForeignPtr FFI.ptrPassManagerBuilderDispose ptr)
