@@ -92,8 +92,10 @@
 // Target selection
 #if HS_LLVM_VERSION < 302
 #include "llvm/Target/TargetData.h"
-#else
+#elseif HS_LLVM_VERSION < 303
 #include "llvm/DataLayout.h"
+#else
+#include "llvm/IR/DataLayout.h"
 #endif
 #include "llvm/Target/TargetMachine.h"
 #include "llvm/Support/TargetSelect.h"
