@@ -15,6 +15,12 @@ module LLVM.ST
     , W.getGlobalContext
     , W.contextCreate
 
+    , STPassManager
+    , createPassManager
+    , populateModulePassManager
+    , populateLTOPassManager
+    , runPassManager
+
     , ModuleGen, MonadMG
     , runModuleGen, liftMG
 
@@ -195,7 +201,8 @@ import qualified LLVM.Wrapper.Linker as W
 import qualified LLVM.Wrapper.BitReader as W
 import qualified LLVM.Wrapper.BitWriter as W
 import qualified LLVM.Wrapper.Analysis as W
-import LLVM.Wrapper.Core ( MemoryBuffer, Context, BasicBlock, Type, Value, Builder
+import qualified LLVM.Wrapper.Transforms.PassManagerBuilder as W
+import LLVM.Wrapper.Core ( MemoryBuffer, Context, BasicBlock, Type, Value, Builder, PassManager
                          , CUInt, CULLong
                          , TypeKind(..)
                          , Linkage(..)
@@ -208,6 +215,8 @@ import LLVM.Wrapper.Core ( MemoryBuffer, Context, BasicBlock, Type, Value, Build
                          , createMemoryBufferWithMemoryRangeCopy
                          )
 
+newtype STPassManager c s = STPM { unSTPM :: W.PassManager }
+    deriving Eq
 newtype Module = PM { unPM :: W.Module }
     deriving Eq
 newtype STModule c s = STM { unSTM :: W.Module }
@@ -444,6 +453,28 @@ runModuleGen :: (Monad (m c s), MonadLLVM m) => STModule c s -> ModuleGen c s a 
 runModuleGen (STM mod) (MG mg) = do
   ctx <- getContext
   liftLL $ LL . lift . runReaderT mg $ MGS mod ctx
+
+createPassManager :: (Functor (m c s), MonadLLVM m) => m c s (STPassManager c s)
+createPassManager = fmap STPM . wrap $ W.createPassManager
+
+populateModulePassManager :: MonadLLVM m => CUInt -> CUInt -> STPassManager c s -> m c s ()
+populateModulePassManager optLevel optSizeLevel (STPM pm) =
+    wrap $ do
+      pmb <- W.passManagerBuilderCreate
+      W.passManagerBuilderSetOptLevel pmb optLevel
+      W.passManagerBuilderSetSizeLevel pmb optSizeLevel
+      W.passManagerBuilderPopulateModulePassManager pmb pm
+
+populateLTOPassManager :: MonadLLVM m => CUInt -> CUInt -> Bool -> Bool -> STPassManager c s -> m c s ()
+populateLTOPassManager optLevel optSizeLevel internalize inline (STPM pm) =
+    wrap $ do
+      pmb <- W.passManagerBuilderCreate
+      W.passManagerBuilderSetOptLevel pmb optLevel
+      W.passManagerBuilderSetSizeLevel pmb optSizeLevel
+      W.passManagerBuilderPopulateLTOPassManager pmb pm internalize inline
+
+runPassManager :: MonadLLVM m => STPassManager c s -> STModule c s -> m c s Bool
+runPassManager (STPM pm) (STM m) = wrap $ W.runPassManager pm m
 
 findType :: MonadMG m => String -> m c s (Maybe (STType c s))
 findType name = liftMG $ unsafeMod >>= ((fmap . fmap) STT . wrap . flip W.getTypeByName name)
