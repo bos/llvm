@@ -16,11 +16,11 @@ verifyFunction f = FFI.verifyFunction f 2
 
 verifyModule :: Module -> IO (Maybe String)
 verifyModule (MkModule m _) =
-    alloca (\msgPtr -> do
-              result <- withForeignPtr m (\m' -> FFI.verifyModule m' 2 msgPtr)
-              msg <- peek msgPtr
-              case result of
-                False -> return Nothing
-                True -> do str <- peekCString msg
-                           FFI.disposeMessage msg
-                           return $ Just str)
+    alloca $ \msgPtr -> do
+               result <- withForeignPtr m (\m' -> FFI.verifyModule m' 2 msgPtr)
+               msg <- peek msgPtr
+               if not result
+                 then return Nothing
+                 else do str <- peekCString msg
+                         FFI.disposeMessage msg
+                         return $ Just str

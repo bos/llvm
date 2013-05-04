@@ -78,7 +78,7 @@ runFunctionAsMain ee val argv envp
     = do argcstrs <- argcstrings
          envcstrs <- envcstrings
          withArray argcstrs $ \args ->
-           withArray envcstrs $ \env -> do
+           withArray envcstrs $ \env ->
              liftM toBool (FFI.EE.runFunctionAsMain ee val (fromIntegral $ length argv) args env)
   where argcstrings = mapM newCString argv
         envcstrings = mapM newCString envp

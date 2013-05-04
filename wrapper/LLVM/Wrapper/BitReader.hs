@@ -22,9 +22,9 @@ parseBitcodeInContext ctx buf =
     withForeignPtr ctx $ \ctx' ->
     withForeignPtr buf $ \buf' -> do
       errOccurred <- FFI.parseBitcodeInContext ctx' buf' modPtr msgPtr
-      case errOccurred of
-        True -> fmap Left $ peek msgPtr >>= peekCString
-        False -> fmap Right $ peek modPtr >>= initModule
+      if errOccurred
+        then fmap Left $ peek msgPtr >>= peekCString
+        else fmap Right $ peek modPtr >>= initModule
 
 -- TODO: Work out the memory dynamics of this
 getBitcodeModuleInContext :: Context -> MemoryBuffer -> IO (Either String Module)
@@ -34,6 +34,6 @@ getBitcodeModuleInContext ctx buf =
     withForeignPtr ctx $ \ctx' ->
     withForeignPtr buf $ \buf' -> do
       errOccurred <- FFI.getBitcodeModuleInContext ctx' buf' modPtr msgPtr
-      case errOccurred of
-        True -> fmap Left $ peek msgPtr >>= peekCString
-        False -> fmap Right $ peek modPtr >>= initModule
+      if errOccurred
+        then fmap Left $ peek msgPtr >>= peekCString
+        else fmap Right $ peek modPtr >>= initModule

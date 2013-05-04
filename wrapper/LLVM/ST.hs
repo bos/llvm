@@ -318,7 +318,7 @@ structType types packed = do ctx <- getContext
                              wrap . fmap STT $ W.structTypeInContext ctx (map unSTT types) packed
 
 structCreateNamed :: (Monad (m c s), MonadLLVM m) => String -> m c s (STType c s)
-structCreateNamed n = getContext >>= wrap . fmap STT . (flip W.structCreateNamedInContext n)
+structCreateNamed n = getContext >>= wrap . fmap STT . flip W.structCreateNamedInContext n
 
 structSetBody :: (Monad (m c s), MonadLLVM m) => STType c s -> [STType c s] -> Bool -> m c s ()
 structSetBody (STT struct) body packed = wrap $ W.structSetBody struct (map unSTT body) packed
@@ -535,7 +535,7 @@ runCodeGen :: (Monad (m c s), MonadMG m) =>
               STValue c s -> CodeGen c s a -> ModuleGen c s a
 runCodeGen (STV func) cg = do
   bbs <- wrap $ W.getBasicBlocks func
-  let cg' = if null bbs then cg else (positionAtEnd (STB (last bbs)) >> cg)
+  let cg' = if null bbs then cg else positionAtEnd (STB (last bbs)) >> cg
   mgs <- MG ask
   wrap (do b <- W.createBuilderInContext (mgCtx mgs)
            unsafeSTToIO (runReaderT (unCG cg') (CGS b mgs)))
@@ -664,7 +664,7 @@ buildCase value defaultCode alts = do
   end <- appendBasicBlock "caseExit" func
   positionAtEnd defBlock
   isUnreachable defResult >>= flip unless (void $ buildBr end)
-  forM results $ \(result, _, outBlock) ->
+  forM_ results $ \(result, _, outBlock) ->
       do unreachable <- isUnreachable result
          unless unreachable $ void $ positionAtEnd outBlock >> buildBr end
   positionAtEnd end
