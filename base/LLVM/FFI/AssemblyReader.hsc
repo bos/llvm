@@ -12,4 +12,4 @@ import Foreign.Ptr(Ptr)
 import LLVM.FFI.Core
 
 foreign import ccall unsafe "LLVMGetModuleFromAssembly" getModuleFromAssembly
-    :: CString -> CInt -> (Ptr CString) -> IO ModuleRef
+    :: CString -> CInt -> Ptr CString -> IO ModuleRef
