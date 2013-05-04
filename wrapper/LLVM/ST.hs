@@ -1,4 +1,4 @@
-{-# LANGUAGE MultiParamTypeClasses, UndecidableInstances, RankNTypes, NoMonomorphismRestriction #-}
+{-# LANGUAGE GeneralizedNewtypeDeriving, MultiParamTypeClasses, UndecidableInstances, RankNTypes, NoMonomorphismRestriction #-}
 module LLVM.ST
     ( CUInt, CULLong
     , IntPredicate(..), FPPredicate(..)
@@ -239,22 +239,12 @@ instance Show Module where
     show (PM m) = unsafePerformIO $ W.dumpModuleToString m
 
 newtype LLVM c s a = LL { unLL :: ReaderT Context (ST s) a }
+    deriving (Functor, Applicative, Monad)
 
 class MonadLLVM m where
     getContext :: m c s Context
     liftLL :: LLVM c s a -> m c s a
     liftST :: ST s a -> m c s a
-
-instance Functor (LLVM c s) where
-    fmap f (LL g) = LL (fmap f g)
-
-instance Applicative (LLVM c s) where
-    pure x = LL (return x)
-    (<*>) (LL f) (LL x) = LL (f <*> x)
-
-instance Monad (LLVM c s) where
-    (>>=) (LL x) f = LL (x >>= unLL . f)
-    return x = LL (return x)
 
 instance MonadLLVM LLVM where
     getContext = LL ask
@@ -407,20 +397,10 @@ typeOf (STV v) = wrap . fmap STT $ W.typeOf v
 data MGS = MGS { mgModule :: W.Module, mgCtx :: Context }
 
 newtype ModuleGen c s a = MG { unMG :: ReaderT MGS (ST s) a }
+    deriving (Functor, Applicative, Monad)
 
 class MonadLLVM m => MonadMG m where
     liftMG :: ModuleGen c s a -> m c s a
-
-instance Functor (ModuleGen c s) where
-    fmap f (MG g) = MG (fmap f g)
-
-instance Applicative (ModuleGen c s) where
-    pure x = MG (return x)
-    (<*>) (MG f) (MG x) = MG (f <*> x)
-
-instance Monad (ModuleGen c s) where
-    (>>=) (MG x) f = MG (x >>= unMG . f)
-    return x = MG (return x)
 
 instance MonadReader (STModule c s) (ModuleGen c s) where
     ask = fmap (STM . mgModule) (MG ask)
@@ -512,20 +492,10 @@ setInstrCallConv (STV func) = wrap . W.setInstructionCallConv func
 data CGS = CGS { cgBuilder :: Builder, cgMGS :: MGS }
 
 newtype CodeGen c s a = CG { unCG :: ReaderT CGS (ST s) a }
+    deriving (Functor, Applicative, Monad)
 
 class MonadMG m => MonadCG m where
     liftCG :: CodeGen c s a -> m c s a
-
-instance Functor (CodeGen c s) where
-    fmap f (CG g) = CG (fmap f g)
-
-instance Applicative (CodeGen c s) where
-    pure x = CG (return x)
-    (<*>) (CG f) (CG x) = CG (f <*> x)
-
-instance Monad (CodeGen c s) where
-    (>>=) (CG x) f = CG (x >>= unCG . f)
-    return x = CG (return x)
 
 instance MonadLLVM CodeGen where
     getContext = fmap (mgCtx . cgMGS) $ CG ask
