@@ -16,7 +16,7 @@ module LLVM.ExecutionEngine(
     getFreePointers, FreePointers,
     -- * Translation
     Translatable, Generic,
-    generateFunction,
+    generateFunction, generateFunctionFromRef,
     -- * Unsafe type conversion
     Unsafe,
     unsafePurify,
@@ -54,7 +54,10 @@ instance (Generic a) => Translatable (IO a) where
 -- then you should better use 'getPointerToFunction'.
 generateFunction :: (Translatable f) =>
                     Value (Ptr f) -> EngineAccess f
-generateFunction (Value f) = do
+generateFunction (Value f) = generateFunctionFromRef f
+
+generateFunctionFromRef :: (Translatable f) => ValueRef -> EngineAccess f
+generateFunctionFromRef f = do
     run <- getRunFunction
     return $ translate run [] f
 
