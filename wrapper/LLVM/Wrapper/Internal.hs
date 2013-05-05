@@ -1,4 +1,3 @@
-{-# LANGUAGE ForeignFunctionInterface #-}
 module LLVM.Wrapper.Internal where
 
 import Foreign.ForeignPtr.Safe (ForeignPtr, newForeignPtr)
