@@ -74,6 +74,7 @@ library
       LLVM.FFI.Transforms.IPO
       LLVM.FFI.Transforms.Scalar
       LLVM.FFI.Transforms.PassManagerBuilder
+      LLVM.FFI.AssemblyReader
       LLVM.Target.Native
 
   other-modules:
