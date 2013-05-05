@@ -18,12 +18,12 @@ linkModules :: Module -> Module -> LinkerMode -> IO (Maybe String)
 linkModules (MkModule dest _) (MkModule src srcOurs) mode =
     withForeignPtr dest $ \dest' ->
     withForeignPtr src $ \src' ->
-    alloca (\msgPtr -> do
-              result <- FFI.linkModules dest' src' (FFI.fromLinkerMode mode) msgPtr
-              writeIORef srcOurs False
-              msg <- peek msgPtr
-              case result of
-                False -> return Nothing
-                True -> do str <- peekCString msg
-                           FFI.disposeMessage msg
-                           return (Just str))
+    alloca $ \msgPtr -> do
+               result <- FFI.linkModules dest' src' (FFI.fromLinkerMode mode) msgPtr
+               writeIORef srcOurs False
+               msg <- peek msgPtr
+               if not result
+                 then return Nothing
+                 else do str <- peekCString msg
+                         FFI.disposeMessage msg
+                         return (Just str)

@@ -353,27 +353,27 @@ createMemoryBufferWithContentsOfFile path =
     alloca $ \msgPtr -> do
       errOccurred <- withCString path $ \cpath ->
                      FFI.createMemoryBufferWithContentsOfFile cpath bufPtr msgPtr
-      case errOccurred of
-        True -> peek msgPtr >>= peekCString >>= fail
-        False -> peek bufPtr >>= newForeignPtr FFI.ptrDisposeMemoryBuffer
+      if errOccurred
+        then peek msgPtr >>= peekCString >>= fail
+        else peek bufPtr >>= newForeignPtr FFI.ptrDisposeMemoryBuffer
 
 createMemoryBufferWithSTDIN :: IO MemoryBuffer
-createMemoryBufferWithSTDIN = 
+createMemoryBufferWithSTDIN =
     alloca $ \bufPtr ->
     alloca $ \msgPtr -> do
       errOccurred <- FFI.createMemoryBufferWithSTDIN bufPtr msgPtr
-      case errOccurred of
-        True -> peek msgPtr >>= peekCString >>= fail
-        False -> peek bufPtr >>= newForeignPtr FFI.ptrDisposeMemoryBuffer
+      if errOccurred
+        then peek msgPtr >>= peekCString >>= fail
+        else peek bufPtr >>= newForeignPtr FFI.ptrDisposeMemoryBuffer
 
 createMemoryBufferWithMemoryRange :: Ptr a -> CSize -> String -> Bool -> IO MemoryBuffer
 createMemoryBufferWithMemoryRange p len name null =
-    (withCString name $ \cname -> FFI.createMemoryBufferWithMemoryRange p len cname null)
+    withCString name (\cname -> FFI.createMemoryBufferWithMemoryRange p len cname null)
     >>= newForeignPtr FFI.ptrDisposeMemoryBuffer
 
 createMemoryBufferWithMemoryRangeCopy :: Ptr a -> CSize -> String -> IO MemoryBuffer
 createMemoryBufferWithMemoryRangeCopy p len name =
-    (withCString name $ FFI.createMemoryBufferWithMemoryRangeCopy p len)
+    withCString name (FFI.createMemoryBufferWithMemoryRangeCopy p len)
     >>= newForeignPtr FFI.ptrDisposeMemoryBuffer
 
 moduleCreateWithName :: String -> IO Module
@@ -382,7 +382,7 @@ moduleCreateWithName name = initModule =<< withCString name FFI.moduleCreateWith
 moduleCreateWithNameInContext :: String -> Context -> IO Module
 moduleCreateWithNameInContext name ctx =
     withForeignPtr ctx $ \ctx' ->
-    initModule =<< withCString name (flip FFI.moduleCreateWithNameInContext ctx')
+    initModule =<< withCString name (`FFI.moduleCreateWithNameInContext` ctx')
 
 printModuleToFile :: Module -> FilePath -> IO ()
 printModuleToFile (MkModule m _) file
@@ -390,18 +390,17 @@ printModuleToFile (MkModule m _) file
       (\f -> alloca (\msgPtr -> do
                        result <- withForeignPtr m (\modPtr -> FFI.printModuleToFile modPtr f msgPtr)
                        msg <- peek msgPtr
-                       case result of
-                         False -> return ()
-                         True -> do str <- peekCString msg
-                                    FFI.disposeMessage msg
-                                    fail str))
+                       when result $ do
+                           str <- peekCString msg
+                           FFI.disposeMessage msg
+                           fail str))
 
 dumpModule :: Module -> IO ()
 dumpModule (MkModule m _) = withForeignPtr m FFI.dumpModule
 
 getTypeByName :: Module -> String -> IO (Maybe Type)
 getTypeByName (MkModule m _) name =
-    fmap nullableToMaybe $ withForeignPtr m (\mPtr -> withCString name $ FFI.getTypeByName mPtr)
+    fmap nullableToMaybe $ withForeignPtr m (withCString name . FFI.getTypeByName)
 
 getValueName :: Value -> IO String
 getValueName v = FFI.getValueName v >>= peekCString
@@ -417,7 +416,7 @@ nullableToMaybe p = if p == nullPtr then Nothing else Just p
 
 getNamedGlobal :: Module -> String -> IO (Maybe Value)
 getNamedGlobal (MkModule m _) name =
-    fmap nullableToMaybe $ withForeignPtr m (\mPtr -> withCString name $ FFI.getNamedGlobal mPtr)
+    fmap nullableToMaybe $ withForeignPtr m (withCString name . FFI.getNamedGlobal)
 
 buildGlobalString :: Builder -> String -> String -> IO Value
 buildGlobalString b string name
@@ -459,7 +458,7 @@ addFunction (MkModule m _) name ty = withForeignPtr m (\mPtr -> withCString name
 
 getNamedFunction :: Module -> String -> IO (Maybe Value)
 getNamedFunction (MkModule m _) name =
-    fmap nullableToMaybe $ withForeignPtr m (\mPtr -> withCString name $ FFI.getNamedFunction mPtr)
+    fmap nullableToMaybe $ withForeignPtr m (withCString name . FFI.getNamedFunction)
 
 getParams :: Value -> IO [Value]
 getParams f
@@ -594,8 +593,8 @@ positionBefore b v = withForeignPtr b $ \b' -> FFI.positionBefore b' v
 positionAtEnd b bb = withForeignPtr b $ \b' -> FFI.positionAtEnd b' bb
 
 buildRetVoid b = withForeignPtr b FFI.buildRetVoid
-buildRet b v = withForeignPtr b (flip FFI.buildRet v)
-buildBr b t = withForeignPtr b (flip FFI.buildBr t)
+buildRet b v = withForeignPtr b (`FFI.buildRet` v)
+buildBr b t = withForeignPtr b (`FFI.buildBr` t)
 buildIndirectBr b addr ndests = withForeignPtr b (\b' -> FFI.buildIndirectBr b' addr ndests)
 buildCondBr b c t f = withForeignPtr b (\b' -> FFI.buildCondBr b' c t f)
 buildSwitch b v d cnt = withForeignPtr b (\b' -> FFI.buildSwitch b' v d cnt)
@@ -738,7 +737,7 @@ mdString s = unsafePerformIO $
 getNamedMetadataOperands :: Module -> String -> IO [Value]
 getNamedMetadataOperands (MkModule m _) name =
     withCString name $ \namePtr -> do
-      count <- liftM fromIntegral (withForeignPtr m (\m' -> FFI.getNamedMetadataNumOperands m' namePtr))
+      count <- liftM fromIntegral (withForeignPtr m (`FFI.getNamedMetadataNumOperands` namePtr))
       allocaArray count $ \ptr -> do
         withForeignPtr m (\m' -> FFI.getNamedMetadataOperands m' namePtr ptr)
         peekArray count ptr

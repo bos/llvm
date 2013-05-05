@@ -1,4 +1,4 @@
-{-# LANGUAGE MultiParamTypeClasses, UndecidableInstances, RankNTypes, NoMonomorphismRestriction #-}
+{-# LANGUAGE GeneralizedNewtypeDeriving, MultiParamTypeClasses, UndecidableInstances, RankNTypes, NoMonomorphismRestriction #-}
 module LLVM.ST
     ( CUInt, CULLong
     , IntPredicate(..), FPPredicate(..)
@@ -239,22 +239,12 @@ instance Show Module where
     show (PM m) = unsafePerformIO $ W.dumpModuleToString m
 
 newtype LLVM c s a = LL { unLL :: ReaderT Context (ST s) a }
+    deriving (Functor, Applicative, Monad)
 
 class MonadLLVM m where
     getContext :: m c s Context
     liftLL :: LLVM c s a -> m c s a
     liftST :: ST s a -> m c s a
-
-instance Functor (LLVM c s) where
-    fmap f (LL g) = LL (fmap f g)
-
-instance Applicative (LLVM c s) where
-    pure x = LL (return x)
-    (<*>) (LL f) (LL x) = LL (f <*> x)
-
-instance Monad (LLVM c s) where
-    (>>=) (LL x) f = LL (x >>= unLL . f)
-    return x = LL (return x)
 
 instance MonadLLVM LLVM where
     getContext = LL ask
@@ -328,7 +318,7 @@ structType types packed = do ctx <- getContext
                              wrap . fmap STT $ W.structTypeInContext ctx (map unSTT types) packed
 
 structCreateNamed :: (Monad (m c s), MonadLLVM m) => String -> m c s (STType c s)
-structCreateNamed n = getContext >>= wrap . fmap STT . (flip W.structCreateNamedInContext n)
+structCreateNamed n = getContext >>= wrap . fmap STT . flip W.structCreateNamedInContext n
 
 structSetBody :: (Monad (m c s), MonadLLVM m) => STType c s -> [STType c s] -> Bool -> m c s ()
 structSetBody (STT struct) body packed = wrap $ W.structSetBody struct (map unSTT body) packed
@@ -407,20 +397,10 @@ typeOf (STV v) = wrap . fmap STT $ W.typeOf v
 data MGS = MGS { mgModule :: W.Module, mgCtx :: Context }
 
 newtype ModuleGen c s a = MG { unMG :: ReaderT MGS (ST s) a }
+    deriving (Functor, Applicative, Monad)
 
 class MonadLLVM m => MonadMG m where
     liftMG :: ModuleGen c s a -> m c s a
-
-instance Functor (ModuleGen c s) where
-    fmap f (MG g) = MG (fmap f g)
-
-instance Applicative (ModuleGen c s) where
-    pure x = MG (return x)
-    (<*>) (MG f) (MG x) = MG (f <*> x)
-
-instance Monad (ModuleGen c s) where
-    (>>=) (MG x) f = MG (x >>= unMG . f)
-    return x = MG (return x)
 
 instance MonadReader (STModule c s) (ModuleGen c s) where
     ask = fmap (STM . mgModule) (MG ask)
@@ -512,20 +492,10 @@ setInstrCallConv (STV func) = wrap . W.setInstructionCallConv func
 data CGS = CGS { cgBuilder :: Builder, cgMGS :: MGS }
 
 newtype CodeGen c s a = CG { unCG :: ReaderT CGS (ST s) a }
+    deriving (Functor, Applicative, Monad)
 
 class MonadMG m => MonadCG m where
     liftCG :: CodeGen c s a -> m c s a
-
-instance Functor (CodeGen c s) where
-    fmap f (CG g) = CG (fmap f g)
-
-instance Applicative (CodeGen c s) where
-    pure x = CG (return x)
-    (<*>) (CG f) (CG x) = CG (f <*> x)
-
-instance Monad (CodeGen c s) where
-    (>>=) (CG x) f = CG (x >>= unCG . f)
-    return x = CG (return x)
 
 instance MonadLLVM CodeGen where
     getContext = fmap (mgCtx . cgMGS) $ CG ask
@@ -565,7 +535,7 @@ runCodeGen :: (Monad (m c s), MonadMG m) =>
               STValue c s -> CodeGen c s a -> ModuleGen c s a
 runCodeGen (STV func) cg = do
   bbs <- wrap $ W.getBasicBlocks func
-  let cg' = if null bbs then cg else (positionAtEnd (STB (last bbs)) >> cg)
+  let cg' = if null bbs then cg else positionAtEnd (STB (last bbs)) >> cg
   mgs <- MG ask
   wrap (do b <- W.createBuilderInContext (mgCtx mgs)
            unsafeSTToIO (runReaderT (unCG cg') (CGS b mgs)))
@@ -694,7 +664,7 @@ buildCase value defaultCode alts = do
   end <- appendBasicBlock "caseExit" func
   positionAtEnd defBlock
   isUnreachable defResult >>= flip unless (void $ buildBr end)
-  forM results $ \(result, _, outBlock) ->
+  forM_ results $ \(result, _, outBlock) ->
       do unreachable <- isUnreachable result
          unless unreachable $ void $ positionAtEnd outBlock >> buildBr end
   positionAtEnd end
