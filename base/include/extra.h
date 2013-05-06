@@ -199,7 +199,9 @@ bool LLVMAddEmitObjectPass (LLVMModuleRef modRef, const char* filename);
 
 declare_pass( AAEval )
 declare_pass( AliasAnalysisCounter )
-declare_pass( AlwaysInliner )
+#if HS_LLVM_VERSION < 302
+define_pass( AlwaysInliner )
+#endif 
 // Name conflicts with those in LLVM proper, have a safer prefix?
 // declare_pass( BasicAliasAnalysis )
 declare_pass( BlockPlacement )

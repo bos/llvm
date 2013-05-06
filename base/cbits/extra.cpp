@@ -613,7 +613,10 @@ void LLVMAdd ## P ## Pass (LLVMPassManagerRef passmgr) { \
 
 define_pass( AAEval )
 define_pass( AliasAnalysisCounter )
+
+#if HS_LLVM_VERSION < 302
 define_pass( AlwaysInliner )
+#endif 
 // Name conflicts with those in LLVM proper, have a safer prefix?
 // define_pass( BasicAliasAnalysis )
 define_pass( BlockPlacement )
