@@ -84,9 +84,10 @@ register' :: PackageDescription -> LocalBuildInfo
           -> RegisterFlags -- ^Install in the user's database?; verbose
           -> IO ()
 register' pkg@PackageDescription { library       = Just lib  }
-          lbi@LocalBuildInfo     { libraryConfig = Just clbi } regFlags
+          lbi@LocalBuildInfo{  } regFlags
   = do
 
+    let clbi = getComponentLocalBuildInfo lbi CLibName
     installedPkgInfoRaw <- generateRegistrationInfo
                            verbosity pkg lib lbi clbi inplace distPref
 
