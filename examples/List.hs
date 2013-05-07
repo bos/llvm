@@ -4,7 +4,7 @@ module List(main) where
 
 import LLVM.Util.Loop (Phi, phis, addPhis, )
 import LLVM.ExecutionEngine (simpleFunction, )
-import LLVM.Core
+import LLVM.Core hiding ( sizeOf )
 import qualified System.IO as IO
 
 import Data.Word (Word32, )
