@@ -1,4 +1,5 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving, MultiParamTypeClasses, UndecidableInstances, RankNTypes, NoMonomorphismRestriction #-}
+{-# OPTIONS_GHC -fno-warn-unused-do-bind -fno-warn-missing-signatures #-}
 module LLVM.ST
     ( CUInt, CULLong
     , IntPredicate(..), FPPredicate(..)
@@ -215,9 +216,9 @@ import LLVM.Wrapper.Core ( MemoryBuffer, Context, BasicBlock, Type, Value, Build
                          , createMemoryBufferWithMemoryRangeCopy
                          )
 
-newtype STPassManager c s = STPM { unSTPM :: W.PassManager }
+newtype STPassManager c s = STPM W.PassManager
     deriving Eq
-newtype Module = PM { unPM :: W.Module }
+newtype Module = PM W.Module
     deriving Eq
 newtype STModule c s = STM { unSTM :: W.Module }
     deriving Eq
@@ -238,7 +239,7 @@ verifyModule (PM m) = unsafePerformIO (W.verifyModule m)
 instance Show Module where
     show (PM m) = unsafePerformIO $ W.dumpModuleToString m
 
-newtype LLVM c s a = LL { unLL :: ReaderT Context (ST s) a }
+newtype LLVM c s a = LL (ReaderT Context (ST s) a)
     deriving (Functor, Applicative, Monad)
 
 class MonadLLVM m where
@@ -396,7 +397,7 @@ typeOf (STV v) = wrap . fmap STT $ W.typeOf v
 
 data MGS = MGS { mgModule :: W.Module, mgCtx :: Context }
 
-newtype ModuleGen c s a = MG { unMG :: ReaderT MGS (ST s) a }
+newtype ModuleGen c s a = MG (ReaderT MGS (ST s) a)
     deriving (Functor, Applicative, Monad)
 
 class MonadLLVM m => MonadMG m where
@@ -404,7 +405,7 @@ class MonadLLVM m => MonadMG m where
 
 instance MonadReader (STModule c s) (ModuleGen c s) where
     ask = fmap (STM . mgModule) (MG ask)
-    local f (MG mg) = MG (local (\(MGS mod ctx) -> MGS (unSTM . f . STM $ mod) ctx) mg)
+    local f (MG mg) = MG (local (\(MGS m ctx) -> MGS (unSTM . f . STM $ m) ctx) mg)
 
 instance MonadLLVM ModuleGen where
     getContext = fmap mgCtx $ MG ask
@@ -426,13 +427,13 @@ genModule :: (Monad (m c s), MonadLLVM m) => String -> ModuleGen c s a -> m c s 
 genModule name (MG mg) = do
   ctx <- getContext
   wrap $ do
-    mod <- W.moduleCreateWithNameInContext name ctx
-    unsafeSTToIO . runReaderT mg $ MGS mod ctx
+    m <- W.moduleCreateWithNameInContext name ctx
+    unsafeSTToIO . runReaderT mg $ MGS m ctx
 
 runModuleGen :: (Monad (m c s), MonadLLVM m) => STModule c s -> ModuleGen c s a -> m c s a
-runModuleGen (STM mod) (MG mg) = do
+runModuleGen (STM m) (MG mg) = do
   ctx <- getContext
-  liftLL $ LL . lift . runReaderT mg $ MGS mod ctx
+  liftLL $ LL . lift . runReaderT mg $ MGS m ctx
 
 createPassManager :: (Functor (m c s), MonadLLVM m) => m c s (STPassManager c s)
 createPassManager = fmap STPM . wrap $ W.createPassManager
@@ -795,15 +796,15 @@ buildXor       = wrapBin W.buildXor
 
 buildICmp :: (Monad (m c s), MonadCG m) =>
              String -> IntPredicate -> STValue c s -> STValue c s -> m c s (STValue c s)
-buildICmp name pred (STV l) (STV r) = do
+buildICmp name f (STV l) (STV r) = do
   b <- liftCG $ fmap cgBuilder (CG ask)
-  wrap . fmap STV $ W.buildICmp b pred l r name
+  wrap . fmap STV $ W.buildICmp b f l r name
 
 buildFCmp :: (Monad (m c s), MonadCG m) =>
              String -> FPPredicate -> STValue c s -> STValue c s -> m c s (STValue c s)
-buildFCmp name pred (STV l) (STV r) = do
+buildFCmp name f (STV l) (STV r) = do
   b <- liftCG $ fmap cgBuilder (CG ask)
-  wrap . fmap STV $ W.buildFCmp b pred l r name
+  wrap . fmap STV $ W.buildFCmp b f l r name
 
 wrapConstBin :: (Monad (m c s), MonadLLVM m) =>
                 (Value -> Value -> Value)
