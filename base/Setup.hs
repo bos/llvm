@@ -1,5 +1,7 @@
 {-# LANGUAGE CPP #-}
 {-# LANGUAGE PatternGuards #-}
+{-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE QuasiQuotes #-}
 import System.Directory
 import System.Environment
 import System.FilePath
@@ -17,6 +19,7 @@ import Distribution.Simple.Install
 import Distribution.Simple.Register
 import Distribution.Simple.Utils
 import Distribution.Text ( display )
+import Language.Haskell.TH
 
 main = do
     let hooks = autoconfUserHooks { postConf = if os == "mingw32" 
@@ -80,14 +83,28 @@ regHookWithExtraGhciLibraries pkg_descr localbuildinfo _ flags =
            "Package contains no library to register:" (packageId pkg_descr)
   where verbosity = fromFlag (regVerbosity flags)
   
+
+
+--- horrible hack to support cabal versions both above and below 1.17
+extractCLBI x=  
+    $(if cabalVersion >= Version [1,17,0] [] 
+        then  appE (appE  ( varE $ mkName "getComponentLocalBuildInfo") ( varE 'x) ) (conE ( mkName "CLibName")) 
+
+        else  letE  
+                [valD  (recP 
+                            (mkName "LocalBuildInfo" ) 
+                            [fieldPat (mkName "libraryConfig") 
+                             (conP (mkName "Just")    [varP $ mkName "clbi"] ) ] ) 
+                    (normalB $ varE 'x)   []    ] 
+                 (varE $ mkName "clbi")  )
+
 register' :: PackageDescription -> LocalBuildInfo
           -> RegisterFlags -- ^Install in the user's database?; verbose
           -> IO ()
 register' pkg@PackageDescription { library       = Just lib  }
-          lbi@LocalBuildInfo{  } regFlags
+          lbi regFlags
   = do
-
-    let clbi = getComponentLocalBuildInfo lbi CLibName
+    let clbi = extractCLBI lbi
     installedPkgInfoRaw <- generateRegistrationInfo
                            verbosity pkg lib lbi clbi inplace distPref
 
@@ -121,4 +138,5 @@ register' pkg@PackageDescription { library       = Just lib  }
 
 register' _ _ regFlags = notice verbosity "No package to register"
   where
-    verbosity = fromFlag (regVerbosity regFlags)
+    verbosity = fromFlag (regVerbosity regFlags) 
+ 
