@@ -158,11 +158,14 @@ showType' p = do
     pk <- FFI.getTypeKind p
     case pk of
         FFI.VoidTypeKind -> return "()"
+        FFI.HalfTypeKind -> return "Half"
 	FFI.FloatTypeKind -> return "Float"
 	FFI.DoubleTypeKind -> return "Double"
 	FFI.X86_FP80TypeKind -> return "X86_FP80"
 	FFI.FP128TypeKind -> return "FP128"
 	FFI.PPC_FP128TypeKind -> return "PPC_FP128"
+        FFI.X86_MMXTypeKind -> return "X86_MMX"
+        FFI.MetadataTypeKind -> return "Metadata"
 	FFI.LabelTypeKind -> return "Label"
 	FFI.IntegerTypeKind -> do w <- FFI.getIntTypeWidth p; return $ "(IntN " ++ show w ++ ")"
 	FFI.FunctionTypeKind -> do
