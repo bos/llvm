@@ -117,17 +117,19 @@ readBitcodeFromFile name =
       alloca $ \ errStr -> do
         rrc <- FFI.createMemoryBufferWithContentsOfFile namePtr bufPtr errStr
         if rrc /= False then do
-            msg <- peek errStr >>= peekCString
-            ioError $ userError $ "readBitcodeFromFile: read return code " ++ show rrc ++ ", " ++ msg
-         else do
-            buf <- peek bufPtr
-            prc <- FFI.parseBitcode buf modPtr errStr
-	    if prc /= False then do
                 msg <- peek errStr >>= peekCString
-                ioError $ userError $ "readBitcodeFromFile: parse return code " ++ show prc ++ ", " ++ msg
-             else do
-                ptr <- peek modPtr
-                return $ Module ptr
+                ioError $ userError $ "readBitcodeFromFile: read return code " ++ show rrc ++ ", " ++ msg
+            else do
+                buf <- peek bufPtr
+                prc <- FFI.parseBitcode buf modPtr errStr
+                if prc /= False then do
+                    msg <- peek errStr >>= peekCString
+                    ioError $ userError $ "readBitcodeFromFile: parse return code " ++ show prc ++ ", " ++ msg
+                    else do
+                        ptr <- peek modPtr
+                        return $ Module ptr
+
+                        
 {-
                 liftM Module $ newForeignPtr FFI.ptrDisposeModule ptr
 -}
@@ -159,28 +161,28 @@ showType' p = do
     case pk of
         FFI.VoidTypeKind -> return "()"
         FFI.HalfTypeKind -> return "Half"
-	FFI.FloatTypeKind -> return "Float"
-	FFI.DoubleTypeKind -> return "Double"
-	FFI.X86_FP80TypeKind -> return "X86_FP80"
-	FFI.FP128TypeKind -> return "FP128"
-	FFI.PPC_FP128TypeKind -> return "PPC_FP128"
+        FFI.FloatTypeKind -> return "Float"
+        FFI.DoubleTypeKind -> return "Double"
+        FFI.X86_FP80TypeKind -> return "X86_FP80"
+        FFI.FP128TypeKind -> return "FP128"
+        FFI.PPC_FP128TypeKind -> return "PPC_FP128"
         FFI.X86_MMXTypeKind -> return "X86_MMX"
         FFI.MetadataTypeKind -> return "Metadata"
-	FFI.LabelTypeKind -> return "Label"
-	FFI.IntegerTypeKind -> do w <- FFI.getIntTypeWidth p; return $ "(IntN " ++ show w ++ ")"
-	FFI.FunctionTypeKind -> do
+        FFI.LabelTypeKind -> return "Label"
+        FFI.IntegerTypeKind -> do w <- FFI.getIntTypeWidth p; return $ "(IntN " ++ show w ++ ")"
+        FFI.FunctionTypeKind -> do
             r <- FFI.getReturnType p
-	    c <- FFI.countParamTypes p
-	    let n = fromIntegral c
-	    as <- allocaArray n $ \ args -> do
-		     FFI.getParamTypes p args
-		     peekArray n args
-	    ts <- mapM showType' (as ++ [r])
-	    return $ "(" ++ intercalate " -> " ts ++ ")"
-	FFI.StructTypeKind -> return "(Struct ...)"
-	FFI.ArrayTypeKind -> do n <- FFI.getArrayLength p; t <- FFI.getElementType p >>= showType'; return $ "(Array " ++ show n ++ " " ++ t ++ ")"
-	FFI.PointerTypeKind -> do t <- FFI.getElementType p >>= showType'; return $ "(Ptr " ++ t ++ ")"
-	FFI.VectorTypeKind -> do n <- FFI.getVectorSize p; t <- FFI.getElementType p >>= showType'; return $ "(Vector " ++ show n ++ " " ++ t ++ ")"
+            c <- FFI.countParamTypes p
+            let n = fromIntegral c
+            as <- allocaArray n $ \ args -> do
+                FFI.getParamTypes p args
+                peekArray n args
+            ts <- mapM showType' (as ++ [r])
+            return $ "(" ++ intercalate " -> " ts ++ ")"
+        FFI.StructTypeKind -> return "(Struct ...)"
+        FFI.ArrayTypeKind -> do n <- FFI.getArrayLength p; t <- FFI.getElementType p >>= showType'; return $ "(Array " ++ show n ++ " " ++ t ++ ")"
+        FFI.PointerTypeKind -> do t <- FFI.getElementType p >>= showType'; return $ "(Ptr " ++ t ++ ")"
+        FFI.VectorTypeKind -> do n <- FFI.getVectorSize p; t <- FFI.getElementType p >>= showType'; return $ "(Vector " ++ show n ++ " " ++ t ++ ")"
 
 --------------------------------------
 -- Handle module providers
