@@ -117,17 +117,19 @@ readBitcodeFromFile name =
       alloca $ \ errStr -> do
         rrc <- FFI.createMemoryBufferWithContentsOfFile namePtr bufPtr errStr
         if rrc /= False then do
-            msg <- peek errStr >>= peekCString
-            ioError $ userError $ "readBitcodeFromFile: read return code " ++ show rrc ++ ", " ++ msg
-         else do
-            buf <- peek bufPtr
-            prc <- FFI.parseBitcode buf modPtr errStr
-        if prc /= False then do
                 msg <- peek errStr >>= peekCString
-                ioError $ userError $ "readBitcodeFromFile: parse return code " ++ show prc ++ ", " ++ msg
-             else do
-                ptr <- peek modPtr
-                return $ Module ptr
+                ioError $ userError $ "readBitcodeFromFile: read return code " ++ show rrc ++ ", " ++ msg
+            else do
+                buf <- peek bufPtr
+                prc <- FFI.parseBitcode buf modPtr errStr
+                if prc /= False then do
+                    msg <- peek errStr >>= peekCString
+                    ioError $ userError $ "readBitcodeFromFile: parse return code " ++ show prc ++ ", " ++ msg
+                    else do
+                        ptr <- peek modPtr
+                        return $ Module ptr
+
+                        
 {-
                 liftM Module $ newForeignPtr FFI.ptrDisposeModule ptr
 -}
@@ -173,8 +175,8 @@ showType' p = do
             c <- FFI.countParamTypes p
             let n = fromIntegral c
             as <- allocaArray n $ \ args -> do
-                 FFI.getParamTypes p args
-                 peekArray n args
+                FFI.getParamTypes p args
+                peekArray n args
             ts <- mapM showType' (as ++ [r])
             return $ "(" ++ intercalate " -> " ts ++ ")"
         FFI.StructTypeKind -> return "(Struct ...)"

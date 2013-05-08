@@ -25,15 +25,10 @@ import LLVM.FFI.Target
     )
 
 import qualified LLVM.FFI.Target as FFI.T
-import qualified LLVM.FFI.Core as FFI
 
 import Foreign.C.String (peekCString, withCString)
 import Control.Exception (finally)
-import Control.Monad (liftM)
-import Foreign.C.Types
 
-type Type       = FFI.TypeRef
-type Value      = FFI.ValueRef
 type TargetData = FFI.T.TargetDataRef
 
 data ByteOrdering = BigEndian | LittleEndian deriving Eq

@@ -1,15 +1,10 @@
 module LLVM.Wrapper.BitReader (parseBitcodeInContext) where
 
-import Foreign.Marshal.Alloc (alloca, malloc)
-import Foreign.C.String (peekCString, withCString)
+import Foreign.Marshal.Alloc (alloca)
+import Foreign.C.String (peekCString)
 import Foreign.Storable (peek)
-import System.IO.Unsafe (unsafePerformIO)
-import System.IO (FilePath)
-import Control.Exception.Base (bracket, finally)
-import Foreign.Ptr (Ptr)
 import Foreign.ForeignPtr.Safe (withForeignPtr)
 
-import qualified LLVM.FFI.Core as FFI
 import qualified LLVM.FFI.BitReader as FFI
 
 import LLVM.Wrapper.Internal

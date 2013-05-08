@@ -1,3 +1,4 @@
+{-# OPTIONS_GHC -fno-warn-missing-signatures #-}
 module LLVM.Wrapper.Core
     ( module LLVM.FFI.Core
     , Context
@@ -200,7 +201,6 @@ import Foreign.Marshal.Alloc (alloca)
 import Foreign.Storable (peek)
 import Foreign.ForeignPtr.Safe (ForeignPtr, withForeignPtr, newForeignPtr, newForeignPtr_)
 import System.IO.Unsafe (unsafePerformIO)
-import Control.Exception
 import Control.Monad
 
 import LLVM.Wrapper.Internal
@@ -367,8 +367,8 @@ createMemoryBufferWithSTDIN =
         else peek bufPtr >>= newForeignPtr FFI.ptrDisposeMemoryBuffer
 
 createMemoryBufferWithMemoryRange :: Ptr a -> CSize -> String -> Bool -> IO MemoryBuffer
-createMemoryBufferWithMemoryRange p len name null =
-    withCString name (\cname -> FFI.createMemoryBufferWithMemoryRange p len cname null)
+createMemoryBufferWithMemoryRange p len name nullTerm =
+    withCString name (\cname -> FFI.createMemoryBufferWithMemoryRange p len cname nullTerm)
     >>= newForeignPtr FFI.ptrDisposeMemoryBuffer
 
 createMemoryBufferWithMemoryRangeCopy :: Ptr a -> CSize -> String -> IO MemoryBuffer
@@ -539,7 +539,7 @@ getBasicBlocks v
              peekArray count ptr
 
 getNextBasicBlock :: BasicBlock -> IO (Maybe BasicBlock)
-getNextBasicBlock pred = fmap nullableToMaybe $ FFI.getNextBasicBlock pred
+getNextBasicBlock bb = fmap nullableToMaybe $ FFI.getNextBasicBlock bb
 
 getGC :: Value -> IO String
 getGC f = FFI.getGC f >>= peekCString
