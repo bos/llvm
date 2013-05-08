@@ -54,6 +54,8 @@
 #include "llvm/IntrinsicInst.h"
 #else
 #include "llvm/IR/LLVMContext.h"
+#include "llvm/IR/Module.h"
+#include "llvm/IR/IRBuilder.h"
 #include "llvm/IR/Constants.h"
 #include "llvm/IR/DerivedTypes.h"
 #include "llvm/IR/GlobalVariable.h"
@@ -622,7 +624,9 @@ define_pass( AlwaysInliner )
 define_pass( BlockPlacement )
 define_pass( BreakCriticalEdges )
 define_pass( CodeGenPrepare )
+#if HS_LLVM_VERSION < 303
 define_pass( DbgInfoPrinter )
+#endif
 define_pass( DeadCodeElimination )
 define_pass( DeadInstElimination )
 define_pass( DemoteRegisterToMemory )

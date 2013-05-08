@@ -55,7 +55,7 @@ flag developer
 
 library
   build-depends:
-    base >= 3 && < 5
+    base >= 3 && < 5, mtl >= 2.1 && < 3
 
   ghc-options: -Wall
 
@@ -77,6 +77,16 @@ library
       LLVM.FFI.AssemblyReader
       LLVM.Target.Native
 
+      LLVM.Wrapper.Core
+      LLVM.Wrapper.BitReader
+      LLVM.Wrapper.BitWriter
+      LLVM.Wrapper.Analysis,
+      LLVM.Wrapper.ExecutionEngine
+      LLVM.Wrapper.Target
+      LLVM.Wrapper.Linker
+      LLVM.Wrapper.Transforms.PassManagerBuilder
+      LLVM.ST
+
   other-modules:
       LLVM.Target.ARM
       LLVM.Target.CellSPU
@@ -87,6 +97,8 @@ library
       LLVM.Target.Sparc
       LLVM.Target.X86
       LLVM.Target.XCore
+
+      LLVM.Wrapper.Internal
 
   include-dirs: include
   C-Sources:
