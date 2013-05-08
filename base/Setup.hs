@@ -85,6 +85,23 @@ regHookWithExtraGhciLibraries pkg_descr localbuildinfo _ flags =
   
 
 
+{-
+this is the workaround for conditional compilation if template haskell was more
+    permissive, but isn't
+
+ --- what i'd like to write, but can't because template haskell rejecting
+ the branch that has the wrong api version
+ extractCLBI x=
+     $(if cabalVersion >= Version [1,17,0] []
+         then [|  getComponentLocalBuildInfo 'x CLibName  |]
+         else  [|      
+                    let   LocalBuildInfo  { libraryConfig = Just clbi } = 'x 
+                        in clbi |]
+    )
+
+
+-}
+
 --- horrible hack to support cabal versions both above and below 1.17
 extractCLBI x=  
     $(if cabalVersion >= Version [1,17,0] [] 
