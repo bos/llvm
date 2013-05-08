@@ -42,16 +42,12 @@ import Foreign.Marshal.Alloc
 import Foreign.Marshal.Utils
 import Foreign.Storable
 
-type ModuleProvider  = FFI.ModuleProviderRef
 type ExecutionEngine = Ptr FFI.EE.ExecutionEngine -- FFI.EE.ExecutionEngineRef
 type GenericValue    = Ptr FFI.EE.GenericValue    -- FFI.EE.GenericValueRef
 
 type Type       = FFI.TypeRef
 type Module     = FFI.ModuleRef
 type Value      = FFI.ValueRef
-type Builder    = FFI.BuilderRef
-type BasicBlock = FFI.BasicBlockRef
-type Context    = FFI.ContextRef
 
 createGenericValueOfInt :: Type -> CULLong -> Bool -> IO GenericValue
 createGenericValueOfInt ty n isSigned
@@ -84,28 +80,28 @@ runFunctionAsMain ee val argv envp
         envcstrings = mapM newCString envp
 
 createJITCompilerForModule :: Module -> CUInt -> IO ExecutionEngine
-createJITCompilerForModule mod optlvl
+createJITCompilerForModule m optlvl
     = alloca $ \msgPtr ->
         alloca $ \eeref -> do
-          r <- FFI.EE.createJITCompilerForModule eeref mod optlvl msgPtr
+          r <- FFI.EE.createJITCompilerForModule eeref m optlvl msgPtr
           if r
               then peek msgPtr >>= peekCString >>= fail
               else peek eeref
 
 createInterpreterForModule :: Module -> IO ExecutionEngine
-createInterpreterForModule mod
+createInterpreterForModule m
     = alloca $ \msgPtr ->
         alloca $ \eeref -> do
-          r <- FFI.EE.createInterpreterForModule eeref mod msgPtr
+          r <- FFI.EE.createInterpreterForModule eeref m msgPtr
           if r
               then peek msgPtr >>= peekCString >>= fail
               else peek eeref
 
 createExecutionEngineForModule :: Module -> IO ExecutionEngine
-createExecutionEngineForModule mod
+createExecutionEngineForModule m
     = alloca $ \msgPtr ->
         alloca $ \eeref -> do
-          r <- FFI.EE.createExecutionEngineForModule eeref mod msgPtr
+          r <- FFI.EE.createExecutionEngineForModule eeref m msgPtr
           if r
               then peek msgPtr >>= peekCString >>= fail
               else peek eeref

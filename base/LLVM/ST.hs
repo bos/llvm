@@ -203,7 +203,7 @@ import qualified LLVM.Wrapper.BitReader as W
 import qualified LLVM.Wrapper.BitWriter as W
 import qualified LLVM.Wrapper.Analysis as W
 import qualified LLVM.Wrapper.Transforms.PassManagerBuilder as W
-import LLVM.Wrapper.Core ( MemoryBuffer, Context, BasicBlock, Type, Value, Builder, PassManager
+import LLVM.Wrapper.Core ( MemoryBuffer, Context, BasicBlock, Type, Value, Builder
                          , CUInt, CULLong
                          , TypeKind(..)
                          , Linkage(..)
@@ -676,8 +676,8 @@ buildCase value defaultCode alts = do
            phi <- buildPhi "caseResult" ty
            inputs <- filterM (\(r, _, _) -> fmap not $ isUnreachable r)
                      ((defResult, defBlock, defExit):results)
-           addIncoming phi (map (\(result, _, outBlock) ->
-                                     (result, outBlock))
+           addIncoming phi (map (\(outVal, _, outBlock) ->
+                                     (outVal, outBlock))
                             inputs)
            return phi
 
