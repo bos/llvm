@@ -1,10 +1,12 @@
 name:          llvm
-version:       3.0.1.0
+version:       3.2.0.0
 license:       BSD3
 license-file:  LICENSE
 synopsis:      Bindings to the LLVM compiler toolkit.
 description:
   High-level bindings to the LLVM compiler toolkit.
+  .
+  * New in 3.2.0.0: Builds against LLVM 3.2
   .
   * New in 3.0.0.0: The low-level bindings have been split into the
     llvm-base package.
@@ -42,7 +44,7 @@ library
     base >= 3 && < 5,
     bytestring >= 0.9,
     directory,
-    llvm-base >= 3.0.0.1 && < 4,
+    llvm-base >= 3.2.0.0 && < 4,
     mtl,
     process,
     type-level,
