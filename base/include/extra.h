@@ -207,7 +207,9 @@ define_pass( AlwaysInliner )
 declare_pass( BlockPlacement )
 declare_pass( BreakCriticalEdges )
 declare_pass( CodeGenPrepare )
+#if HS_LLVM_VERSION < 303
 declare_pass( DbgInfoPrinter )
+#endif
 declare_pass( DeadCodeElimination )
 declare_pass( DeadInstElimination )
 declare_pass( DemoteRegisterToMemory )
