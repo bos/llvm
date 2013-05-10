@@ -2,3 +2,7 @@ config.log
 config.status
 dist/
 llvm.buildinfo
+base/autom4te.cache/
+base/configure
+base/include/hs_llvm_config.h
+base/llvm-base.buildinfo
