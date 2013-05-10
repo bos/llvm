@@ -601,75 +601,29 @@ bool LLVMAddEmitObjectPass (LLVMModuleRef modRef, const char* filename)
 }
 #endif
 
-/* Passes. A few passes (listed below) are used directly from LLVM-C,
- * rest are defined here.
- */
-
-#define define_pass(P)                                   \
-void LLVMAdd ## P ## Pass (LLVMPassManagerRef passmgr) { \
-    using namespace llvm;                                \
-    llvm::PassManagerBase *pmp = llvm::unwrap(passmgr);  \
-    assert(pmp);                                         \
-    pmp->add( create ## P ## Pass ());                   \
-}
-
-define_pass( AAEval )
-define_pass( AliasAnalysisCounter )
-
-#if HS_LLVM_VERSION < 302
-define_pass( AlwaysInliner )
-#endif 
-// Name conflicts with those in LLVM proper, have a safer prefix?
-// define_pass( BasicAliasAnalysis )
-define_pass( BlockPlacement )
-define_pass( BreakCriticalEdges )
-define_pass( CodeGenPrepare )
-#if HS_LLVM_VERSION < 303
-define_pass( DbgInfoPrinter )
-#endif
-define_pass( DeadCodeElimination )
-define_pass( DeadInstElimination )
-define_pass( DemoteRegisterToMemory )
-define_pass( DomOnlyPrinter )
-define_pass( DomOnlyViewer )
-define_pass( DomPrinter )
-define_pass( DomViewer )
-define_pass( DependenceAnalysis )
-define_pass( EdgeProfiler )
-define_pass( GlobalsModRef )
-define_pass( InstCount )
-define_pass( InstructionNamer )
-define_pass( LazyValueInfo )
-define_pass( LCSSA )
-define_pass( LoopExtractor )
-define_pass( LoopSimplify )
-define_pass( LoopStrengthReduce )
-define_pass( LowerInvoke )
-define_pass( LowerSwitch )
-define_pass( MergeFunctions )
-define_pass( NoAA )
-define_pass( NoProfileInfo )
-define_pass( OptimalEdgeProfiler )
-define_pass( PartialInlining )
-define_pass( PostDomOnlyPrinter )
-define_pass( PostDomOnlyViewer )
-define_pass( PostDomPrinter )
-define_pass( PostDomViewer )
-define_pass( ProfileEstimator )
-define_pass( ProfileLoader )
-define_pass( ProfileVerifier )
-define_pass( ScalarEvolutionAliasAnalysis )
-define_pass( SingleLoopExtractor )
-define_pass( StripNonDebugSymbols )
-define_pass( UnifyFunctionExitNodes )
-define_pass( Internalize )
+/* Passes */
 
 /* we support only internalize(true) */
 llvm::ModulePass *createInternalize2Pass() {
   return llvm::createInternalizePass(); 
 }
 
-define_pass( Internalize2 )
+/* All passes are listed in passes-inl.h
+ * The list is shared between extra.cpp and extra.h.
+ *
+ * In this file the declare_or_define_pass macro is used to expand
+ * the passes into function definitions.
+ */
+#define declare_or_define_pass(P)                        \
+void LLVMAdd ## P ## Pass (LLVMPassManagerRef passmgr) { \
+    using namespace llvm;                                \
+    llvm::PassManagerBase *pmp = llvm::unwrap(passmgr);  \
+    assert(pmp);                                         \
+    pmp->add( create ## P ## Pass ());                   \
+}
+#include "passes-inl.h"
+#undef declare_or_define_pass
+
 
 #if HS_LLVM_VERSION < 302
 LLVMBool LLVMPrintModuleToFile(LLVMModuleRef M, const char *Filename,
