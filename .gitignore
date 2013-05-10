@@ -6,3 +6,7 @@ base/autom4te.cache/
 base/configure
 base/include/hs_llvm_config.h
 base/llvm-base.buildinfo
+*.o
+*.hi
+*.exe
+examples/*_stub.h
