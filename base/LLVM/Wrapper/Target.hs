@@ -16,9 +16,9 @@ import LLVM.FFI.Target
     , aBIAlignmentOfType
     , aBISizeOfType
     , pointerSize
-    , preferredAlignmentOfGlobal 
-    , preferredAlignmentOfType 
-    , sizeOfTypeInBits 
+    , preferredAlignmentOfGlobal
+    , preferredAlignmentOfType
+    , sizeOfTypeInBits
     , storeSizeOfType
     , elementAtOffset
     , offsetOfElement

@@ -22,8 +22,8 @@ import Distribution.Text ( display )
 import Language.Haskell.TH
 
 main = do
-    let hooks = autoconfUserHooks { postConf = if os == "mingw32" 
-                                               then generateBuildInfo 
+    let hooks = autoconfUserHooks { postConf = if os == "mingw32"
+                                               then generateBuildInfo
                                                else postConf autoconfUserHooks
                                   , instHook = installHookWithExtraGhciLibraries
                                   , regHook  = regHookWithExtraGhciLibraries
@@ -82,7 +82,7 @@ regHookWithExtraGhciLibraries pkg_descr localbuildinfo _ flags =
     else setupMessage verbosity
            "Package contains no library to register:" (packageId pkg_descr)
   where verbosity = fromFlag (regVerbosity flags)
-  
+
 
 
 {-
@@ -94,8 +94,8 @@ this is the workaround for conditional compilation if template haskell was more
  extractCLBI x=
      $(if cabalVersion >= Version [1,17,0] []
          then [|  getComponentLocalBuildInfo 'x CLibName  |]
-         else  [|      
-                    let   LocalBuildInfo  { libraryConfig = Just clbi } = 'x 
+         else  [|
+                    let   LocalBuildInfo  { libraryConfig = Just clbi } = 'x
                         in clbi |]
     )
 
@@ -103,16 +103,16 @@ this is the workaround for conditional compilation if template haskell was more
 -}
 
 --- horrible hack to support cabal versions both above and below 1.17
-extractCLBI x=  
-    $(if cabalVersion >= Version [1,17,0] [] 
-        then  appE (appE  ( varE $ mkName "getComponentLocalBuildInfo") ( varE 'x) ) (conE ( mkName "CLibName")) 
+extractCLBI x=
+    $(if cabalVersion >= Version [1,17,0] []
+        then  appE (appE  ( varE $ mkName "getComponentLocalBuildInfo") ( varE 'x) ) (conE ( mkName "CLibName"))
 
-        else  letE  
-                [valD  (recP 
-                            (mkName "LocalBuildInfo" ) 
-                            [fieldPat (mkName "libraryConfig") 
-                             (conP (mkName "Just")    [varP $ mkName "clbi"] ) ] ) 
-                    (normalB $ varE 'x)   []    ] 
+        else  letE
+                [valD  (recP
+                            (mkName "LocalBuildInfo" )
+                            [fieldPat (mkName "libraryConfig")
+                             (conP (mkName "Just")    [varP $ mkName "clbi"] ) ] )
+                    (normalB $ varE 'x)   []    ]
                  (varE $ mkName "clbi")  )
 
 register' :: PackageDescription -> LocalBuildInfo
@@ -155,5 +155,4 @@ register' pkg@PackageDescription { library       = Just lib  }
 
 register' _ _ regFlags = notice verbosity "No package to register"
   where
-    verbosity = fromFlag (regVerbosity regFlags) 
- 
+    verbosity = fromFlag (regVerbosity regFlags)

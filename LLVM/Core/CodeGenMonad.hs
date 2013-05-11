@@ -45,7 +45,7 @@ runCodeGenModule m (CGM body) = do
 
 --------------------------------------
 
-data CGFState r = CGFState { 
+data CGFState r = CGFState {
     cgf_module :: CGMState,
     cgf_builder :: Builder,
     cgf_function :: Function,

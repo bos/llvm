@@ -57,7 +57,7 @@ rewriteFunction cret cname cparams =
            "\n    :: " ++ intercalate " -> " (params' ++ [ret])
   where renameParam = renameType . dropName . strip
         foreign = "foreign import ccall unsafe "
-    
+
 rewrite :: Monad m => String -> m [String]
 rewrite s = do
     matches <- s =~~ pattern

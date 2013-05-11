@@ -63,7 +63,7 @@ void LLVMCreateStandardModulePasses(LLVMPassManagerRef PM,
   Builder.DisableUnrollLoops = !UnrollLoops;
   Builder.DisableSimplifyLibCalls = !SimplifyLibCalls;
   Builder.DisableUnitAtATime = !UnitAtATime;
-    
+
   Pass *InliningPass = 0;
 
   if (DisableInline) {
