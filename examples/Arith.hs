@@ -17,7 +17,7 @@ import Foreign.Marshal.Alloc as F
 -}
 
 mSomeFn :: forall a b . (IsConst a, Floating a, IsFloating a, CallIntrinsic a,
-	                 FunctionRet a, Cmp a b
+                         FunctionRet a, Cmp a b
                         ) => CodeGenModule (Function (a -> IO a))
 mSomeFn = do
     foo <- createFunction InternalLinkage $ arithFunction $ \ x y -> exp (sin x) + y
@@ -76,7 +76,7 @@ vectorToPtr f =
         x <- load px
         y <- call f x
         store y py
-	ret ()
+        ret ()
 
 vectorPtrWrap :: (Ptr V -> Ptr V -> IO ()) -> V -> IO V
 vectorPtrWrap f v =

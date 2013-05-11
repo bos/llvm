@@ -166,7 +166,7 @@ LLVMModuleRef LLVMGetModuleFromBitcode(const char *bc, unsigned bclen,
  * filled in) and 1 on success.  Dispose error message after use with
  * LLVMDisposeMessage(). */
 unsigned LLVMLinkModules(LLVMModuleRef dest, LLVMModuleRef src,
-			 unsigned mode, char **errmsg);
+    unsigned mode, char **errmsg);
 #endif
 
 /* Returns pointer to a heap-allocated block of `*len' bytes containing bit code

@@ -456,7 +456,7 @@ LLVMModuleRef LLVMGetModuleFromBitcode(const char *bitcode, unsigned bclen,
 
 #if HS_LLVM_VERSION < 302
 unsigned LLVMLinkModules(LLVMModuleRef dest, LLVMModuleRef src, unsigned mode,
-			 char **out)
+    char **out)
 {
     llvm::Module *sourcep = llvm::unwrap(src);
     assert(sourcep);

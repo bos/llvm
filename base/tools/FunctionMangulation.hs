@@ -51,7 +51,7 @@ rewriteFunction :: String -> String -> String -> String
 rewriteFunction cret cname cparams =
     let ret = "IO " ++ renameType (strip cret)
         params = map renameParam . split (==',') $ cparams
-	params' = if params == ["()"] then [] else params
+        params' = if params == ["()"] then [] else params
         name = let (n:ame) = cname in toLower n : ame
     in foreign ++ "\"LLVM" ++ cname ++ "\" " ++ name ++
            "\n    :: " ++ intercalate " -> " (params' ++ [ret])

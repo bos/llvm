@@ -33,23 +33,23 @@ cgvec = do
     f <- createNamedFunction ExternalLinkage "vectest" $ \ x -> do
 
         let v = value (zero :: ConstValue (Vector N T))
-	    n = toNum (undefined :: N) :: Word32
+            n = toNum (undefined :: N) :: Word32
 
         -- Fill the vector with x, x+1, x+2, ...
         (_, v1) <- forLoop (valueOf 0) (valueOf n) (x, v) $ \ i (x1, v1) -> do
             x1' <- add x1 (1::T)
-	    v1' <- insertelement v1 x1 i
-	    return (x1', v1')
+            v1' <- insertelement v1 x1 i
+            return (x1', v1')
 
-	-- Elementwise cubing of the vector.
-	vsq <- mul v1 v1
+        -- Elementwise cubing of the vector.
+        vsq <- mul v1 v1
         vcb <- mul vsq v1
 
         -- Sum the elements of the vector.
         s <- forLoop (valueOf 0) (valueOf n) (valueOf 0) $ \ i s -> do
             y <- extractelement vcb i
-     	    s' <- add s (y :: Value T)
-	    return s'
+            s' <- add s (y :: Value T)
+            return s'
 
         -- Update the global variable.
         vacc <- load acc
@@ -58,7 +58,7 @@ cgvec = do
 
         ret (s :: Value T)
 
---    liftIO $ dumpValue f
+    -- liftIO $ dumpValue f
     return f
 
 main :: IO ()
@@ -86,7 +86,7 @@ main = do
 
     let iovec' :: Function (T -> IO T)
         Just iovec' = castModuleValue =<< lookup "vectest" funcs
-	ioretacc' :: Function (IO T)
+        ioretacc' :: Function (IO T)
         Just ioretacc' = castModuleValue =<< lookup "retacc" funcs
 
     (vec', retacc') <- runEngineAccess $ do

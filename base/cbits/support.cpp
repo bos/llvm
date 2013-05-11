@@ -27,7 +27,7 @@
 using namespace llvm;
 
 void LLVMCreateStandardFunctionPasses(LLVMPassManagerRef PM,
-					unsigned OptimizationLevel)
+                                      unsigned OptimizationLevel)
 {
 #if HS_LLVM_VERSION >= 300
   llvm::PassManagerBuilder Builder;
@@ -48,13 +48,13 @@ void LLVMCreateStandardFunctionPasses(LLVMPassManagerRef PM,
 }
 
 void LLVMCreateStandardModulePasses(LLVMPassManagerRef PM,
-				    unsigned OptLevel,
-				    int OptimizeSize,
-				    int UnitAtATime,
-				    int UnrollLoops,
-				    int SimplifyLibCalls,
-				    int HaveExceptions,
-				    int DisableInline)
+                                    unsigned OptLevel,
+                                    int OptimizeSize,
+                                    int UnitAtATime,
+                                    int UnrollLoops,
+                                    int SimplifyLibCalls,
+                                    int HaveExceptions,
+                                    int DisableInline)
 {
 #if HS_LLVM_VERSION >= 300
   llvm::PassManagerBuilder Builder;
