@@ -31,7 +31,7 @@ AC_ARG_WITH(llvm_bindir,
 AC_PATH_PROGS(llvm_config, [llvm-config],
   [AC_MSG_ERROR(could not find llvm-config in $llvm_bindir)],
   ["$llvm_bindir:$PATH"])
-  
+
 dnl * Choose target platform
 dnl
 dnl We don't use the standard autoconf macros for this, but instead
@@ -86,7 +86,7 @@ LDFLAGS="$llvm_ldflags $LDFLAGS $TARGET_LDFLAGS"
 
 llvm_extra_ghci_libs=""
 
-AC_SEARCH_LIBS([LLVMModuleCreateWithName],[LLVM-2.7 LLVM-2.8 LLVM-2.9 LLVM-3.0 LLVM-3.1 LLVM-3.2]) 
+AC_SEARCH_LIBS([LLVMModuleCreateWithName],[LLVM-2.7 LLVM-2.8 LLVM-2.9 LLVM-3.0 LLVM-3.1 LLVM-3.2])
 if test "$ac_cv_search_LLVMModuleCreateWithName" = "no"; then
    llvm_all_libs="`$llvm_config --libs all`"
 else

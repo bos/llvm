@@ -129,7 +129,7 @@ readBitcodeFromFile name =
                         ptr <- peek modPtr
                         return $ Module ptr
 
-                        
+
 {-
                 liftM Module $ newForeignPtr FFI.ptrDisposeModule ptr
 -}
@@ -454,7 +454,7 @@ getObjList :: (t1 -> (t2 -> IO [Ptr a]) -> t) -> (t2 -> IO (Ptr a))
            -> (Ptr a -> IO (Ptr a)) -> t1 -> t
 getObjList withF firstF nextF obj = do
     withF obj $ \ objPtr -> do
-      ofst <- firstF objPtr 
+      ofst <- firstF objPtr
       let oloop p = if p == nullPtr then return [] else do
               n <- nextF p
               ps <- oloop n

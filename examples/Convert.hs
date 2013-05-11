@@ -17,7 +17,7 @@ instance Convert (Float -> IO Float) where convert = c_Float_IOFloat
 
 foreign import ccall safe "dynamic" c_Float_Float :: Importer (Float -> Float)
 instance Convert (Float -> Float) where convert = c_Float_Float
- 
+
 foreign import ccall safe "dynamic" c_IODouble :: Importer (IO Double)
 instance Convert (IO Double) where convert = c_IODouble
 
@@ -26,7 +26,7 @@ instance Convert (Double -> IO Double) where convert = c_Double_IODouble
 
 foreign import ccall safe "dynamic" c_Double_Double :: Importer (Double -> Double)
 instance Convert (Double -> Double) where convert = c_Double_Double
- 
+
 foreign import ccall safe "dynamic" c_Word32_IOWord32 :: Importer (Word32 -> IO Word32)
 instance Convert (Word32 -> IO Word32) where convert = c_Word32_IOWord32
 

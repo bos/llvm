@@ -11,8 +11,8 @@
 /* C function to free function object resources.  Can be called from a finalizer. */
 void
 c_freeFunctionObject(LLVMExecutionEngineRef execEngine,
-		     LLVMModuleProviderRef moduleProvider,
-		     LLVMValueRef f)
+                     LLVMModuleProviderRef moduleProvider,
+                     LLVMValueRef f)
 {
   LLVMModuleRef mod;
   LLVMFreeMachineCodeForFunction(execEngine, f);

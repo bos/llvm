@@ -135,7 +135,7 @@ module LLVM.FFI.Core
     , setSection
     , getAlignment
     , setAlignment
-      
+
     -- ** Global variables
     , addGlobal
     , getNamedGlobal
@@ -838,7 +838,7 @@ foreign import ccall unsafe "LLVMIsDeclaration" isDeclaration
 -- |An enumeration for the kinds of linkage for global values.
 data Linkage
     = ExternalLinkage     -- ^Externally visible function
-    | AvailableExternallyLinkage 
+    | AvailableExternallyLinkage
     | LinkOnceAnyLinkage  -- ^Keep one copy of function when linking (inline)
     | LinkOnceODRLinkage  -- ^Same, but only replaced by something equivalent.
     | WeakAnyLinkage      -- ^Keep one copy of named function when linking (weak)
@@ -849,7 +849,7 @@ data Linkage
     | DLLImportLinkage    -- ^Function to be imported from DLL
     | DLLExportLinkage    -- ^Function to be accessible from DLL
     | ExternalWeakLinkage -- ^ExternalWeak linkage description
-    | GhostLinkage        -- ^Stand-in functions for streaming fns from BC files    
+    | GhostLinkage        -- ^Stand-in functions for streaming fns from BC files
     | CommonLinkage       -- ^Tentative definitions
     | LinkerPrivateLinkage -- ^Like Private, but linker removes.
     deriving (Show, Eq, Ord, Enum, Typeable)
@@ -873,7 +873,7 @@ fromLinkage LinkerPrivateLinkage        = (#const LLVMLinkerPrivateLinkage)
 
 toLinkage :: CUInt -> Linkage
 toLinkage c | c == (#const LLVMExternalLinkage)             = ExternalLinkage
-toLinkage c | c == (#const LLVMAvailableExternallyLinkage)  = AvailableExternallyLinkage 
+toLinkage c | c == (#const LLVMAvailableExternallyLinkage)  = AvailableExternallyLinkage
 toLinkage c | c == (#const LLVMLinkOnceAnyLinkage)          = LinkOnceAnyLinkage
 toLinkage c | c == (#const LLVMLinkOnceODRLinkage)          = LinkOnceODRLinkage
 toLinkage c | c == (#const LLVMWeakAnyLinkage)              = WeakAnyLinkage
@@ -1316,7 +1316,7 @@ foreign import ccall unsafe "LLVMGetIncomingValue" getIncomingValue
     :: ValueRef -> CUInt -> IO ValueRef
 foreign import ccall unsafe "LLVMGetIncomingBlock" getIncomingBlock
     :: ValueRef -> CUInt -> IO BasicBlockRef
-       
+
 foreign import ccall unsafe "LLVMGetInstructionCallConv" getInstructionCallConv
     :: ValueRef -> IO CUInt
 foreign import ccall unsafe "LLVMSetInstructionCallConv" setInstructionCallConv

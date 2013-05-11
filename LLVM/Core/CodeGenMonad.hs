@@ -45,7 +45,7 @@ runCodeGenModule m (CGM body) = do
 
 --------------------------------------
 
-data CGFState r = CGFState { 
+data CGFState r = CGFState {
     cgf_module :: CGMState,
     cgf_builder :: Builder,
     cgf_function :: Function,
@@ -104,8 +104,8 @@ runCodeGenFunction bld fn (CGF body) = do
     cgm <- get
     let cgf = CGFState { cgf_module = cgm,
                          cgf_builder = bld,
-    	      	       	 cgf_function = fn,
-			 cgf_next = 1 }
+                         cgf_function = fn,
+                         cgf_next = 1 }
     (a, cgf') <- liftIO $ runStateT body cgf
     put (cgf_module cgf')
     return a

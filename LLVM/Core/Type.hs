@@ -64,29 +64,29 @@ class IsType a where
 typeRef :: (IsType a) => a -> FFI.TypeRef  -- ^The argument is never evaluated
 typeRef = code . typeDesc
   where code TDFloat  = FFI.floatType
-  	code TDDouble = FFI.doubleType
-	code TDFP128  = FFI.fp128Type
-	code TDVoid   = FFI.voidType
-	code (TDInt _ n)  = FFI.integerType (fromInteger n)
-	code (TDArray n a) = FFI.arrayType (code a) (fromInteger n)
-	code (TDVector n a) = FFI.vectorType (code a) (fromInteger n)
-	code (TDPtr a) = FFI.pointerType (code a) 0
-	code (TDFunction va as b) = functionType va (code b) (map code as)
-	code TDLabel = FFI.labelType
+        code TDDouble = FFI.doubleType
+        code TDFP128  = FFI.fp128Type
+        code TDVoid   = FFI.voidType
+        code (TDInt _ n)  = FFI.integerType (fromInteger n)
+        code (TDArray n a) = FFI.arrayType (code a) (fromInteger n)
+        code (TDVector n a) = FFI.vectorType (code a) (fromInteger n)
+        code (TDPtr a) = FFI.pointerType (code a) 0
+        code (TDFunction va as b) = functionType va (code b) (map code as)
+        code TDLabel = FFI.labelType
         code (TDStruct ts packed) = structType (map code ts) packed
         code TDInvalidType = error "typeRef TDInvalidType"
 
 typeName :: (IsType a) => a -> String
 typeName = code . typeDesc
   where code TDFloat  = "f32"
-  	code TDDouble = "f64"
-	code TDFP128  = "f128"
-	code TDVoid   = "void"
-	code (TDInt _ n)  = "i" ++ show n
-	code (TDArray n a) = "[" ++ show n ++ " x " ++ code a ++ "]"
-	code (TDVector n a) = "<" ++ show n ++ " x " ++ code a ++ ">"
-	code (TDPtr a) = code a ++ "*"
-	code (TDFunction _ as b) = code b ++ "(" ++ intercalate "," (map code as) ++ ")"
+        code TDDouble = "f64"
+        code TDFP128  = "f128"
+        code TDVoid   = "void"
+        code (TDInt _ n)  = "i" ++ show n
+        code (TDArray n a) = "[" ++ show n ++ " x " ++ code a ++ "]"
+        code (TDVector n a) = "<" ++ show n ++ " x " ++ code a ++ ">"
+        code (TDPtr a) = code a ++ "*"
+        code (TDFunction _ as b) = code b ++ "(" ++ intercalate "," (map code as) ++ ")"
         code TDLabel = "label"
         code (TDStruct as packed) = (if packed then "<{" else "{") ++
                                     intercalate "," (map code as) ++
@@ -131,7 +131,7 @@ typeDesc2 t = do
 -- |Type descriptor, used to convey type information through the LLVM API.
 data TypeDesc = TDFloat | TDDouble | TDFP128 | TDVoid | TDInt Bool Integer
               | TDArray Integer TypeDesc | TDVector Integer TypeDesc
-	      | TDPtr TypeDesc | TDFunction Bool [TypeDesc] TypeDesc | TDLabel
+              | TDPtr TypeDesc | TDFunction Bool [TypeDesc] TypeDesc | TDLabel
               | TDStruct [TypeDesc] Bool | TDInvalidType
     deriving (Eq, Ord, Show, Typeable, Data)
 
@@ -165,8 +165,8 @@ class IsIntegerOrPointer a
 isSigned :: (IsInteger a) => a -> Bool
 isSigned = is . typeDesc
   where is (TDInt s _) = s
-  	is (TDVector _ a) = is a
-	is _ = error "isSigned got impossible input"
+        is (TDVector _ a) = is a
+        is _ = error "isSigned got impossible input"
 
 -- Usage:
 --  constF
@@ -177,10 +177,10 @@ class IsArithmetic a => IsFloating a
 isFloating :: (IsArithmetic a) => a -> Bool
 isFloating = is . typeDesc
   where is TDFloat = True
-  	is TDDouble = True
-	is TDFP128 = True
-	is (TDVector _ a) = is a
-	is _ = False
+        is TDDouble = True
+        is TDFP128 = True
+        is (TDVector _ a) = is a
+        is _ = False
 
 -- Usage:
 --  Precondition for Vector
@@ -243,10 +243,10 @@ instance IsType Int64  where typeDesc _ = TDInt True  64
 -- Sequence types
 instance (Nat n, IsSized a s) => IsType (Array n a)
     where typeDesc _ = TDArray (toNum (undefined :: n))
-    	  	               (typeDesc (undefined :: a))
+                               (typeDesc (undefined :: a))
 instance (Pos n, IsPrimitive a) => IsType (Vector n a)
     where typeDesc _ = TDVector (toNum (undefined :: n))
-    	  	       		(typeDesc (undefined :: a))
+                                (typeDesc (undefined :: a))
 
 -- Pointer type.
 instance (IsType a) => IsType (Ptr a) where

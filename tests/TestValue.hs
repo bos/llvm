@@ -1,9 +1,9 @@
 module TestValue (main) where
-    
+
 import qualified LLVM.Core as Core
 import qualified LLVM.Core.Type as T
 import qualified LLVM.Core.Value as V
-  
+
 testArguments :: (T.DynamicType r, T.Params p, V.Params p v, V.Value v)
                  => T.Module -> String -> IO (V.Function r p)
 testArguments m name = do
@@ -12,12 +12,12 @@ testArguments m name = do
   let arg = V.params func
   V.dumpValue arg
   return func
-  
+
 voidArguments :: T.Module -> IO ()
 voidArguments m = do
   func <- Core.addFunction m "void" (T.function (undefined :: T.Void) ())
   V.dumpValue func
-  return ()   
+  return ()
 
 type F a = V.Function a a
 type P a = V.Function (T.Pointer a) (T.Pointer a)

@@ -206,9 +206,9 @@ defineFunction :: forall f g r . (FunctionArgs f g r)
 defineFunction (Value fn) body = do
     bld <- liftIO $ U.createBuilder
     let body' = do
-	    l <- newBasicBlock
-	    defineBasicBlock l
-	    applyArgs fn body :: CodeGenFunction r ()
+        l <- newBasicBlock
+        defineBasicBlock l
+        applyArgs fn body :: CodeGenFunction r ()
     runCodeGenFunction bld fn body'
     return ()
 
@@ -224,10 +224,10 @@ createFunction linkage body = do
 
 -- | Create a new function with the given body.
 createNamedFunction :: (IsFunction f, FunctionArgs f g r)
-               => Linkage
-	       -> String
-               -> g  -- ^ Function body.
-               -> CodeGenModule (Function f)
+                    => Linkage
+                    -> String
+                    -> g  -- ^ Function body.
+                    -> CodeGenModule (Function f)
 createNamedFunction linkage name body = do
     f <- newNamedFunction linkage name
     defineFunction f body
@@ -265,7 +265,7 @@ type FA a = CodeGenFunction a ()
 instance FunctionArgs (IO Float)         (FA Float)         Float         where apArgs _ _ g = g
 instance FunctionArgs (IO Double)        (FA Double)        Double        where apArgs _ _ g = g
 instance FunctionArgs (IO FP128)         (FA FP128)         FP128         where apArgs _ _ g = g
-instance (Pos n) => 
+instance (Pos n) =>
          FunctionArgs (IO (IntN n))      (FA (IntN n))      (IntN n)      where apArgs _ _ g = g
 instance (Pos n) =>
          FunctionArgs (IO (WordN n))     (FA (WordN n))     (WordN n)     where apArgs _ _ g = g
@@ -283,7 +283,7 @@ instance (Pos n, IsPrimitive a) =>
          FunctionArgs (IO (Vector n a))  (FA (Vector n a))  (Vector n a)  where apArgs _ _ g = g
 instance StructFields as =>
          FunctionArgs (IO (Struct as))   (FA (Struct as))   (Struct as)   where apArgs _ _ g = g
-instance (IsType a) => 
+instance (IsType a) =>
          FunctionArgs (IO (Ptr a))       (FA (Ptr a))       (Ptr a)       where apArgs _ _ g = g
 instance FunctionArgs (IO (StablePtr a)) (FA (StablePtr a)) (StablePtr a) where apArgs _ _ g = g
 
@@ -355,7 +355,7 @@ externCore name act = do
         Nothing -> do
             f <- liftCodeGenModule $ act name
             putExterns ((name, f) : es)
-	    return $ Value f
+            return $ Value f
 
 {- |
 Make an external C function with a fixed address callable from LLVM code.
@@ -414,9 +414,10 @@ newNamedGlobal :: forall a . (IsType a)
 newNamedGlobal isConst linkage name = do
     modul <- getModule
     let typ = typeRef (undefined :: a)
-    liftIO $ liftM Value $ do g <- U.addGlobal modul linkage name typ
-    	     	   	      when isConst $ FFI.setGlobalConstant g True
-			      return g
+    liftIO $ liftM Value $ do
+        g <- U.addGlobal modul linkage name typ
+        when isConst $ FFI.setGlobalConstant g True
+        return g
 
 -- | Create a new global variable.
 newGlobal :: forall a . (IsType a) => Bool -> Linkage -> TGlobal a
@@ -495,10 +496,11 @@ string n s = do
     modul <- getModule
     name <- genMSym "str"
     let typ = FFI.arrayType (typeRef (undefined :: Word8)) (fromIntegral n)
-    liftIO $ liftM Value $ do g <- U.addGlobal modul InternalLinkage name typ
-    	     	   	      FFI.setGlobalConstant g True
-			      FFI.setInitializer g s
-			      return g
+    liftIO $ liftM Value $ do
+        g <- U.addGlobal modul InternalLinkage name typ
+        FFI.setGlobalConstant g True
+        FFI.setInitializer g s
+        return g
 
 --------------------------------------
 
