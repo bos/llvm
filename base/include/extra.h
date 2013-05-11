@@ -11,7 +11,7 @@
  *    this list of conditions and the following disclaimer in the documentation
  *    and/or other materials provided with the distribution.
  *
- *  * Neither the name of this software, nor the names of its 
+ *  * Neither the name of this software, nor the names of its
  *    contributors may be used to endorse or promote products derived from
  *    this software without specific prior written permission.
  *
@@ -102,14 +102,14 @@ LLVMValueRef LLVMConstVICmp(LLVMIntPredicate predicate, LLVMValueRef lhs,
 LLVMValueRef LLVMConstVFCmp(LLVMRealPredicate predicate, LLVMValueRef lhs,
     LLVMValueRef rhs);
 
-/* Wraps llvm::IRBuilder::CreateVICmp(). */    
+/* Wraps llvm::IRBuilder::CreateVICmp(). */
 LLVMValueRef LLVMBuildVICmp(LLVMBuilderRef builder, LLVMIntPredicate predicate,
     LLVMValueRef lhs, LLVMValueRef rhs, const char *name);
 
-/* Wraps llvm::IRBuilder::CreateVFCmp(). */    
+/* Wraps llvm::IRBuilder::CreateVFCmp(). */
 LLVMValueRef LLVMBuildVFCmp(LLVMBuilderRef builder, LLVMRealPredicate predicate,
     LLVMValueRef lhs, LLVMValueRef rhs, const char *name);
-    
+
 /* Wraps llvm::Intrinsic::getDeclaration(). */
 LLVMValueRef LLVMGetIntrinsic(LLVMModuleRef builder, int id,
     LLVMTypeRef *types, unsigned n_types);
@@ -118,12 +118,12 @@ LLVMValueRef LLVMGetIntrinsic(LLVMModuleRef builder, int id,
 unsigned LLVMModuleGetPointerSize(LLVMModuleRef module);
 
 /* Wraps llvm::Module::getOrInsertFunction(). */
-LLVMValueRef LLVMModuleGetOrInsertFunction(LLVMModuleRef module, 
+LLVMValueRef LLVMModuleGetOrInsertFunction(LLVMModuleRef module,
     const char *name, LLVMTypeRef function_type);
 
-/* Wraps llvm::GlobalVariable::hasInitializer(). */    
+/* Wraps llvm::GlobalVariable::hasInitializer(). */
 int LLVMHasInitializer(LLVMValueRef global_var);
-    
+
 /* The following functions wrap various llvm::Instruction::isXXX() functions.
  * All of them take an instruction and return 0 (isXXX returned false) or 1
  * (isXXX returned false). */
@@ -166,7 +166,7 @@ LLVMModuleRef LLVMGetModuleFromBitcode(const char *bc, unsigned bclen,
  * filled in) and 1 on success.  Dispose error message after use with
  * LLVMDisposeMessage(). */
 unsigned LLVMLinkModules(LLVMModuleRef dest, LLVMModuleRef src,
-			 unsigned mode, char **errmsg);
+    unsigned mode, char **errmsg);
 #endif
 
 /* Returns pointer to a heap-allocated block of `*len' bytes containing bit code
@@ -178,12 +178,12 @@ unsigned char *LLVMGetBitcodeFromModule(LLVMModuleRef module, unsigned *len);
  * use, via LLVMDisposeMessage(). */
 unsigned LLVMLoadLibraryPermanently(const char* filename, char **errmsg);
 
-/* Wraps llvm::ExecutionEngine::getPointerToFunction(). Returns a pointer 
+/* Wraps llvm::ExecutionEngine::getPointerToFunction(). Returns a pointer
  * to the JITted function. */
 void *LLVMGetPointerToFunction(LLVMExecutionEngineRef ee, LLVMValueRef fn);
 
-/* Wraps llvm::InlineFunction(). Inlines a function. C is the call 
- * instruction, created by LLVMBuildCall. Even if it fails, the Function 
+/* Wraps llvm::InlineFunction(). Inlines a function. C is the call
+ * instruction, created by LLVMBuildCall. Even if it fails, the Function
  * containing the call is still in a proper state (not changed). */
 int LLVMInlineFunction(LLVMValueRef call);
 

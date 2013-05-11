@@ -6,16 +6,16 @@ extern "C" {
 #endif
 
 void LLVMCreateStandardFunctionPasses(LLVMPassManagerRef PM,
-				      unsigned OptimizationLevel);
+                                      unsigned OptimizationLevel);
 
 void LLVMCreateStandardModulePasses(LLVMPassManagerRef PM,
-				    unsigned OptimizationLevel,
-				    int OptimizeSize,
-				    int UnitAtATime,
-				    int UnrollLoops,
-				    int SimplifyLibCalls,
-				    int HaveExceptions,
-				    int DisableInlining);
+                                    unsigned OptimizationLevel,
+                                    int OptimizeSize,
+                                    int UnitAtATime,
+                                    int UnrollLoops,
+                                    int SimplifyLibCalls,
+                                    int HaveExceptions,
+                                    int DisableInlining);
 
 void LLVMDisablePrettyStackTrace();
 

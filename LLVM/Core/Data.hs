@@ -1,6 +1,6 @@
 {-# LANGUAGE EmptyDataDecls, DeriveDataTypeable #-}
 module LLVM.Core.Data(IntN(..), WordN(..), FP128(..),
-       		      Array(..), Vector(..), Ptr, Label, Struct(..), PackedStruct(..)) where
+       Array(..), Vector(..), Ptr, Label, Struct(..), PackedStruct(..)) where
 import Data.Typeable
 import Foreign.Ptr(Ptr)
 

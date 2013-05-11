@@ -9,7 +9,7 @@ import Foreign.C.Types
 -- TARGET is expanded by CPP to the native target architecture.
 import LLVM.Target.TARGET
 
-foreign import ccall unsafe "LLVMInitNativeTarget" 
+foreign import ccall unsafe "LLVMInitNativeTarget"
         llvmInitializeNativeTarget :: IO CUInt
 
 -- | Initialize jitter to the native target.

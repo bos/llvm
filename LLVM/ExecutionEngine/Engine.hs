@@ -222,7 +222,7 @@ withAll :: [GenericValue] -> (Int -> Ptr FFI.GenericValueRef -> IO a) -> IO a
 withAll ps a = go [] ps
     where go ptrs (x:xs) = withGenericValue x $ \ptr -> go (ptr:ptrs) xs
           go ptrs _ = withArrayLen (reverse ptrs) a
-                   
+
 runFunction :: U.Function -> [GenericValue] -> EngineAccess GenericValue
 runFunction func args = do
     eePtr <- gets ea_engine
@@ -232,7 +232,7 @@ runFunction func args = do
 getRunFunction :: EngineAccess (U.Function -> [GenericValue] -> IO GenericValue)
 getRunFunction = do
     eePtr <- gets ea_engine
-    return $ \ func args -> 
+    return $ \ func args ->
              withAll args $ \argLen argPtr ->
                  createGenericValueWith $ FFI.runFunction eePtr func
                                               (fromIntegral argLen) argPtr

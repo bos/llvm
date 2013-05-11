@@ -51,13 +51,13 @@ rewriteFunction :: String -> String -> String -> String
 rewriteFunction cret cname cparams =
     let ret = "IO " ++ renameType (strip cret)
         params = map renameParam . split (==',') $ cparams
-	params' = if params == ["()"] then [] else params
+        params' = if params == ["()"] then [] else params
         name = let (n:ame) = cname in toLower n : ame
     in foreign ++ "\"LLVM" ++ cname ++ "\" " ++ name ++
            "\n    :: " ++ intercalate " -> " (params' ++ [ret])
   where renameParam = renameType . dropName . strip
         foreign = "foreign import ccall unsafe "
-    
+
 rewrite :: Monad m => String -> m [String]
 rewrite s = do
     matches <- s =~~ pattern

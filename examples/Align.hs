@@ -14,8 +14,8 @@ main = do
     print (littleEndian td,
            aBIAlignmentOfType td $ typeRef (undefined :: Word32),
            aBIAlignmentOfType td $ typeRef (undefined :: Word64),
-	   aBIAlignmentOfType td $ typeRef (undefined :: Vector D4 Float),
-	   aBIAlignmentOfType td $ typeRef (undefined :: Vector D1 Double),
-	   storeSizeOfType td $ typeRef (undefined :: Vector D4 Float),
+           aBIAlignmentOfType td $ typeRef (undefined :: Vector D4 Float),
+           aBIAlignmentOfType td $ typeRef (undefined :: Vector D1 Double),
+           storeSizeOfType td $ typeRef (undefined :: Vector D4 Float),
            intPtrType td
-	   )
+          )

@@ -26,7 +26,7 @@ foreign import ccall unsafe "LLVMCreateStandardModulePasses" createStandardModul
 
 #if HS_LLVM_VERSION >= 300
 foreign import ccall unsafe "LLVMAddEmitObjectPass" addEmitObjectPass
-    :: ModuleRef -> CString -> IO CUInt    
+    :: ModuleRef -> CString -> IO CUInt
 #endif
 
 foreign import ccall unsafe "LLVMDisablePrettyStackTrace" disablePrettyStackTrace
