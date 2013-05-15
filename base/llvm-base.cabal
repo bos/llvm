@@ -7,7 +7,7 @@ description:
   FFI bindings to the LLVM compiler toolkit.
   .
   We try to stay up to date with LLVM releases.  The current version
-  of this package is compatible with LLVM 3.0 and 2.9.  Please
+  of this package is compatible with at least LLVM 3.2.  Please
   understand that the package may or may not work against older LLVM
   releases; we don't have the time or resources to test across
   multiple releases.
