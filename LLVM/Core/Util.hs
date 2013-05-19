@@ -46,6 +46,7 @@ import Foreign.Ptr (Ptr, nullPtr)
 import Foreign.Marshal.Array (withArrayLen, withArray, allocaArray, peekArray)
 import Foreign.Marshal.Alloc (alloca)
 import Foreign.Storable (Storable(..))
+import Foreign.Marshal.Utils (fromBool)
 import System.IO.Unsafe (unsafePerformIO)
 
 import qualified LLVM.FFI.Core as FFI
@@ -60,13 +61,14 @@ type Type = FFI.TypeRef
 functionType :: Bool -> Type -> [Type] -> Type
 functionType varargs retType paramTypes = unsafePerformIO $
     withArrayLen paramTypes $ \ len ptr ->
-        return $ FFI.functionType retType ptr (fromIntegral len) varargs
+        return $ FFI.functionType retType ptr (fromIntegral len)
+	       	 		  (fromBool varargs)
 
 -- unsafePerformIO just to wrap the non-effecting withArrayLen call
 structType :: [Type] -> Bool -> Type
 structType types packed = unsafePerformIO $
     withArrayLen types $ \ len ptr ->
-        return $ FFI.structType ptr (fromIntegral len) packed
+        return $ FFI.structType ptr (fromIntegral len) (if packed then 1 else 0)
 
 --------------------------------------
 -- Handle modules
@@ -104,7 +106,7 @@ writeBitcodeToFile name mdl =
     withCString name $ \ namePtr ->
       withModule mdl $ \ mdlPtr -> do
         rc <- FFI.writeBitcodeToFile mdlPtr namePtr
-        when (rc /= False) $
+        when (rc /= 0) $
           ioError $ userError $ "writeBitcodeToFile: return code " ++ show rc
         return ()
 
@@ -116,13 +118,13 @@ readBitcodeFromFile name =
       alloca $ \ modPtr ->
       alloca $ \ errStr -> do
         rrc <- FFI.createMemoryBufferWithContentsOfFile namePtr bufPtr errStr
-        if rrc /= False then do
+        if rrc /= 0 then do
                 msg <- peek errStr >>= peekCString
                 ioError $ userError $ "readBitcodeFromFile: read return code " ++ show rrc ++ ", " ++ msg
             else do
                 buf <- peek bufPtr
                 prc <- FFI.parseBitcode buf modPtr errStr
-                if prc /= False then do
+                if prc /= 0 then do
                     msg <- peek errStr >>= peekCString
                     ioError $ userError $ "readBitcodeFromFile: parse return code " ++ show prc ++ ", " ++ msg
                     else do
@@ -276,7 +278,7 @@ addGlobal modul linkage name typ =
 constStringInternal :: Bool -> String -> (Value, Int)
 constStringInternal nulTerm s = unsafePerformIO $
     withCStringLen s $ \(sPtr, sLen) ->
-      return (FFI.constString sPtr (fromIntegral sLen) (not nulTerm), sLen)
+      return (FFI.constString sPtr (fromIntegral sLen) (fromBool (not nulTerm)), sLen)
 
 constString :: String -> (Value, Int)
 constString = constStringInternal False
@@ -405,14 +407,14 @@ addReassociatePass pm = withPassManager pm FFI.addReassociatePass
 addTargetData :: FFI.TargetDataRef -> PassManager -> IO ()
 addTargetData td pm = withPassManager pm $ FFI.addTargetData td
 
-runFunctionPassManager :: PassManager -> Function -> IO Bool
-runFunctionPassManager pm fcn = withPassManager pm $ \ pmref -> FFI.runFunctionPassManager pmref fcn
+runFunctionPassManager :: PassManager -> Function -> IO Int
+runFunctionPassManager pm fcn = liftM fromIntegral $ withPassManager pm $ \ pmref -> FFI.runFunctionPassManager pmref fcn
 
-initializeFunctionPassManager :: PassManager -> IO Bool
-initializeFunctionPassManager pm = withPassManager pm FFI.initializeFunctionPassManager
+initializeFunctionPassManager :: PassManager -> IO Int
+initializeFunctionPassManager pm = liftM fromIntegral $ withPassManager pm FFI.initializeFunctionPassManager
 
-finalizeFunctionPassManager :: PassManager -> IO Bool
-finalizeFunctionPassManager pm = withPassManager pm FFI.finalizeFunctionPassManager
+finalizeFunctionPassManager :: PassManager -> IO Int
+finalizeFunctionPassManager pm = liftM fromIntegral $ withPassManager pm FFI.finalizeFunctionPassManager
 
 --------------------------------------
 
@@ -434,7 +436,7 @@ constArray t n xs = unsafePerformIO $ do
 constStruct :: [Value] -> Bool -> Value
 constStruct xs packed = unsafePerformIO $ do
     withArrayLen xs $ \ len ptr ->
-        return $ FFI.constStruct ptr (fromIntegral len) packed
+        return $ FFI.constStruct ptr (fromIntegral len) (if packed then 1 else 0)
 
 --------------------------------------
 
@@ -467,7 +469,9 @@ annotateValueList vs = do
   return $ zip names vs
 
 isConstant :: Value -> IO Bool
-isConstant = FFI.isConstant
+isConstant v = do
+  isC <- FFI.isConstant v
+  if isC == 0 then return False else return True
 
 isIntrinsic :: Value -> IO Bool
 isIntrinsic v = do

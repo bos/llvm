@@ -75,7 +75,9 @@ http://llvm.org/bugs/show_bug.cgi?id=6394
 
     moduleModified <- FFI.runPassManager passes m
 
-    return $ moduleModified || functionsModified
+    return $
+       toEnum (fromIntegral moduleModified) ||
+       toEnum (fromIntegral functionsModified)
 
 -- tools/opt/opt.cpp: AddOptimizationPasses
 addOptimizationPasses :: FFI.PassManagerRef -> FFI.PassManagerRef -> Int -> IO ()

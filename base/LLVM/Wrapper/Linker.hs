@@ -9,6 +9,7 @@ import LLVM.Wrapper.Internal
 
 import Foreign.C.String (peekCString)
 import Foreign.Marshal.Alloc (alloca)
+import Foreign.Marshal.Utils (toBool)
 import Foreign.Storable (peek)
 import Foreign.ForeignPtr.Safe (withForeignPtr)
 
@@ -22,7 +23,7 @@ linkModules (MkModule dest _) (MkModule src srcOurs) mode =
                result <- FFI.linkModules dest' src' (FFI.fromLinkerMode mode) msgPtr
                writeIORef srcOurs False
                msg <- peek msgPtr
-               if not result
+               if not . toBool $ result
                  then return Nothing
                  else do str <- peekCString msg
                          FFI.disposeMessage msg

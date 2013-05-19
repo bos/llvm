@@ -14,9 +14,9 @@ import LLVM.FFI.Core
 type VerifierFailureAction = CInt
 
 foreign import ccall unsafe "LLVMVerifyFunction" verifyFunction
-    :: ValueRef -> VerifierFailureAction -> IO Bool
+    :: ValueRef -> VerifierFailureAction -> IO CInt
 foreign import ccall unsafe "LLVMVerifyModule" verifyModule
-    :: ModuleRef -> VerifierFailureAction -> (Ptr CString) -> IO Bool
+    :: ModuleRef -> VerifierFailureAction -> (Ptr CString) -> IO CInt
 foreign import ccall unsafe "LLVMViewFunctionCFG" viewFunctionCFG
     :: ValueRef -> IO ()
 foreign import ccall unsafe "LLVMViewFunctionCFGOnly" viewFunctionCFGOnly

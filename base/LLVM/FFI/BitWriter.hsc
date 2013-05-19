@@ -11,8 +11,8 @@ import Foreign.C.Types(CInt)
 import LLVM.FFI.Core
 
 foreign import ccall unsafe "LLVMWriteBitcodeToFile" writeBitcodeToFile
-    :: ModuleRef -> CString -> IO Bool
+    :: ModuleRef -> CString -> IO CInt
 foreign import ccall unsafe "LLVMWriteBitcodeToFileHandle" writeBitcodeToFileHandle
-    :: ModuleRef -> CInt -> IO Bool
+    :: ModuleRef -> CInt -> IO CInt
 foreign import ccall unsafe "LLVMWriteBitcodeToFD" writeBitcodeToFD
-    :: ModuleRef -> CInt -> Bool -> Bool -> IO Bool
+    :: ModuleRef -> CInt -> CInt -> CInt -> IO CInt

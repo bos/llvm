@@ -33,4 +33,4 @@ foreign import ccall unsafe "LLVMPassManagerBuilderPopulateModulePassManager" pa
     :: PassManagerBuilderRef -> PassManagerRef -> IO ()
 
 foreign import ccall unsafe "LLVMPassManagerBuilderPopulateLTOPassManager" passManagerBuilderPopulateLTOPassManager
-    :: PassManagerBuilderRef -> PassManagerRef -> Bool -> Bool -> IO ()
+    :: PassManagerBuilderRef -> PassManagerRef -> CInt -> CInt -> IO ()

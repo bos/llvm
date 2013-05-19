@@ -3,7 +3,7 @@
 module LLVM.FFI.Linker where
 import LLVM.FFI.Core
 import Foreign.C.String(CString)
-import Foreign.C.Types(CUInt(..))
+import Foreign.C.Types(CUInt(..), CInt(..))
 import Foreign.Ptr(Ptr)
 
 #include <llvm-c/Linker.h>
@@ -21,4 +21,4 @@ toLinkerMode c | c == (#const LLVMLinkerPreserveSource) = PreserveSource
 toLinkerMode c = error $ "LLVM.FFI.Linker.toLinkerMode: unrecognized linker mode" ++ show c
 
 foreign import ccall unsafe "LLVMLinkModules" linkModules
-    :: ModuleRef -> ModuleRef -> CUInt -> Ptr CString -> IO Bool
+    :: ModuleRef -> ModuleRef -> CUInt -> Ptr CString -> IO CInt

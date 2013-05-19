@@ -84,7 +84,7 @@ createJITCompilerForModule m optlvl
     = alloca $ \msgPtr ->
         alloca $ \eeref -> do
           r <- FFI.EE.createJITCompilerForModule eeref m optlvl msgPtr
-          if r
+          if toBool r
               then peek msgPtr >>= peekCString >>= fail
               else peek eeref
 
@@ -93,7 +93,7 @@ createInterpreterForModule m
     = alloca $ \msgPtr ->
         alloca $ \eeref -> do
           r <- FFI.EE.createInterpreterForModule eeref m msgPtr
-          if r
+          if toBool r
               then peek msgPtr >>= peekCString >>= fail
               else peek eeref
 
@@ -102,6 +102,6 @@ createExecutionEngineForModule m
     = alloca $ \msgPtr ->
         alloca $ \eeref -> do
           r <- FFI.EE.createExecutionEngineForModule eeref m msgPtr
-          if r
+          if toBool r
               then peek msgPtr >>= peekCString >>= fail
               else peek eeref

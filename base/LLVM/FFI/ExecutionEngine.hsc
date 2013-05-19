@@ -151,11 +151,11 @@ foreign import ccall unsafe "LLVMLinkInJIT" linkInJIT
 foreign import ccall unsafe "LLVMAddModule" addModule
     :: ExecutionEngineRef -> ModuleRef -> IO ()
 foreign import ccall unsafe "LLVMCreateExecutionEngineForModule" createExecutionEngineForModule
-    :: (Ptr ExecutionEngineRef) -> ModuleRef -> (Ptr CString) -> IO Bool
+    :: (Ptr ExecutionEngineRef) -> ModuleRef -> (Ptr CString) -> IO CInt
 foreign import ccall unsafe "LLVMCreateInterpreterForModule" createInterpreterForModule
-    :: (Ptr ExecutionEngineRef) -> ModuleRef -> (Ptr CString) -> IO Bool
+    :: (Ptr ExecutionEngineRef) -> ModuleRef -> (Ptr CString) -> IO CInt
 foreign import ccall unsafe "LLVMCreateJITCompilerForModule" createJITCompilerForModule
-    :: (Ptr ExecutionEngineRef) -> ModuleRef -> CUInt -> (Ptr CString) -> IO Bool
+    :: (Ptr ExecutionEngineRef) -> ModuleRef -> CUInt -> (Ptr CString) -> IO CInt
 foreign import ccall unsafe "LLVMDisposeExecutionEngine" disposeExecutionEngine
     :: ExecutionEngineRef -> IO ()
 {-
@@ -163,4 +163,4 @@ foreign import ccall unsafe "LLVMDisposeGenericValue" disposeGenericValue
     :: GenericValueRef -> IO ()
 -}
 foreign import ccall unsafe "LLVMRemoveModule" removeModule
-    :: ExecutionEngineRef -> ModuleRef -> (Ptr ModuleRef) -> (Ptr CString) -> IO Bool
+    :: ExecutionEngineRef -> ModuleRef -> (Ptr ModuleRef) -> (Ptr CString) -> IO CInt

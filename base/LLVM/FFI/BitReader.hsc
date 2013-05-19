@@ -12,14 +12,14 @@ import Foreign.Ptr(Ptr)
 import LLVM.FFI.Core
 
 foreign import ccall unsafe "LLVMGetBitcodeModuleProvider" getBitcodeModuleProvider
-    :: MemoryBufferRef -> (Ptr ModuleProviderRef) -> (Ptr CString) -> IO Bool
+    :: MemoryBufferRef -> (Ptr ModuleProviderRef) -> (Ptr CString) -> IO CInt
 foreign import ccall unsafe "LLVMParseBitcode" parseBitcode
-    :: MemoryBufferRef -> (Ptr ModuleRef) -> (Ptr CString) -> IO Bool
+    :: MemoryBufferRef -> (Ptr ModuleRef) -> (Ptr CString) -> IO CInt
 foreign import ccall unsafe "LLVMGetBitcodeModuleProviderInContext" getBitcodeModuleProviderInContext
-    :: ContextRef -> MemoryBufferRef -> (Ptr ModuleProviderRef) -> (Ptr CString) -> IO Bool
+    :: ContextRef -> MemoryBufferRef -> (Ptr ModuleProviderRef) -> (Ptr CString) -> IO CInt
 foreign import ccall unsafe "LLVMParseBitcodeInContext" parseBitcodeInContext
-    :: ContextRef -> MemoryBufferRef -> (Ptr ModuleRef) -> (Ptr CString) -> IO Bool
+    :: ContextRef -> MemoryBufferRef -> (Ptr ModuleRef) -> (Ptr CString) -> IO CInt
 foreign import ccall unsafe "LLVMGetBitcodeModule" getBitcodeModule
-    :: MemoryBufferRef -> (Ptr ModuleRef) -> (Ptr CString) -> IO Bool
+    :: MemoryBufferRef -> (Ptr ModuleRef) -> (Ptr CString) -> IO CInt
 foreign import ccall unsafe "LLVMGetBitcodeModuleInContext" getBitcodeModuleInContext
-    :: ContextRef -> MemoryBufferRef -> (Ptr ModuleRef) -> (Ptr CString) -> IO Bool
+    :: ContextRef -> MemoryBufferRef -> (Ptr ModuleRef) -> (Ptr CString) -> IO CInt

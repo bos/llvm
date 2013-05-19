@@ -143,10 +143,10 @@ instance IsConstFields () where
     constFieldsOf _ = []
 
 constEnum :: (Enum a) => FFI.TypeRef -> a -> ConstValue a
-constEnum t i = ConstValue $ FFI.constInt t (fromIntegral $ fromEnum i) False
+constEnum t i = ConstValue $ FFI.constInt t (fromIntegral $ fromEnum i) 0
 
 constI :: (IsInteger a, Integral a) => a -> ConstValue a
-constI i = ConstValue $ FFI.constInt (typeRef i) (fromIntegral i) (isSigned i)
+constI i = ConstValue $ FFI.constInt (typeRef i) (fromIntegral i) (fromIntegral $ fromEnum $ isSigned i)
 
 constF :: (IsFloating a, Real a) => a -> ConstValue a
 constF i = ConstValue $ FFI.constReal (typeRef i) (realToFrac i)
@@ -416,7 +416,7 @@ newNamedGlobal isConst linkage name = do
     let typ = typeRef (undefined :: a)
     liftIO $ liftM Value $ do
         g <- U.addGlobal modul linkage name typ
-        when isConst $ FFI.setGlobalConstant g True
+        when isConst $ FFI.setGlobalConstant g 1
         return g
 
 -- | Create a new global variable.
@@ -498,7 +498,7 @@ string n s = do
     let typ = FFI.arrayType (typeRef (undefined :: Word8)) (fromIntegral n)
     liftIO $ liftM Value $ do
         g <- U.addGlobal modul InternalLinkage name typ
-        FFI.setGlobalConstant g True
+        FFI.setGlobalConstant g 1
         FFI.setInitializer g s
         return g
 

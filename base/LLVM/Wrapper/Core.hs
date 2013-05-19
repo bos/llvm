@@ -49,7 +49,10 @@ module LLVM.Wrapper.Core
     , setLinkage
     , constStructInContext
 
+    , isConstant, isNull, isUndef
+
     -- ** Scalar constants
+    , constInt
     , constRealOfString
     , constString
     , constStringInContext
@@ -80,6 +83,8 @@ module LLVM.Wrapper.Core
     , addAttribute
     , removeAttribute
     , addFunctionAttr
+    , isTailCall
+    , setTailCall
 
     -- ** Metadata
     , setMetadata
@@ -198,6 +203,7 @@ import Foreign.C.String
 import Foreign.C.Types
 import Foreign.Marshal.Array
 import Foreign.Marshal.Alloc (alloca)
+import Foreign.Marshal.Utils (fromBool, toBool)
 import Foreign.Storable (peek)
 import Foreign.ForeignPtr.Safe (ForeignPtr, withForeignPtr, newForeignPtr, newForeignPtr_)
 import System.IO.Unsafe (unsafePerformIO)
@@ -233,10 +239,7 @@ import LLVM.FFI.Core
     , constNull
     , constPointerNull
     , getUndef
-    , constInt
     , constReal
-
-    , isConstant, isNull, isUndef
 
     , constInBoundsGEP
     , constIntCast
@@ -305,8 +308,6 @@ import LLVM.FFI.Core
     , constNUWNeg
     , constNUWSub
 
-    , isTailCall
-    , setTailCall
     , deleteFunction
 
     , createModuleProviderForExistingModule
@@ -353,7 +354,7 @@ createMemoryBufferWithContentsOfFile path =
     alloca $ \msgPtr -> do
       errOccurred <- withCString path $ \cpath ->
                      FFI.createMemoryBufferWithContentsOfFile cpath bufPtr msgPtr
-      if errOccurred
+      if toBool errOccurred
         then peek msgPtr >>= peekCString >>= fail
         else peek bufPtr >>= newForeignPtr FFI.ptrDisposeMemoryBuffer
 
@@ -362,13 +363,13 @@ createMemoryBufferWithSTDIN =
     alloca $ \bufPtr ->
     alloca $ \msgPtr -> do
       errOccurred <- FFI.createMemoryBufferWithSTDIN bufPtr msgPtr
-      if errOccurred
+      if toBool errOccurred
         then peek msgPtr >>= peekCString >>= fail
         else peek bufPtr >>= newForeignPtr FFI.ptrDisposeMemoryBuffer
 
 createMemoryBufferWithMemoryRange :: Ptr a -> CSize -> String -> Bool -> IO MemoryBuffer
 createMemoryBufferWithMemoryRange p len name nullTerm =
-    withCString name (\cname -> FFI.createMemoryBufferWithMemoryRange p len cname nullTerm)
+    withCString name (\cname -> FFI.createMemoryBufferWithMemoryRange p len cname (fromBool nullTerm))
     >>= newForeignPtr FFI.ptrDisposeMemoryBuffer
 
 createMemoryBufferWithMemoryRangeCopy :: Ptr a -> CSize -> String -> IO MemoryBuffer
@@ -390,7 +391,7 @@ printModuleToFile (MkModule m _) file
       (\f -> alloca (\msgPtr -> do
                        result <- withForeignPtr m (\modPtr -> FFI.printModuleToFile modPtr f msgPtr)
                        msg <- peek msgPtr
-                       when result $ do
+                       when (toBool result) $ do
                            str <- peekCString msg
                            FFI.disposeMessage msg
                            fail str))
@@ -435,7 +436,7 @@ runPassManager :: PassManager -> Module -> IO Bool
 runPassManager (MkPassManager p) (MkModule m _) =
     withForeignPtr m $ \mptr ->
     withForeignPtr p $ \pptr ->
-        FFI.runPassManager pptr mptr
+        fmap toBool $ FFI.runPassManager pptr mptr
 
 createFunctionPassManagerForModule :: Module -> IO PassManager
 createFunctionPassManagerForModule (MkModule m _) =
@@ -443,15 +444,15 @@ createFunctionPassManagerForModule (MkModule m _) =
 
 initializeFunctionPassManager :: PassManager -> IO Bool
 initializeFunctionPassManager (MkPassManager p) =
-    withForeignPtr p FFI.initializeFunctionPassManager
+    fmap toBool $ withForeignPtr p FFI.initializeFunctionPassManager
 
 runFunctionPassManager :: PassManager -> Value -> IO Bool
 runFunctionPassManager (MkPassManager p) f =
-    withForeignPtr p (`FFI.runFunctionPassManager` f)
+    fmap toBool $ withForeignPtr p (`FFI.runFunctionPassManager` f)
 
 finalizeFunctionPassManager :: PassManager -> IO Bool
 finalizeFunctionPassManager (MkPassManager p) =
-    withForeignPtr p FFI.finalizeFunctionPassManager
+    fmap toBool $ withForeignPtr p FFI.finalizeFunctionPassManager
 
 addFunction :: Module -> String -> Type -> IO Value
 addFunction (MkModule m _) name ty = withForeignPtr m (\mPtr -> withCString name (\n -> FFI.addFunction mPtr n ty))
@@ -495,19 +496,19 @@ voidTypeInContext ctx = withForeignPtr ctx FFI.voidTypeInContext
 functionType :: Type -> [Type] -> Bool -> Type
 functionType returnTy argTys isVarArg
     = unsafePerformIO $ withArrayLen argTys $ \len ptr ->
-      return $ FFI.functionType returnTy ptr (fromIntegral len) isVarArg
+      return $ FFI.functionType returnTy ptr (fromIntegral len) (fromBool isVarArg)
 
 -- unsafePerformIO just to wrap the non-effecting withArrayLen call
 structType :: [Type] -> Bool -> Type
 structType types packed = unsafePerformIO $
     withArrayLen types $ \ len ptr ->
-        return $ FFI.structType ptr (fromIntegral len) packed
+        return $ FFI.structType ptr (fromIntegral len) (fromBool packed)
 
 structTypeInContext :: Context -> [Type] -> Bool -> IO Type
 structTypeInContext ctx types packed =
     withForeignPtr ctx $ \ctx' ->
     withArrayLen types $ \ len ptr ->
-        FFI.structTypeInContext ctx' ptr (fromIntegral len) packed
+        FFI.structTypeInContext ctx' ptr (fromIntegral len) (fromBool packed)
 
 structCreateNamed :: String -> IO Type
 structCreateNamed name = do
@@ -521,7 +522,7 @@ structCreateNamedInContext ctx name = withForeignPtr ctx $ \ctx' ->
 structSetBody :: Type -> [Type] -> Bool -> IO ()
 structSetBody struct body packed
     = withArrayLen body $ \len ptr ->
-      FFI.structSetBody struct ptr (fromIntegral len) packed
+      FFI.structSetBody struct ptr (fromIntegral len) (fromBool packed)
 
 appendBasicBlock :: Value -> String -> IO BasicBlock
 appendBasicBlock function name = withCString name $ FFI.appendBasicBlock function
@@ -557,7 +558,19 @@ constStructInContext :: Context -> [Value] -> Bool -> IO Value
 constStructInContext ctx values packed =
     withForeignPtr ctx $ \ctx' ->
     withArrayLen values $ \ len ptr ->
-        FFI.constStructInContext ctx' ptr (fromIntegral len) packed
+        FFI.constStructInContext ctx' ptr (fromIntegral len) (fromBool packed)
+
+isConstant :: Value -> IO Bool
+isConstant = fmap toBool . FFI.isConstant
+
+isNull :: Value -> IO Bool
+isNull = fmap toBool . FFI.isNull
+
+isUndef :: Value -> IO Bool
+isUndef = fmap toBool . FFI.isUndef
+
+constInt :: Type -> CULLong -> Bool -> Value
+constInt ity value signExtend = FFI.constInt ity value (fromBool signExtend)
 
 -- unsafePerformIO just to wrap the non-effecting withCString call
 constRealOfString :: Type -> String -> Value
@@ -568,13 +581,13 @@ constRealOfString ty str
 constString :: String -> Bool -> Value
 constString str dontNullTerminate
     = unsafePerformIO $ withCStringLen str $ \(ptr, len) ->
-      return $ FFI.constString ptr (fromIntegral len) dontNullTerminate
+      return $ FFI.constString ptr (fromIntegral len) (fromBool dontNullTerminate)
 
 constStringInContext :: Context -> String -> Bool -> IO Value
 constStringInContext ctx str dontNullTerminate =
     withForeignPtr ctx $ \ctx' ->
     withCStringLen str $ \(ptr, len) ->
-    FFI.constStringInContext ctx' ptr (fromIntegral len) dontNullTerminate
+    FFI.constStringInContext ctx' ptr (fromIntegral len) (fromBool dontNullTerminate)
 
 createBuilder :: IO Builder
 createBuilder = FFI.createBuilder >>= newForeignPtr FFI.ptrDisposeBuilder
@@ -719,6 +732,12 @@ removeAttribute v a = FFI.removeAttribute v $ FFI.fromAttribute a
 
 addFunctionAttr :: Value -> Attribute -> IO ()
 addFunctionAttr v a = FFI.addFunctionAttr v $ FFI.fromAttribute a
+
+isTailCall :: Value -> IO Bool
+isTailCall = fmap toBool . FFI.isTailCall
+
+setTailCall :: Value -> Bool -> IO ()
+setTailCall f = FFI.setTailCall f . fromBool
 
 setMetadata :: Value -> MetadataKind -> Value -> IO ()
 setMetadata instruction kind = FFI.setMetadata instruction (FFI.fromMetadataKind kind)

@@ -1,6 +1,7 @@
 module LLVM.Wrapper.BitReader (parseBitcodeInContext) where
 
 import Foreign.Marshal.Alloc (alloca)
+import Foreign.Marshal.Utils (toBool)
 import Foreign.C.String (peekCString)
 import Foreign.Storable (peek)
 import Foreign.ForeignPtr.Safe (withForeignPtr)
@@ -17,7 +18,7 @@ parseBitcodeInContext ctx buf =
     withForeignPtr ctx $ \ctx' ->
     withForeignPtr buf $ \buf' -> do
       errOccurred <- FFI.parseBitcodeInContext ctx' buf' modPtr msgPtr
-      if errOccurred
+      if toBool errOccurred
         then fmap Left $ peek msgPtr >>= peekCString
         else fmap Right $ peek modPtr >>= initModule
 
@@ -29,6 +30,6 @@ getBitcodeModuleInContext ctx buf =
     withForeignPtr ctx $ \ctx' ->
     withForeignPtr buf $ \buf' -> do
       errOccurred <- FFI.getBitcodeModuleInContext ctx' buf' modPtr msgPtr
-      if errOccurred
+      if toBool errOccurred
         then fmap Left $ peek msgPtr >>= peekCString
         else fmap Right $ peek modPtr >>= initModule

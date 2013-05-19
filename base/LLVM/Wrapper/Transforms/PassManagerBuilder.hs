@@ -2,6 +2,7 @@ module LLVM.Wrapper.Transforms.PassManagerBuilder where
 
 import Foreign.C.Types
 import Foreign.ForeignPtr.Safe (withForeignPtr)
+import Foreign.Marshal.Utils (fromBool, toBool)
 
 import qualified LLVM.FFI.Transforms.PassManagerBuilder as FFI
 import LLVM.Wrapper.Internal
@@ -33,5 +34,5 @@ passManagerBuilderPopulateLTOPassManager :: PassManagerBuilder -> PassManager ->
 passManagerBuilderPopulateLTOPassManager (MkPassManagerBuilder b) (MkPassManager m) internalize inline =
     withForeignPtr b $ \bptr ->
     withForeignPtr m $ \mptr ->
-        FFI.passManagerBuilderPopulateLTOPassManager bptr mptr internalize inline
+        FFI.passManagerBuilderPopulateLTOPassManager bptr mptr (fromBool internalize) (fromBool inline)
 

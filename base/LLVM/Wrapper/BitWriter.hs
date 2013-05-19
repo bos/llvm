@@ -11,5 +11,5 @@ import LLVM.Wrapper.Internal
 writeBitcodeToFile :: Module -> FilePath -> IO ()
 writeBitcodeToFile (MkModule m _) p = do
   result <- withForeignPtr m (withCString p . FFI.writeBitcodeToFile)
-  when result $
+  when (result /= 0) $
          fail $ "Failed to write bitcode to " ++ p
