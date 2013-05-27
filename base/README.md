@@ -50,6 +50,10 @@ http://hackage.haskell.org/trac/ghc/ticket/3333
 http://hackage.haskell.org/trac/ghc/ticket/3658
 http://hackage.haskell.org/trac/ghc/ticket/5987
 
+ghci versions < 7.7 have their own special linker, we do not support it.
+ghci versions >= 7.7 use the system dynamic linker, we do support it.
+If you have a problem using llvm-base with ghci >= 7.7 please file a bug report.
+
 Staying in touch
 ----------------
 

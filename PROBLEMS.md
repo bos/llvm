@@ -8,13 +8,9 @@ me know, or better yet, send a patch.  Thanks!
 Can't use LLVM bindings from ghci
 ---------------------------------
 
-When I try to use the LLVM bindings in `ghci`, on Linux, loading the
-bindings succeeds, but trying to do anything fails:
+ghci versions < 7.7 have their own special linker that dynamically
+links static libraries rather than using the system dynamic linker.
+This is the source of a long history of ffi + ghci bugs, and fundamentally unfixable.
 
-    $ ghci
-    Prelude> :m +LLVM.Core
-    Prelude LLVM.Core> m <- createModule "foo"
-    can't load .so/.DLL for: stdc++ (libstdc++.so: cannot open shared
-      object file: No such file or directory)
-
-I don't know why this happens, but it looks like a `ghci` bug.
+If you have troubles using llvm with ghci versions >= 7.7 , that is a
+bug on the GHCI or llvm-hs sides, please file a bug report so we can resolve it.
