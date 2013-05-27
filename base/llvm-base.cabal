@@ -38,6 +38,7 @@ extra-source-files:
     include/extra.h
     include/hs_llvm_config.h.in
     include/support.h
+    include/passes-inl.h
     llvm-base.buildinfo.in
     llvm-base.buildinfo.windows.in
     tools/*.hs
