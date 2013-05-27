@@ -44,7 +44,7 @@ library
     base >= 3 && < 5,
     bytestring >= 0.9,
     directory,
-    llvm-base >= 3.2.0.0 && < 4,
+    llvm-base >= 3.2.0.1 && < 4,
     mtl,
     process,
     type-level,
