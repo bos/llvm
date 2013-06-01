@@ -122,6 +122,9 @@ module LLVM.Wrapper.Core
     , buildSwitch
     , buildUnreachable
 
+    -- ** Landing pad
+    , buildLandingPad
+
     -- ** Arithmetic
     , buildAdd
     , buildSub
@@ -189,6 +192,7 @@ module LLVM.Wrapper.Core
     , buildPhi
     , addIncoming
     , buildCall
+    , buildInvoke
     , buildSelect
     , isUnreachable
 
@@ -614,6 +618,10 @@ buildSwitch b v d cnt = withForeignPtr b (\b' -> FFI.buildSwitch b' v d cnt)
 buildUnreachable b = withForeignPtr b FFI.buildUnreachable
 buildStore b v ptr = withForeignPtr b (\b' -> FFI.buildStore b' v ptr)
 
+buildLandingPad b ttype val n str =
+  withForeignPtr b (\b' -> withCString str
+                           (FFI.buildLandingPad b' ttype val n))
+
 wrapBin :: (FFI.BuilderRef -> Value -> Value -> CString -> IO Value) ->
             Builder -> Value -> Value -> String  -> IO Value
 wrapBin f b x y name = withForeignPtr b (\b' -> withCString name $ f b' x y)
@@ -715,6 +723,14 @@ buildCall :: Builder -> Value -> [Value] -> String -> IO Value
 buildCall b f args name
     = withArrayLen args $ \len ptr ->
       withForeignPtr b (\b' -> withCString name $ FFI.buildCall b' f ptr (fromIntegral len))
+
+buildInvoke :: Builder -> Value -> [Value]
+            -> BasicBlock -> BasicBlock -> String -> IO Value
+buildInvoke b f args thn catch name
+    = withArrayLen args $ \len ptr ->
+      withForeignPtr b $ \b' ->
+      withCString name $ \cstr ->
+      FFI.buildInvoke b' f ptr (fromIntegral len) thn catch cstr
 
 buildSelect :: Builder -> Value -> Value -> Value -> String -> IO Value
 buildSelect b cond t f name
