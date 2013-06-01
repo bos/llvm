@@ -60,6 +60,9 @@ module LLVM.Wrapper.Core
     -- ** Globals
     , addGlobal
     , getNamedGlobal
+    , getFirstGlobal
+    , getNextGlobal
+    , setInitializer
     , buildGlobalString
     , buildGlobalStringPtr
 
@@ -422,6 +425,15 @@ nullableToMaybe p = if p == nullPtr then Nothing else Just p
 getNamedGlobal :: Module -> String -> IO (Maybe Value)
 getNamedGlobal (MkModule m _) name =
     fmap nullableToMaybe $ withForeignPtr m (withCString name . FFI.getNamedGlobal)
+
+getFirstGlobal :: Module -> IO Value
+getFirstGlobal (MkModule m _) = withForeignPtr m FFI.getFirstGlobal
+
+getNextGlobal :: Value -> IO Value
+getNextGlobal = FFI.getNextGlobal
+
+setInitializer :: Value -> Value -> IO ()
+setInitializer global constant = FFI.setInitializer global constant
 
 buildGlobalString :: Builder -> String -> String -> IO Value
 buildGlobalString b string name
