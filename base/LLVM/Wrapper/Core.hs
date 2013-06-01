@@ -62,6 +62,7 @@ module LLVM.Wrapper.Core
     , getNamedGlobal
     , getFirstGlobal
     , getNextGlobal
+    , setGlobalConstant
     , setInitializer
     , buildGlobalString
     , buildGlobalStringPtr
@@ -431,6 +432,9 @@ getFirstGlobal (MkModule m _) = withForeignPtr m FFI.getFirstGlobal
 
 getNextGlobal :: Value -> IO Value
 getNextGlobal = FFI.getNextGlobal
+
+setGlobalConstant :: Value -> Bool -> IO ()
+setGlobalConstant v b = FFI.setGlobalConstant v (fromBool b)
 
 setInitializer :: Value -> Value -> IO ()
 setInitializer global constant = FFI.setInitializer global constant
