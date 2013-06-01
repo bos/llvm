@@ -167,6 +167,7 @@ module LLVM.Wrapper.Core
     -- ** Memory
     , buildAlloca
     , buildLoad
+    , buildGEP
     , buildStructGEP
     , buildInBoundsGEP
     , constGEP
@@ -689,6 +690,13 @@ buildAlloca b ty name = withForeignPtr b $ \b' -> withCString name $ FFI.buildAl
 
 buildLoad :: Builder -> Value -> String -> IO Value
 buildLoad b ptr name = withForeignPtr b $ \b' -> withCString name $ FFI.buildLoad b' ptr
+
+
+buildGEP :: Builder -> Value -> [Value] -> String -> IO Value
+buildGEP b ptr indices name
+    = withArrayLen indices $ \len indicesPtr ->
+      withForeignPtr b $ \b' ->
+      withCString name $ FFI.buildGEP b' ptr indicesPtr $ fromIntegral len
 
 buildStructGEP :: Builder -> Value -> CUInt -> String -> IO Value
 buildStructGEP b s idx name = withForeignPtr b $ \b' -> withCString name $ FFI.buildStructGEP b' s idx
