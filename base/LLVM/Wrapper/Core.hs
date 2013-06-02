@@ -28,6 +28,8 @@ module LLVM.Wrapper.Core
 
     -- ** Function types
     , functionType
+    , getParamTypes
+    , countParamTypes
 
     -- ** Struct types
     , structType
@@ -66,6 +68,8 @@ module LLVM.Wrapper.Core
     , setInitializer
     , buildGlobalString
     , buildGlobalStringPtr
+    , getVisibility
+    , setVisibility
 
     -- ** Pass Manager
     , PassManager
@@ -80,6 +84,8 @@ module LLVM.Wrapper.Core
     , addFunction
     , getNamedFunction
     , getParams
+    , getParam
+    , countParams
     , getFunctionCallConv
     , setFunctionCallConv
     , getInstructionCallConv
@@ -128,6 +134,8 @@ module LLVM.Wrapper.Core
 
     -- ** Landing pad
     , buildLandingPad
+    , addClause
+    , setCleanup
 
     -- ** Arithmetic
     , buildAdd
@@ -263,6 +271,7 @@ import LLVM.FFI.Core
     , constTruncOrBitCast
 
     , Linkage(..)
+    , Visibility(..)
 
     , IntPredicate(..)
     , FPPredicate(..)
@@ -450,6 +459,12 @@ buildGlobalStringPtr b string name
     = withForeignPtr b $ \b' ->
       withCString name (\n -> withCString string (\s -> FFI.buildGlobalStringPtr b' s n))
 
+getVisibility :: Value -> IO Visibility
+getVisibility v = FFI.toVisibility `fmap` FFI.getVisibility v
+
+setVisibility :: Value -> Visibility -> IO ()
+setVisibility v vis = FFI.setVisibility v (FFI.fromVisibility vis)
+
 createPassManager :: IO PassManager
 createPassManager = initPassManager =<< FFI.createPassManager
 
@@ -488,6 +503,12 @@ getParams f
       allocaArray count $ \ptr ->
           FFI.getParams f ptr >> peekArray count ptr
 
+getParam :: Value -> Int -> Value
+getParam v i = FFI.getParam v (fromIntegral i)
+
+countParams :: Value -> Int
+countParams = fromIntegral . FFI.countParams
+
 getFunctionCallConv :: Value -> IO CallingConvention
 getFunctionCallConv f = fmap FFI.toCallingConvention $ FFI.getFunctionCallConv f
 
@@ -518,6 +539,17 @@ functionType :: Type -> [Type] -> Bool -> Type
 functionType returnTy argTys isVarArg
     = unsafePerformIO $ withArrayLen argTys $ \len ptr ->
       return $ FFI.functionType returnTy ptr (fromIntegral len) (fromBool isVarArg)
+
+countParamTypes :: Type -> Int
+countParamTypes = fromIntegral . unsafePerformIO . FFI.countParamTypes
+
+getParamTypes :: Type -> [Type]
+getParamTypes funcTy =
+  unsafePerformIO $ allocaArray n $ \ptr ->
+    do FFI.getParamTypes funcTy ptr
+       peekArray n ptr
+  where
+    n = countParamTypes funcTy
 
 -- unsafePerformIO just to wrap the non-effecting withArrayLen call
 structType :: [Type] -> Bool -> Type
@@ -638,6 +670,13 @@ buildStore b v ptr = withForeignPtr b (\b' -> FFI.buildStore b' v ptr)
 buildLandingPad b ttype val n str =
   withForeignPtr b (\b' -> withCString str
                            (FFI.buildLandingPad b' ttype val n))
+
+addClause :: Value -> Value -> IO ()
+addClause landingPad clause = FFI.addClause landingPad clause
+
+setCleanup :: Value -> Bool -> IO ()
+setCleanup landingPad cleanupFlag =
+  FFI.setCleanup landingPad (fromBool cleanupFlag)
 
 wrapBin :: (FFI.BuilderRef -> Value -> Value -> CString -> IO Value) ->
             Builder -> Value -> Value -> String  -> IO Value
