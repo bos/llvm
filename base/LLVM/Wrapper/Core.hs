@@ -33,6 +33,7 @@ module LLVM.Wrapper.Core
 
     -- ** Struct types
     , structType
+    , countStructElementTypes
     , structTypeInContext
     , structCreateNamed
     , structCreateNamedInContext
@@ -250,6 +251,7 @@ import LLVM.FFI.Core
     , pointerType
     , vectorType
     , voidType
+    , getElementType
 
     , typeOf
     , dumpValue
@@ -556,6 +558,9 @@ structType :: [Type] -> Bool -> Type
 structType types packed = unsafePerformIO $
     withArrayLen types $ \ len ptr ->
         return $ FFI.structType ptr (fromIntegral len) (fromBool packed)
+
+countStructElementTypes :: Type -> Int
+countStructElementTypes = fromIntegral . FFI.countStructElementTypes
 
 structTypeInContext :: Context -> [Type] -> Bool -> IO Type
 structTypeInContext ctx types packed =
