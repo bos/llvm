@@ -4,9 +4,7 @@ module LLVM.FFI.Support
     (
       createStandardModulePasses
     , createStandardFunctionPasses
-#if HS_LLVM_VERSION >= 300
     , addEmitObjectPass
-#endif
     , disablePrettyStackTrace
     ) where
 
@@ -24,10 +22,8 @@ foreign import ccall unsafe "LLVMCreateStandardFunctionPasses" createStandardFun
 foreign import ccall unsafe "LLVMCreateStandardModulePasses" createStandardModulePasses
     :: PassManagerRef -> CUInt -> CInt -> CInt -> CInt -> CInt -> CInt -> CInt -> IO ()
 
-#if HS_LLVM_VERSION >= 300
 foreign import ccall unsafe "LLVMAddEmitObjectPass" addEmitObjectPass
     :: ModuleRef -> CString -> IO CUInt
-#endif
 
 foreign import ccall unsafe "LLVMDisablePrettyStackTrace" disablePrettyStackTrace
     :: IO ()

@@ -28,9 +28,12 @@ module LLVM.Wrapper.Core
 
     -- ** Function types
     , functionType
+    , getParamTypes
+    , countParamTypes
 
     -- ** Struct types
     , structType
+    , countStructElementTypes
     , structTypeInContext
     , structCreateNamed
     , structCreateNamedInContext
@@ -60,8 +63,14 @@ module LLVM.Wrapper.Core
     -- ** Globals
     , addGlobal
     , getNamedGlobal
+    , getFirstGlobal
+    , getNextGlobal
+    , setGlobalConstant
+    , setInitializer
     , buildGlobalString
     , buildGlobalStringPtr
+    , getVisibility
+    , setVisibility
 
     -- ** Pass Manager
     , PassManager
@@ -76,6 +85,8 @@ module LLVM.Wrapper.Core
     , addFunction
     , getNamedFunction
     , getParams
+    , getParam
+    , countParams
     , getFunctionCallConv
     , setFunctionCallConv
     , getInstructionCallConv
@@ -122,6 +133,11 @@ module LLVM.Wrapper.Core
     , buildSwitch
     , buildUnreachable
 
+    -- ** Landing pad
+    , buildLandingPad
+    , addClause
+    , setCleanup
+
     -- ** Arithmetic
     , buildAdd
     , buildSub
@@ -160,6 +176,7 @@ module LLVM.Wrapper.Core
     -- ** Memory
     , buildAlloca
     , buildLoad
+    , buildGEP
     , buildStructGEP
     , buildInBoundsGEP
     , constGEP
@@ -189,6 +206,7 @@ module LLVM.Wrapper.Core
     , buildPhi
     , addIncoming
     , buildCall
+    , buildInvoke
     , buildSelect
     , isUnreachable
 
@@ -233,6 +251,7 @@ import LLVM.FFI.Core
     , pointerType
     , vectorType
     , voidType
+    , getElementType
 
     , typeOf
     , dumpValue
@@ -254,6 +273,7 @@ import LLVM.FFI.Core
     , constTruncOrBitCast
 
     , Linkage(..)
+    , Visibility(..)
 
     , IntPredicate(..)
     , FPPredicate(..)
@@ -419,6 +439,18 @@ getNamedGlobal :: Module -> String -> IO (Maybe Value)
 getNamedGlobal (MkModule m _) name =
     fmap nullableToMaybe $ withForeignPtr m (withCString name . FFI.getNamedGlobal)
 
+getFirstGlobal :: Module -> IO Value
+getFirstGlobal (MkModule m _) = withForeignPtr m FFI.getFirstGlobal
+
+getNextGlobal :: Value -> IO Value
+getNextGlobal = FFI.getNextGlobal
+
+setGlobalConstant :: Value -> Bool -> IO ()
+setGlobalConstant v b = FFI.setGlobalConstant v (fromBool b)
+
+setInitializer :: Value -> Value -> IO ()
+setInitializer global constant = FFI.setInitializer global constant
+
 buildGlobalString :: Builder -> String -> String -> IO Value
 buildGlobalString b string name
     = withForeignPtr b $ \b' ->
@@ -428,6 +460,12 @@ buildGlobalStringPtr :: Builder -> String -> String -> IO Value
 buildGlobalStringPtr b string name
     = withForeignPtr b $ \b' ->
       withCString name (\n -> withCString string (\s -> FFI.buildGlobalStringPtr b' s n))
+
+getVisibility :: Value -> IO Visibility
+getVisibility v = FFI.toVisibility `fmap` FFI.getVisibility v
+
+setVisibility :: Value -> Visibility -> IO ()
+setVisibility v vis = FFI.setVisibility v (FFI.fromVisibility vis)
 
 createPassManager :: IO PassManager
 createPassManager = initPassManager =<< FFI.createPassManager
@@ -467,6 +505,12 @@ getParams f
       allocaArray count $ \ptr ->
           FFI.getParams f ptr >> peekArray count ptr
 
+getParam :: Value -> Int -> Value
+getParam v i = FFI.getParam v (fromIntegral i)
+
+countParams :: Value -> Int
+countParams = fromIntegral . FFI.countParams
+
 getFunctionCallConv :: Value -> IO CallingConvention
 getFunctionCallConv f = fmap FFI.toCallingConvention $ FFI.getFunctionCallConv f
 
@@ -498,11 +542,25 @@ functionType returnTy argTys isVarArg
     = unsafePerformIO $ withArrayLen argTys $ \len ptr ->
       return $ FFI.functionType returnTy ptr (fromIntegral len) (fromBool isVarArg)
 
+countParamTypes :: Type -> Int
+countParamTypes = fromIntegral . unsafePerformIO . FFI.countParamTypes
+
+getParamTypes :: Type -> [Type]
+getParamTypes funcTy =
+  unsafePerformIO $ allocaArray n $ \ptr ->
+    do FFI.getParamTypes funcTy ptr
+       peekArray n ptr
+  where
+    n = countParamTypes funcTy
+
 -- unsafePerformIO just to wrap the non-effecting withArrayLen call
 structType :: [Type] -> Bool -> Type
 structType types packed = unsafePerformIO $
     withArrayLen types $ \ len ptr ->
         return $ FFI.structType ptr (fromIntegral len) (fromBool packed)
+
+countStructElementTypes :: Type -> Int
+countStructElementTypes = fromIntegral . FFI.countStructElementTypes
 
 structTypeInContext :: Context -> [Type] -> Bool -> IO Type
 structTypeInContext ctx types packed =
@@ -614,6 +672,17 @@ buildSwitch b v d cnt = withForeignPtr b (\b' -> FFI.buildSwitch b' v d cnt)
 buildUnreachable b = withForeignPtr b FFI.buildUnreachable
 buildStore b v ptr = withForeignPtr b (\b' -> FFI.buildStore b' v ptr)
 
+buildLandingPad b ttype val n str =
+  withForeignPtr b (\b' -> withCString str
+                           (FFI.buildLandingPad b' ttype val n))
+
+addClause :: Value -> Value -> IO ()
+addClause landingPad clause = FFI.addClause landingPad clause
+
+setCleanup :: Value -> Bool -> IO ()
+setCleanup landingPad cleanupFlag =
+  FFI.setCleanup landingPad (fromBool cleanupFlag)
+
 wrapBin :: (FFI.BuilderRef -> Value -> Value -> CString -> IO Value) ->
             Builder -> Value -> Value -> String  -> IO Value
 wrapBin f b x y name = withForeignPtr b (\b' -> withCString name $ f b' x y)
@@ -666,6 +735,13 @@ buildAlloca b ty name = withForeignPtr b $ \b' -> withCString name $ FFI.buildAl
 buildLoad :: Builder -> Value -> String -> IO Value
 buildLoad b ptr name = withForeignPtr b $ \b' -> withCString name $ FFI.buildLoad b' ptr
 
+
+buildGEP :: Builder -> Value -> [Value] -> String -> IO Value
+buildGEP b ptr indices name
+    = withArrayLen indices $ \len indicesPtr ->
+      withForeignPtr b $ \b' ->
+      withCString name $ FFI.buildGEP b' ptr indicesPtr $ fromIntegral len
+
 buildStructGEP :: Builder -> Value -> CUInt -> String -> IO Value
 buildStructGEP b s idx name = withForeignPtr b $ \b' -> withCString name $ FFI.buildStructGEP b' s idx
 
@@ -715,6 +791,14 @@ buildCall :: Builder -> Value -> [Value] -> String -> IO Value
 buildCall b f args name
     = withArrayLen args $ \len ptr ->
       withForeignPtr b (\b' -> withCString name $ FFI.buildCall b' f ptr (fromIntegral len))
+
+buildInvoke :: Builder -> Value -> [Value]
+            -> BasicBlock -> BasicBlock -> String -> IO Value
+buildInvoke b f args thn catch name
+    = withArrayLen args $ \len ptr ->
+      withForeignPtr b $ \b' ->
+      withCString name $ \cstr ->
+      FFI.buildInvoke b' f ptr (fromIntegral len) thn catch cstr
 
 buildSelect :: Builder -> Value -> Value -> Value -> String -> IO Value
 buildSelect b cond t f name
