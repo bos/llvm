@@ -86,7 +86,14 @@ LDFLAGS="$llvm_ldflags $LDFLAGS $TARGET_LDFLAGS"
 
 llvm_extra_ghci_libs=""
 
-AC_SEARCH_LIBS([LLVMModuleCreateWithName],[LLVM-2.7 LLVM-2.8 LLVM-2.9 LLVM-3.0 LLVM-3.1 LLVM-3.2])
+dnl We use the fact that the struct type was only introduced in version
+dnl 3.0 to filter out prior version, as they are no longer supported.
+AC_SEARCH_LIBS([LLVMStructType],[LLVM-$llvm_version])
+if test "$ac_cv_search_LLVMStructType" = "no"; then
+   AC_MSG_ERROR([LLVM > 3 required, found $llvm_version])
+fi
+
+AC_SEARCH_LIBS([LLVMModuleCreateWithName],[LLVM-$llvm_version])
 if test "$ac_cv_search_LLVMModuleCreateWithName" = "no"; then
    llvm_all_libs="`$llvm_config --libs all`"
 else

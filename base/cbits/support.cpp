@@ -10,17 +10,14 @@
 #include "llvm-c/Core.h"
 #include "llvm/PassManager.h"
 #include "llvm/Support/PrettyStackTrace.h"
-#if HS_LLVM_VERSION >= 300
-# if HS_LLVM_VERSION < 303
-#  include "llvm/DefaultPasses.h"
-# else
-#  include "llvm/CodeGen/Passes.h"
-# endif
-# include "llvm/Transforms/IPO/PassManagerBuilder.h"
-# include "llvm/Transforms/IPO.h"
+
+#if HS_LLVM_VERSION < 303
+# include "llvm/DefaultPasses.h"
 #else
-# include "llvm/Support/StandardPasses.h"
+# include "llvm/CodeGen/Passes.h"
 #endif
+#include "llvm/Transforms/IPO/PassManagerBuilder.h"
+#include "llvm/Transforms/IPO.h"
 
 #include "support.h"
 
@@ -29,7 +26,6 @@ using namespace llvm;
 void LLVMCreateStandardFunctionPasses(LLVMPassManagerRef PM,
                                       unsigned OptimizationLevel)
 {
-#if HS_LLVM_VERSION >= 300
   llvm::PassManagerBuilder Builder;
   Builder.OptLevel = OptimizationLevel;
 
@@ -42,9 +38,6 @@ void LLVMCreateStandardFunctionPasses(LLVMPassManagerRef PM,
   } else {
     // printf ("Cannot create function passes for module pass manager\n");
   }
-#else
-  createStandardFunctionPasses(unwrap(PM), OptimizationLevel);
-#endif
 }
 
 void LLVMCreateStandardModulePasses(LLVMPassManagerRef PM,
@@ -56,7 +49,6 @@ void LLVMCreateStandardModulePasses(LLVMPassManagerRef PM,
                                     int HaveExceptions,
                                     int DisableInline)
 {
-#if HS_LLVM_VERSION >= 300
   llvm::PassManagerBuilder Builder;
   Builder.OptLevel = OptLevel;
   Builder.SizeLevel = OptimizeSize;
@@ -78,24 +70,6 @@ void LLVMCreateStandardModulePasses(LLVMPassManagerRef PM,
   }
 
   Builder.populateModulePassManager (*unwrap(PM));
-#else
-  Pass *InliningPass = 0;
-
-  if (DisableInline) {
-    // No inlining pass
-  } else if (OptLevel) {
-    unsigned Threshold = 225;
-    if (OptLevel > 2)
-      Threshold = 275;
-    InliningPass = createFunctionInliningPass(Threshold);
-  } else {
-    InliningPass = createAlwaysInlinerPass();
-  }
-
-  createStandardModulePasses(unwrap(PM), OptLevel, OptimizeSize,
-                             UnitAtATime, UnrollLoops, SimplifyLibCalls,
-                             HaveExceptions, InliningPass);
-#endif
 }
 
 void LLVMDisablePrettyStackTrace()

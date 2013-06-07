@@ -68,9 +68,6 @@
 #include "llvm/Bitcode/ReaderWriter.h"
 #include "llvm/Support/MemoryBuffer.h"
 #include "llvm/Support/Casting.h"
-#if HS_LLVM_VERSION < 300
-#include "llvm/TypeSymbolTable.h"
-#endif
 #include "llvm/Support/MemoryBuffer.h"
 #include "llvm/Support/CallSite.h"
 #include "llvm/Analysis/Verifier.h"
@@ -93,9 +90,6 @@
 #include "llvm/Linker.h"
 #include "llvm/Support/SourceMgr.h"
 
-#if HS_LLVM_VERSION >= 300
-// Imports for direct object emission
-// Target selection
 #if HS_LLVM_VERSION < 302
 #include "llvm/Target/TargetData.h"
 #elif HS_LLVM_VERSION < 303
@@ -112,7 +106,6 @@
 // File output
 #include "llvm/Support/raw_ostream.h"
 #include "llvm/Support/FormattedStream.h"
-#endif
 
 // LLVM-C includes
 #include "llvm-c/Core.h"
@@ -226,15 +219,6 @@ const char *LLVMInstGetOpcodeName(LLVMValueRef inst)
     assert(instp);
     return instp->getOpcodeName();
 }
-
-#if HS_LLVM_VERSION < 301
-unsigned LLVMInstGetOpcode(LLVMValueRef inst)
-{
-    llvm::Instruction *instp = llvm::unwrap<llvm::Instruction>(inst);
-    assert(instp);
-    return instp->getOpcode();
-}
-#endif
 
 unsigned LLVMCmpInstGetPredicate(LLVMValueRef cmpinst)
 {
@@ -391,24 +375,14 @@ LLVMValueRef LLVMGetIntrinsic(LLVMModuleRef module, int id,
 {
     assert(types);
 
-#if HS_LLVM_VERSION >= 300
     std::vector<llvm::Type*> types_vec;
     unwrap_vec(types, n_types, types_vec);
-#else
-    std::vector<const llvm::Type*> types_vec;
-    unwrap_cvec(types, n_types, types_vec);
-#endif
 
     llvm::Module *modulep = llvm::unwrap(module);
     assert(modulep);
 
-#if HS_LLVM_VERSION >= 300
     llvm::Function *intfunc = llvm::Intrinsic::getDeclaration(modulep,
         llvm::Intrinsic::ID(id), types_vec);
-#else
-    llvm::Function *intfunc = llvm::Intrinsic::getDeclaration(modulep,
-        llvm::Intrinsic::ID(id), &types_vec[0], types_vec.size());
-#endif
     return wrap(intfunc);
 }
 
@@ -466,11 +440,7 @@ unsigned LLVMLinkModules(LLVMModuleRef dest, LLVMModuleRef src, unsigned mode,
     std::string msg;
     bool err;
 
-#if HS_LLVM_VERSION >= 300
     err = llvm::Linker::LinkModules(destinationp, sourcep, mode, &msg);
-#else
-    err = llvm::Linker::LinkModules(destinationp, sourcep, &msg);
-#endif
 
     if (err) {
         *out = strdup(msg.c_str());
@@ -544,7 +514,6 @@ int LLVMInlineFunction(LLVMValueRef call)
     return llvm::InlineFunction(cs, unused);
 }
 
-#if HS_LLVM_VERSION >= 300
 // Emits an object file based on the host system's machine specification.
 // The object is emitted to the filename given as an argument.
 bool LLVMAddEmitObjectPass (LLVMModuleRef modRef, const char* filename)
@@ -603,7 +572,7 @@ bool LLVMAddEmitObjectPass (LLVMModuleRef modRef, const char* filename)
 
   return true;
 }
-#endif
+
 
 /* Passes */
 
