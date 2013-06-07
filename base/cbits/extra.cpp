@@ -87,9 +87,7 @@
 #include "llvm/Transforms/Utils/UnifyFunctionExitNodes.h"
 #include "llvm/Transforms/Instrumentation.h"
 #include "llvm/Transforms/Utils/Cloning.h"
-#if HS_LLVM_VERSION > 301
 #include "llvm/Linker.h"
-#endif
 #include "llvm/Support/SourceMgr.h"
 
 #if HS_LLVM_VERSION < 302
