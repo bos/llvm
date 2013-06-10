@@ -41,8 +41,6 @@
 #define __STDC_CONSTANT_MACROS
 #endif
 
-#include "hs_llvm_config.h"
-
 // standard includes
 #include <cassert>
 #include <cstdlib>
@@ -72,11 +70,6 @@
 #include "llvm/Support/CallSite.h"
 #include "llvm/Analysis/Verifier.h"
 #include "llvm/Assembly/Parser.h"
-#ifdef HAVE_LLVM_SUPPORT_DYNAMICLIBRARY_H
-# include "llvm/Support/DynamicLibrary.h"
-#else
-# include "llvm/System/DynamicLibrary.h"
-#endif
 #include "llvm/PassManager.h"
 #include "llvm/ExecutionEngine/ExecutionEngine.h"
 #include "llvm/Analysis/LoopPass.h"
@@ -474,22 +467,6 @@ unsigned char *LLVMGetBitcodeFromModule(LLVMModuleRef module, unsigned *lenp)
     /* return */
     *lenp = bclen;
     return bytes;
-}
-
-/* Return 0 on failure (with errmsg filled in), 1 on success. */
-unsigned LLVMLoadLibraryPermanently(const char* filename, char **errmsg)
-{
-    assert(filename);
-    assert(errmsg);
-
-    /* Note: the LLVM API returns true on failure. Don't ask why. */
-    std::string msg;
-    if (llvm::sys::DynamicLibrary::LoadLibraryPermanently(filename, &msg)) {
-        *errmsg = strdup(msg.c_str());
-        return 0;
-    }
-
-    return 1;
 }
 
 void *LLVMGetPointerToFunction(LLVMExecutionEngineRef ee, LLVMValueRef fn)

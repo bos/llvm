@@ -5,8 +5,6 @@
 #define __STDC_CONSTANT_MACROS
 #endif
 
-#include "hs_llvm_config.h"
-
 #include "llvm-c/Core.h"
 #include "llvm/PassManager.h"
 #include "llvm/Support/PrettyStackTrace.h"

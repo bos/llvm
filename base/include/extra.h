@@ -173,11 +173,6 @@ unsigned LLVMLinkModules(LLVMModuleRef dest, LLVMModuleRef src,
  * for the given module. NULL on error. */
 unsigned char *LLVMGetBitcodeFromModule(LLVMModuleRef module, unsigned *len);
 
-/* Wraps llvm::sys::DynamicLibrary::LoadLibraryPermanently(). Returns 0 on
- * failure (with errmsg filled in) and 1 on success. Dispose error message after
- * use, via LLVMDisposeMessage(). */
-unsigned LLVMLoadLibraryPermanently(const char* filename, char **errmsg);
-
 /* Wraps llvm::ExecutionEngine::getPointerToFunction(). Returns a pointer
  * to the JITted function. */
 void *LLVMGetPointerToFunction(LLVMExecutionEngineRef ee, LLVMValueRef fn);
