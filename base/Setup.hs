@@ -6,8 +6,11 @@ import System.Directory
 import System.Environment
 import System.FilePath
 import System.Info
+import System.Process
+import System.IO.Error ( isDoesNotExistError )
 import Control.Monad
-import Data.Char ( isSpace )
+import Control.Exception
+import Data.Char ( isSpace, isDigit )
 import Data.List
 import Data.Maybe
 import Distribution.Simple
@@ -34,12 +37,37 @@ main = do
 -- llvm.buildinfo from a template.
 generateBuildInfo _ conf _ _ = do
     let args = configConfigureArgs conf
-    let pref = "--with-llvm-prefix="
-    let path = case [ p | arg <- args, Just p <- [stripPrefix pref arg] ] of
-               [p] -> p
-               _ -> error $ "Use '--configure-option " ++ pref ++ "PATH' to give LLVM installation path"
-    info <- readFile "llvm.buildinfo.windows.in"
-    writeFile "llvm.buildinfo" $ subst "@llvm_path@" path info
+    let pref = "--with-llvm-config="
+    configbin <-
+        case [ p | arg <- args, Just p <- [stripPrefix pref arg] ] of
+          [p] -> return p
+          _ -> do
+            r <- tryJust (guard . isDoesNotExistError)
+                         (readProcess "llvm-config" ["--bindir"] "")
+            case r of
+              Left _ -> error $ "Use '--configure-option " ++ pref ++ "PATH' to give llvm-config path"
+              Right p -> return $ takeWhile (/= '\n') p ++ "/llvm-config"
+    info <- readFile "llvm-base.buildinfo.windows.in"
+    let llvmconfig = (\opts -> fmap (takeWhile (/= '\n')) $ readProcess configbin opts "")
+    cppflags <- llvmconfig ["--cppflags"]
+    version <- llvmconfig ["--version"]
+    let major = read $ takeWhile isDigit version
+        minor = read . takeWhile isDigit . tail $ dropWhile (/= '.') version
+        hsversion = major * 100 + minor
+    cflags <- llvmconfig ["--cflags"]
+    libs <- fmap (subst "-l" "") $ llvmconfig ["--libs"]
+    libdir <- llvmconfig ["--libdir"]
+    ldopts <- llvmconfig ["--ldflags"]
+    includedir <- llvmconfig ["--includedir"]
+    let substs = [ ("@llvm_cppflags@", cppflags)
+                 , ("@llvm_num_version@", show hsversion)
+                 , ("@llvm_cflags@", cflags)
+                 , ("@llvm_extra_libs@", libs)
+                 , ("@llvm_extra_libdirs@", libdir)
+                 , ("@llvm_ldoptions@", ldopts)
+                 , ("@llvm_includedir@", includedir)
+                 ]
+    writeFile "llvm-base.buildinfo" $ foldl (\i (key, val) -> subst key val i) info substs
 
 subst from to [] = []
 subst from to xs | Just r <- stripPrefix from xs = to ++ subst from to r
