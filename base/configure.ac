@@ -122,15 +122,23 @@ AC_CHECK_HEADERS([llvm/Support/DynamicLibrary.h], [], [],
 # include <llvm/ADT/StringRef.h>
 #endif])
 
-save_LIBS="$LIBS"
-LIBS="-lLLVMSupport -lpthread -ldl $LIBS"
+dnl Checking that we really have an LLVM version available.
+dnl We check both in the single-shared library and with the many-library
+dnl version that may be installed.
+AC_CHECK_LIB(LLVM-$llvm_version, LLVMModuleCreateWithName, [], [])
+if test "$ac_cv_lib_LLVM-$llvm_version_LLVMModuleCreateWithName" = "no"; then
+   save_LIBS="$LIBS"
+   LIBS="-lLLVMSupport -lpthread -ldl $LIBS"
 
-AC_CHECK_LIB(LLVMCore, LLVMModuleCreateWithName, [], [])
-if test "$ac_cv_lib_LLVMCore_LLVMModuleCreateWithName" = "no"; then
-  unset ac_cv_lib_LLVMCore_LLVMModuleCreateWithName
-  LIBS="-lLLVMSupport $save_LIBS"
-  AC_CHECK_LIB(LLVMCore, LLVMModuleCreateWithName, [],
-    [AC_MSG_ERROR(could not find LLVM C bindings)])
+   AC_CHECK_LIB(LLVMCore, LLVMModuleCreateWithName, [], [])
+   if test "$ac_cv_lib_LLVMCore_LLVMModuleCreateWithName" = "no"; then
+     unset ac_cv_lib_LLVMCore_LLVMModuleCreateWithName
+
+     dnl trying again but now without -lpthread and -ldl     
+     LIBS="-lLLVMSupport $save_LIBS"
+     AC_CHECK_LIB(LLVMCore, LLVMModuleCreateWithName, [],
+     [AC_MSG_ERROR(could not find LLVM C bindings)])
+   fi
 fi
 
 llvm_num_version="`echo $llvm_version | sed 's/svn$//' | tr . 0`"

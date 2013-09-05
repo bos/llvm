@@ -6,7 +6,12 @@ import Foreign.C.String(CString)
 import Foreign.C.Types(CUInt(..), CInt(..))
 import Foreign.Ptr(Ptr)
 
+#if LLVM_HS_VERSION > 301
 #include <llvm-c/Linker.h>
+#else
+#define LLVMLinkerDestroySource 0
+#define LLVMLinkerPreserveSource 1
+#endif
 
 data LinkerMode = DestroySource | PreserveSource
                   deriving (Show, Eq)
