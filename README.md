@@ -3,7 +3,7 @@ Notice
 please note that the haskell LLVM community has shifted to llvm-general, which can be found on  
 [hackage](http://hackage.haskell.org/package/llvm-general) and [github](https://github.com/bscarlet/llvm-general).
 
-if you have any questions you can find many of use on the #haskell-llvm  freenode irc channel.
+if you have any questions you can find many members of the Haskell LLVM community on the #haskell-llvm  freenode irc channel.
 
 
 Haskell LLVM bindings
