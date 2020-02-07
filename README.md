@@ -1,7 +1,8 @@
 Notice
 --------
-please note that the haskell LLVM community has shifted to llvm-general, which can be found on  
-[hackage](http://hackage.haskell.org/package/llvm-general) and [github](https://github.com/bscarlet/llvm-general).
+
+> Please note that this package is deprecated and the Haskell LLVM community has shifted to llvm-hs, which can be found on  
+[Hackage](http://hackage.haskell.org/package/llvm-hs) and [Github](https://github.com/llvm-hs).
 
 if you have any questions you can find many members of the Haskell LLVM community on the #haskell-llvm  freenode irc channel.
 
